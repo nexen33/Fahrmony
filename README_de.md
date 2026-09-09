@@ -10,7 +10,11 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-Ein leichtgewichtiger, sicherer und datenschutzorientierter Android Auto-Begleiter. Entwickelt, um das Fahrerlebnis zu optimieren: Steuern Sie Hintergrund-Medienwiedergaben direkt über das Fahrzeugdisplay und empfangen Sie wichtige Benachrichtigungen sicher per Sprachausgabe (TTS), ohne vom Straßenverkehr abgelenkt zu werden.
+Der Name **Fahrmony** setzt sich aus dem deutschen Wort **Fahren** und dem englischen Begriff **Harmony** zusammen.
+
+Für viele Menschen, die im Ausland leben und Fahrzeuge mit Android Auto fahren, besteht oft ein frustrierender Widerspruch: Das native Fahrzeug-Ökosystem unterstützt die gewohnten Streaming- und Messaging-Dienste aus der Heimat meist überhaupt nicht. Auf dem Smartphone laufen die Lieblingsalben oder Podcasts, aber im Auto bleibt oft nur die einfache Bluetooth-Verbindung, bei der Titelwechsel und Textanzeigen unkomfortabel sind. Kommt während der Fahrt eine wichtige Nachricht an, muss man immer noch riskant auf das Handydisplay blicken.
+
+**Fahrmony** schließt diese Lücke. Als leichtgewichtige und sichere Brücke ermöglicht Fahrmony eine reibungslose Mediensteuerung über das Fahrzeugdisplay sowie das sichere Vorlesen wichtiger Benachrichtigungen – für ein entspanntes und harmonisches Fahrerlebnis in der Ferne.
 
 Basiert auf der **offiziellen Android MediaBrowser-Architektur** und modernstem **React 19 + Capacitor**. Keine Root-Rechte erforderlich, 100 % lokal auf Ihrem Gerät.
 
@@ -18,7 +22,7 @@ Basiert auf der **offiziellen Android MediaBrowser-Architektur** und modernstem 
 
 - **Standardisierte Fahrzeug-Medienbrücke**: Nutzt AOSP `MediaBrowserServiceCompat` und `MediaSessionCompat` für eine reibungslose Head-Unit-Integration.
 - **Intelligenter Kalt-/Warmstart**: Aktiviert im Hintergrund ruhende Medien-Apps automatisch bei Betätigung auf dem Autobildschirm.
-- **Sicherheits-Benachrichtigungsassistent**: Erkennt Systembenachrichtigungen und ermöglicht das sichere Vorlesen sowie standardkonforme Kurzantworten via `RemoteInput`.
+- **Sicherheits-Benachrichtigungsassistent**: Erkennt Systembenachrichtigungen und ermöglicht das sichere Vorlesen per Sprachausgabe (TTS) sowie visuelle Hinweise, ohne vom Straßenverkehr abgelenkt zu werden.
 - **Robuste Multi-Prozess-Isolierung**: Native Fahrzeugdienste laufen in einem separaten `:car`-Prozess für maximale Ausfallsicherheit.
 - **Datenschutz an erster Stelle (100 % Offline)**: Keine Serveranbindung, kein Benutzerkonto, keinerlei Telemetrie. Alle Daten verbleiben flüchtig im Arbeitsspeicher des Smartphones.
 - **Modernes Design & Mehrsprachigkeit**: Unterstützt Hell-/Dunkelmodus sowie Deutsch, Englisch, Japanisch und vereinfachtes Chinesisch.
@@ -27,9 +31,19 @@ Basiert auf der **offiziellen Android MediaBrowser-Architektur** und modernstem 
 
 Fahrmony verbindet Anwendungen ausschließlich über offizielle, standardisierte Android-Schnittstellen:
 - **Mediensteuerung**: Kompatibel mit gängigen Streaming-Playern, die den Android-Standard `MediaSession` unterstützen.
-- **Benachrichtigungen**: Kompatibel mit Instant-Messaging-Diensten, die über Standard-Benachrichtigungen und Schnellantworten (`RemoteInput`) verfügen.
+- **Benachrichtigungen**: Kompatibel mit Instant-Messaging-Diensten, die über Standard-Benachrichtigungen zur Sprachausgabe verfügen.
 
-*Hinweis: Alle erwähnten Markennamen dienen ausschließlich der Identifikation technischer Kompatibilität und sind Eigentum ihrer jeweiligen Inhaber.*
+*Hinweis: Alle erwähnten Marken- und Produktnamen dienen ausschließlich der Beschreibung technischer Kompatibilität und sind Eigentum ihrer jeweiligen Inhaber.*
+
+
+## Download & Installation
+
+Fahrmony ist eine saubere, werbefreie Open-Source-Software:
+
+1. Besuchen Sie die [Releases-Seite](https://github.com/nexen33/Fahrmony/releases);
+2. Laden Sie die neueste Installationsdatei `Fahrmony_v1.0.0.apk` herunter;
+3. Installieren Sie die APK und erteilen Sie in der App die Berechtigungen für **„Benachrichtigungszugriff“** und **„Keine Akku-Einschränkungen“**;
+4. Verbinden Sie Ihr Smartphone per Kabel oder kabellos mit Android Auto und starten Sie Fahrmony direkt auf dem Armaturenbrett.
 
 ## Datenschutzversprechen
 
@@ -45,14 +59,15 @@ Fahrmony verbindet Anwendungen ausschließlich über offizielle, standardisierte
 
 ## Haftungsausschluss
 
-1. **Forschung und Bildung**: Diese Software wird unter der MIT-Lizenz ausschließlich für Studien- und nicht-kommerzielle Kompatibilitätszwecke bereitgestellt.
-2. **Keine offizielle Verbindung**: Fahrmony steht in keiner Verbindung zu Google LLC, Tencent, ByteDance, Alibaba, NetEase oder Dritten.
-3. **Keine Urheberrechtsverletzung**: Die Software speichert, verteilt oder entschlüsselt keine urheberrechtlich geschützten Medieninhalte.
-4. **Fahrsicherheit an erster Stelle**: Der Fahrer trägt die alleinige Verantwortung für die Einhaltung aller geltenden Verkehrs- und Sicherheitsvorschriften.
+1. **Forschung und Bildung**: Diese Software wird unter der MIT-Lizenz ausschließlich für technische Studien- und nicht-kommerzielle Kompatibilitätszwecke bereitgestellt. Eine kommerzielle Nutzung oder Monetarisierung ist untersagt.
+2. **Unabhängige Entwicklung**: Fahrmony ist ein unabhängiges Open-Source-Projekt und steht in keiner geschäftlichen Beziehung zu Google LLC, Android Auto oder Entwicklern von Drittanbieter-Apps.
+3. **Keine Urheberrechtsverletzung**: Die Software speichert, verteilt, entschlüsselt oder manipuliert keine urheberrechtlich geschützten Medieninhalte oder proprietäre Kommunikationsprotokolle. Alle Dienste werden durch die auf dem Gerät installierten offiziellen Apps ausgeführt.
+4. **Markenrechte & Fair Use**: Jegliche Erwähnung von Drittanbieter-Systemen dient ausschließlich der objektiven technischen Beschreibung. Alle Markenrechte verbleiben bei ihren jeweiligen Inhabern. Rechteinhaber können sich bei Anliegen direkt über GitHub Issues an uns wenden.
+5. **Fahrsicherheit an erster Stelle**: Die Verantwortung für sicheres Fahren und die Einhaltung aller Verkehrsregeln liegt uneingeschränkt beim Fahrer. Konfigurationen am Gerät dürfen keinesfalls während der Fahrt vorgenommen werden. Die Autoren übernehmen keine Haftung für Schäden oder Verkehrsverstöße.
 
 ---
 
-## Screenshots
+## Vorschau
 
 <p align="center">
   <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/cb70fe9f-eb4d-4c77-979a-098f5ffd5d10" />
