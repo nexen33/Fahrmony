@@ -54,4 +54,12 @@ Fahrmony verbindet Anwendungen ausschließlich über offizielle, standardisierte
 
 ## Screenshots
 
-<!-- Platzhalter für Screenshots des Fahrzeugdisplays und der Smartphone-Oberfläche -->
+<p align="center">
+  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/cb70fe9f-eb4d-4c77-979a-098f5ffd5d10" />
+</p>
+
+<p align="center">
+  <em>Viel Spaß damit!</em><br />
+  <em>Entwickelt mit ❤️ von Tun&PaMa Familie</em><br />
+  <em>Copyright © 2026 Tun & PaMa AG</em>
+</p>
