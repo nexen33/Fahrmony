@@ -1,0 +1,255 @@
+:root {
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', Menlo, Monaco, Consolas, monospace;
+
+  /* Color Calibration: Light Theme (Default 默认浅色) */
+  --bg-main: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-surface-glass: rgba(255, 255, 255, 0.88);
+  --border-subtle: rgba(0, 0, 0, 0.07);
+  --border-glass: rgba(0, 0, 0, 0.10);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  
+  --accent-primary: #0284c7;
+  --accent-light: #0ea5e9;
+  --accent-glow: rgba(2, 132, 199, 0.15);
+  --accent-tint: rgba(2, 132, 199, 0.08);
+
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.06);
+  --glass-inner-border: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  /* Semantic Status Tokens */
+  --status-success: #10b981;
+  --status-success-bg: rgba(16, 185, 129, 0.14);
+  --status-warning: #f59e0b;
+  --status-warning-bg: rgba(245, 158, 11, 0.14);
+  --status-danger: #ef4444;
+  --status-danger-bg: rgba(239, 68, 68, 0.14);
+
+  /* Safe Area Inset Tokens (全局深色/浅色模式通用：动态自适应手机刘海/挖孔与底部横条) */
+  --safe-fallback: 0px;
+  --sat: max(env(safe-area-inset-top, 0px), var(--safe-fallback, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), 0px);
+  --header-base-height: 58px;
+}
+
+[data-theme="dark"] {
+  --bg-main: #0a0c10;
+  --bg-surface: #12151c;
+  --bg-surface-elevated: #181c25;
+  --bg-surface-glass: rgba(18, 21, 28, 0.82);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-glass: rgba(255, 255, 255, 0.12);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  
+  --accent-primary: #0ea5e9;
+  --accent-light: #38bdf8;
+  --accent-glow: rgba(14, 165, 233, 0.2);
+  --accent-tint: rgba(14, 165, 233, 0.12);
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.35);
+  --glass-inner-border: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] {
+  --bg-main: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-surface-glass: rgba(255, 255, 255, 0.88);
+  --border-subtle: rgba(0, 0, 0, 0.07);
+  --border-glass: rgba(0, 0, 0, 0.10);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+  
+  --accent-primary: #0284c7;
+  --accent-light: #0ea5e9;
+  --accent-glow: rgba(2, 132, 199, 0.15);
+  --accent-tint: rgba(2, 132, 199, 0.08);
+
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.06);
+  --glass-inner-border: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+*, button, input, select, textarea {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* 全局原生 App 质感：禁止非必要文字被选中，仅对输入框放行 */
+*, *::before, *::after {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+img {
+  -webkit-user-drag: none;
+}
+
+button {
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+html, body, #root {
+  font-family: var(--font-sans);
+  background-color: var(--bg-main) !important;
+  color: var(--text-primary);
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* 全局深浅色平滑渐变切换 (300ms Material 3 标准非线性水墨过渡，杜绝生硬跳变) */
+html, body, #root,
+#root > div,
+header,
+nav,
+.surface-card,
+.glass-card {
+  transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+h1, h2, h3, p, span, svg {
+  transition: color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              stroke 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  font-size: 17px; /* 全局字号基准调大 3px (14px -> 17px) */
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* Apple Fluid Motion & MyOmnis Jelly Effect */
+.pressable {
+  transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), opacity 120ms ease;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.pressable:active {
+  transform: scale(0.96);
+  opacity: 0.88;
+}
+
+.btn-jelly {
+  transition: transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: var(--text-primary);
+}
+
+.btn-jelly:active {
+  transform: scale(0.94);
+}
+
+/* Glassmorphism Refraction Card */
+.glass-card {
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-sm), var(--glass-inner-border);
+  border-radius: 20px;
+}
+
+.surface-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+}
+
+/* Monospace for telemetry/logs/timestamps */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Tab 切换非线性物理淡入动效 */
+@keyframes tabFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 底部悬浮 Dock 离屏静默完成布局后平滑上滑进场动效 (杜绝首屏尺寸计算抽搐) */
+@keyframes dockSlideUpIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, calc(100% + 24px), 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* 弹窗弹性缩放进场 (MyOmnis 规范) */
+@keyframes modalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 顶部胶囊弹窗进场动画 */
+@keyframes toastDropIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -18px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+/* Scrollbar polish */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 4px;
+}
