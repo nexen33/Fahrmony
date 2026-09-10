@@ -40,7 +40,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 
 - **Standard-Bedienelemente im Fahrzeug**: Wiedergabe, Pause, Vor- und Zurückspringen sowie präzises Spulen direkt am Bordbildschirm.
 - **Sitzungserkennung und -fokus**: Erkennt aktive Audiositzungen und stabilisiert die Steuerung beim Wechsel zwischen mehreren Audio-Apps.
-- **Kaltstart und automatische Wiederverbindung**: Speziell optimiert für Fahrzeugstart und Wiederverbindungen. Bei Verbindung mit Android Auto wird der letzte Wiedergabestatus automatisch erkannt und fortgesetzt – in den allermeisten Alltagsszenarien ganz ohne manuelles Tippen auf dem Smartphone oder Autobildschirm. Inklusive robuster Selbstheilungs- und Wiederholungslogik für ruhende Hintergrund-Apps.
+- **Kaltstart und automatische Wiederverbindung**: Speziell optimiert für Kaltstart und Wiederverbindung von Apps und Android Auto. Bei Verbindung mit Android Auto wird der letzte Wiedergabestatus automatisch erkannt und fortgesetzt – in den allermeisten Alltagsszenarien ganz ohne manuelles Tippen auf dem Smartphone oder Autobildschirm. Inklusive robuster Selbstheilungs- und Wiederholungslogik für ruhende Hintergrund-Apps.
 - **Adaptiver Hintergrund**: Dynamische Farbabstimmung verhindert, dass dunkle Cover-Bilder oder Offline-Wiedergabe die Bedientasten auf dem Monitor schwarz und unlesbar machen.
 - **Wiedergabelisten und Wiederholungsmodi**: Reicht vorhandene Titellisten durch und unterstützt gängige Schleifen- und Wiederholungsmodi.
 - **Fahrgerechte Nachrichtenbenachrichtigung**: Filtert Gruppenchats und ermöglicht das Vorlesen sowie die Bestätigung als gelesen per Tastendruck.
@@ -68,7 +68,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 
 ## Systemanforderungen
 
-- **Smartphone-Betriebssystem**: Android 10.0 oder höher (Android Auto ist fest im System integriert, direkt einsatzbereit; abwärtskompatibel bis Android 9.0 mit manuellem Download aus dem Play Store).
+- **Smartphone-Betriebssystem**: Android 10.0 oder höher (Android Auto ist fest im System integriert, direkt einsatzbereit; abwärtskompatibel bis Android 8.0 mit manuellem Download aus dem Play Store).
 - **Fahrzeugumgebung**: Fahrzeug mit Unterstützung für **Android Auto** (per Kabel oder kabellos) oder offizieller PC Desktop Head Unit (DHU) Emulator.
 - **Anwendungen**: Auf dem Smartphone installierte Streaming- oder Messaging-Anwendungen.
 
@@ -102,7 +102,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 ## Häufig gestellte Fragen
 
 #### Muss ich bei jeder Fahrt manuell auf dem Handy oder Autobildschirm auf Wiedergabe tippen?
-In den allermeisten Fällen absolut nicht. Fahrmony wurde speziell für „Kaltstart“- und „Wiederverbindungs“-Szenarien im Fahrzeug optimiert. Sobald das Smartphone per Kabel oder kabellos mit Android Auto verbunden ist, stellt das System die Audiositzung automatisch wieder her und setzt die Wiedergabe nahtlos fort. Selbst wenn die Audio-App im Hintergrund vom System beendet wurde, wird sie beim Verbindungsaufbau automatisch geweckt und fortgeführt.
+In den allermeisten Fällen absolut nicht. Fahrmony wurde speziell für „Kaltstart“- und „Wiederverbindungs“-Szenarien im Fahrzeug optimiert. In den meisten Fällen, sobald das Smartphone per Kabel oder kabellos mit Android Auto verbunden ist, stellt das System die Audiositzung automatisch wieder her und setzt die Wiedergabe nahtlos fort. Selbst wenn die Audio-App im Hintergrund vom System beendet wurde, wird sie beim Verbindungsaufbau automatisch geweckt und fortgeführt.
 
 #### Warum kann ich auf dem Autobildschirm nicht direkt tippen oder per Sprache antworten?
 Aus Gründen der Verkehrssicherheit und der technischen Grenzen. Das Verfassen von Nachrichten am Steuer lenkt stark ab. Zudem bieten gängige Messaging-Dienste keine öffentlichen Schnittstellen für externe Antworten an. Fahrmony konzentriert sich bewusst auf sicheres Vorlesen.

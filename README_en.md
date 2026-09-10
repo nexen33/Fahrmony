@@ -41,7 +41,7 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 
 - **Standard Head-Unit Media Controls**: Seamless Play, Pause, Next, Previous, and Seek operations directly on your dashboard.
 - **Session Discovery & Smart Arbitration**: Automatically detects active playback across the system and anchors focus when switching apps to prevent card jumping.
-- **Cold Start & Warm Reconnect Resumption**: Finely polished for ignition startup and projection reconnects. Upon connecting to Android Auto, the system automatically detects and resumes playback state without requiring manual clicks on the phone or car screen in most driving scenarios; features built-in self-healing retry logic for sluggish background starts.
+- **Cold Start & Warm Reconnect Resumption**: Finely polished for media app and Android Auto cold starts and warm reconnects. Upon connecting to Android Auto, the system automatically detects and resumes playback state without requiring manual clicks on the phone or car screen in most driving scenarios; features built-in self-healing retry logic for sluggish background starts.
 - **Adaptive Ambient Artwork**: Generates high-contrast gradient backdrops, completely resolving the common issue where dark album art or offline playback causes car playback capsule buttons to turn invisible black.
 - **Queue Passthrough & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; probes and supports standard repeat modes as well as vendor custom actions.
 - **Driving Safety Notification Assistant**: Deconstructs direct and group messages, filters out group chat spam, and generates automotive-standard cards with voice readout and "Mark as Read" actions.
@@ -69,7 +69,7 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 
 ## Requirements
 
-- **Handset OS**: Android 10.0 or higher (Android Auto is natively built into the system, plug and play; backwards compatible with Android 9.0 with manual app download from Google Play).
+- **Handset OS**: Android 10.0 or higher (Android Auto is natively built into the system, plug and play; backwards compatible with Android 8.0 with manual app download from Google Play).
 - **In-Vehicle Environment**: Android Auto compatible vehicle display (wired USB or wireless), or official PC Desktop Head Unit (DHU) emulator.
 - **App Environment**: Standard audio streaming or messaging applications installed on the handset.
 
@@ -103,7 +103,7 @@ All permissions declared in the system manifest and their actual technical purpo
 ## FAQ
 
 #### Do I need to manually press play on my phone or car screen every time I get in the car?
-In the vast majority of everyday scenarios, no. Fahrmony is specifically engineered for automotive "cold start" and "warm reconnect" situations. When connecting via USB cable or wireless projection to Android Auto, the system automatically establishes session awareness and resumes your previous stream without needing to take out your phone or tap the dashboard; even if the target media app was killed in the background, it wakes up and continues playback automatically upon connection.
+In the vast majority of everyday scenarios, no. Fahrmony is specifically engineered for automotive "cold start" and "warm reconnect" situations. In most cases, when connecting via USB cable or wireless projection to Android Auto, the system automatically establishes session awareness and resumes your previous stream without needing to take out your phone or tap the dashboard; even if the target media app was killed in the background, it wakes up and continues playback automatically upon connection.
 
 #### Why can't I type or dictate replies to chat messages on the car screen?
 For driver safety and technical compliance. Typing on a dashboard while driving is extremely hazardous; furthermore, major messaging apps do not expose third-party external message-sending APIs. Fahrmony strictly maintains a read-only policy.
