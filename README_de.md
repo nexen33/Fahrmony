@@ -40,12 +40,12 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 
 - **Standard-Bedienelemente im Fahrzeug**: Wiedergabe, Pause, Vor- und Zurückspringen sowie präzises Spulen direkt am Bordbildschirm.
 - **Sitzungserkennung und -fokus**: Erkennt aktive Audiositzungen und stabilisiert die Steuerung beim Wechsel zwischen mehreren Audio-Apps.
-- **Kaltstart & automatisches Aufwecken**: Startet ruhende Ziel-Apps bei Befehlen über den Autobildschirm automatisch im Hintergrund und setzt die Wiedergabe fort; inklusive Wiederholungsversuchen bei Verzögerungen.
+- **Kaltstart und automatische Wiederverbindung**: Speziell optimiert für Fahrzeugstart und Wiederverbindungen. Bei Verbindung mit Android Auto wird der letzte Wiedergabestatus automatisch erkannt und fortgesetzt – in den allermeisten Alltagsszenarien ganz ohne manuelles Tippen auf dem Smartphone oder Autobildschirm. Inklusive robuster Selbstheilungs- und Wiederholungslogik für ruhende Hintergrund-Apps.
 - **Adaptiver Hintergrund**: Dynamische Farbabstimmung verhindert, dass dunkle Cover-Bilder oder Offline-Wiedergabe die Bedientasten auf dem Monitor schwarz und unlesbar machen.
 - **Wiedergabelisten und Wiederholungsmodi**: Reicht vorhandene Titellisten durch und unterstützt gängige Schleifen- und Wiederholungsmodi.
 - **Fahrgerechte Nachrichtenbenachrichtigung**: Filtert Gruppenchats und ermöglicht das Vorlesen sowie die Bestätigung als gelesen per Tastendruck.
 - **Schutz vor versehentlicher Tonwiedergabe**: Pausiert die Wiedergabe sofort beim Trennen des Kabels, damit das Handy nicht plötzlich laut weiterspielt.
-- **Schlankes Smartphone-Frontend**: Übersichtliche Smartphone-Oberfläche mit Hell- und Dunkelmodus sowie mehrsprachiger Unterstützung.
+- **Schlankes Smartphone-Frontend**: Übersichtliche Smartphone-Oberfläche zur Anzeige des Erkennungsstatus von Audioquellen und Benachrichtigungsübertragungen, mit Hell-/Dunkelmodus, 4-Sprachen-Unterstützung sowie Berechtigungs-Leitfaden.
 
 ## Kompatibilitätsmatrix
 
@@ -99,7 +99,21 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 | **Benachrichtigungen senden** | Fahrzeug-Kartenanzeige | Erforderlich ab Android 13, um eingehende Nachrichten formatiert auf dem Autobildschirm darzustellen. |
 | **Akku-Optimierung ignorieren** | Schutz vor Abschaltung | Verhindert, dass aggressive Stromsparmechanismen des Handys den Dienst bei längerer Fahrt beenden. |
 
-## Problembehebung
+## Häufig gestellte Fragen
+
+#### Muss ich bei jeder Fahrt manuell auf dem Handy oder Autobildschirm auf Wiedergabe tippen?
+In den allermeisten Fällen absolut nicht. Fahrmony wurde speziell für „Kaltstart“- und „Wiederverbindungs“-Szenarien im Fahrzeug optimiert. Sobald das Smartphone per Kabel oder kabellos mit Android Auto verbunden ist, stellt das System die Audiositzung automatisch wieder her und setzt die Wiedergabe nahtlos fort. Selbst wenn die Audio-App im Hintergrund vom System beendet wurde, wird sie beim Verbindungsaufbau automatisch geweckt und fortgeführt.
+
+#### Warum kann ich auf dem Autobildschirm nicht direkt tippen oder per Sprache antworten?
+Aus Gründen der Verkehrssicherheit und der technischen Grenzen. Das Verfassen von Nachrichten am Steuer lenkt stark ab. Zudem bieten gängige Messaging-Dienste keine öffentlichen Schnittstellen für externe Antworten an. Fahrmony konzentriert sich bewusst auf sicheres Vorlesen.
+
+#### Warum zeigt der Bildschirm farbige Flächen anstelle des Original-Covers?
+Einige Original-Cover sind sehr dunkel, was dazu führen kann, dass das Bordsystem die Bedientasten in unleserlichem Schwarz darstellt. Zudem können hochauflösende Bilder das System verlangsamen. Die Farbabstimmung sorgt dafür, dass die Tasten jederzeit klar lesbar bleiben.
+
+#### Wird der Ton über das Auto oder das Smartphone ausgegeben?
+Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über die Lautsprecher des Fahrzeugs. Beim Abziehen des Kabels stoppt Fahrmony die Wiedergabe sofort, damit das Telefon nicht versehentlich in der Öffentlichkeit weiterspielt.
+
+## Mögliche Ausnahmen und Fehlerbehebung
 
 ### 1. Fahrmony erscheint nicht auf dem Autobildschirm
 - **Ursache**: „Unbekannte Quellen“ in den Entwicklereinstellungen von Android Auto nicht aktiviert.
@@ -213,20 +227,6 @@ Entwickler können relevante Protokollauszüge optional an die Fehlermeldung anh
 - **Fahrzeug-Kern (`:car` isolierter Prozess)**: Kotlin, Android Jetpack MediaCompat, Android Auto, Messenger IPC
 - **Mobil-Dashboard (Hauptprozess)**: Capacitor v8, React 19, TypeScript, Vite
 - **Styling und Lokalisierung**: Vanilla CSS, Native i18n
-
-## Häufig gestellte Fragen
-
-#### Warum kann ich auf dem Autobildschirm nicht direkt tippen oder per Sprache antworten?
-Aus Gründen der Verkehrssicherheit und der technischen Grenzen. Das Verfassen von Nachrichten am Steuer lenkt stark ab. Zudem bieten gängige Messaging-Dienste keine öffentlichen Schnittstellen für externe Antworten an. Fahrmony konzentriert sich bewusst auf sicheres Vorlesen.
-
-#### Warum zeigt der Bildschirm farbige Flächen anstelle des Original-Covers?
-Einige Original-Cover sind sehr dunkel, was dazu führen kann, dass das Bordsystem die Bedientasten in unleserlichem Schwarz darstellt. Zudem können hochauflösende Bilder das System verlangsamen. Die Farbabstimmung sorgt dafür, dass die Tasten jederzeit klar lesbar bleiben.
-
-#### Wird der Ton über das Auto oder das Smartphone ausgegeben?
-Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über die Lautsprecher des Fahrzeugs. Beim Abziehen des Kabels stoppt Fahrmony die Wiedergabe sofort, damit das Telefon nicht versehentlich in der Öffentlichkeit weiterspielt.
-
-#### Muss ich die App vor jeder Fahrt auf dem Telefon öffnen?
-Nein. Wenn die Autostart-Rechte im Smartphone vergeben sind, genügt ein Druck auf die Wiedergabetaste auf dem Autobildschirm, um den gewünschten Player im Hintergrund zu starten.
 
 ## Mitwirken
 

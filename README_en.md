@@ -41,12 +41,12 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 
 - **Standard Head-Unit Media Controls**: Seamless Play, Pause, Next, Previous, and Seek operations directly on your dashboard.
 - **Session Discovery & Smart Arbitration**: Automatically detects active playback across the system and anchors focus when switching apps to prevent card jumping.
-- **Cold Start & Auto Wakeup**: Automatically wakes up target media apps and starts playback when requested from the car display, with built-in retry handling for sluggish initializations.
+- **Cold Start & Warm Reconnect Resumption**: Finely polished for ignition startup and projection reconnects. Upon connecting to Android Auto, the system automatically detects and resumes playback state without requiring manual clicks on the phone or car screen in most driving scenarios; features built-in self-healing retry logic for sluggish background starts.
 - **Adaptive Ambient Artwork**: Generates high-contrast gradient backdrops, completely resolving the common issue where dark album art or offline playback causes car playback capsule buttons to turn invisible black.
 - **Queue Passthrough & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; probes and supports standard repeat modes as well as vendor custom actions.
 - **Driving Safety Notification Assistant**: Deconstructs direct and group messages, filters out group chat spam, and generates automotive-standard cards with voice readout and "Mark as Read" actions.
 - **Anti-Jitter & Audio Leak Prevention**: Instantly claims transient audio focus and pauses all players upon car disconnection to eliminate speaker audio leakage; enforces an anti-jitter state lock during track switching to prevent UI flashing.
-- **Minimalist Handset Frontend**: A lightweight fluid interface on the handset with light/dark adaptive theming, 4-language support, and real-time local diagnostic logs.
+- **Minimalist Handset Frontend**: A lightweight fluid console on the handset displaying real-time media source detection status and notification relay records, with light/dark adaptive theming, 4-language support, and permission setup guides.
 
 ## Compatibility
 
@@ -100,7 +100,21 @@ All permissions declared in the system manifest and their actual technical purpo
 | **Post Notifications** | Vehicle Message Cards | Required on Android 13+ to post formatted notification cards for vehicle display and voice readouts. |
 | **Ignore Battery Optimizations** | Long-drive Protection | Excludes app from aggressive system power-saving killers during long navigation drives. |
 
-## Troubleshooting
+## FAQ
+
+#### Do I need to manually press play on my phone or car screen every time I get in the car?
+In the vast majority of everyday scenarios, no. Fahrmony is specifically engineered for automotive "cold start" and "warm reconnect" situations. When connecting via USB cable or wireless projection to Android Auto, the system automatically establishes session awareness and resumes your previous stream without needing to take out your phone or tap the dashboard; even if the target media app was killed in the background, it wakes up and continues playback automatically upon connection.
+
+#### Why can't I type or dictate replies to chat messages on the car screen?
+For driver safety and technical compliance. Typing on a dashboard while driving is extremely hazardous; furthermore, major messaging apps do not expose third-party external message-sending APIs. Fahrmony strictly maintains a read-only policy.
+
+#### Why does the screen show gradient artwork instead of the original cover?
+Certain source player covers are extremely dark, causing the in-car system to automatically tint playback control buttons into invisible black. Transmitting high-resolution bitmaps can also introduce latency. Adaptive gradients ensure buttons remain readable and track changes smooth.
+
+#### Does audio output from the car or the phone speaker?
+Audio automatically routes through the vehicle speakers when connected. Upon disconnection, Fahrmony's built-in leakage prevention pauses playback instantly, preventing sudden loud speaker output in public.
+
+## Troubleshooting & Potential Exceptions
 
 ### 1. Fahrmony icon does not appear on car display
 - **Cause**: "Unknown sources" is not enabled in Android Auto developer settings.
@@ -214,20 +228,6 @@ Developers may optionally attach relevant log excerpts to their issue submission
 - **Automotive Core (`:car` isolated process)**: Kotlin, Android Jetpack MediaCompat, Android Auto, Messenger IPC
 - **Handset Frontend (Main process)**: Capacitor v8, React 19, TypeScript, Vite
 - **Styling & Localization**: Vanilla CSS, Native i18n
-
-## FAQ
-
-#### Why can't I type or dictate replies to chat messages on the car screen?
-For driver safety and technical compliance. Typing on a dashboard while driving is extremely hazardous; furthermore, major messaging apps do not expose third-party external message-sending APIs. Fahrmony strictly maintains a read-only policy.
-
-#### Why does the screen show gradient artwork instead of the original cover?
-Certain source player covers are extremely dark, causing the in-car system to automatically tint playback control buttons into invisible black. Transmitting high-resolution bitmaps can also introduce latency. Adaptive gradients ensure buttons remain readable and track changes smooth.
-
-#### Does audio output from the car or the phone speaker?
-Audio automatically routes through the vehicle speakers when connected. Upon disconnection, Fahrmony's built-in leakage prevention pauses playback instantly, preventing sudden loud speaker output in public.
-
-#### Do I need to open the app on my phone before every drive?
-No. As long as background autostart permission is granted, simply tapping play or selecting a source on the vehicle display will automatically wake the corresponding media app in the background.
 
 ## Contributing
 
