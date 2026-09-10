@@ -136,7 +136,7 @@ All permissions declared in the system manifest and their actual technical purpo
 
 ## Diagnostics & Feedback
 
-### For Drivers & End Users
+### For Most Drivers & Car Owners
 
 If you encounter an issue during daily driving, please file a report on GitHub Issues using the template below (**Note: Never submit personal private chat contents**):
 
@@ -150,7 +150,7 @@ If you encounter an issue during daily driving, please file a report on GitHub I
 - Issue Description:
 ```
 
-### For Developers & Advanced Users
+### For Developers & Tech Enthusiasts
 
 If you have a debugging setup, you can use the official Desktop Head Unit (DHU) emulator and ADB tool to capture native probe logs.
 
@@ -192,31 +192,21 @@ Developers may optionally attach relevant log excerpts to their issue submission
 ## Architecture
 
 ```text
-  ┌─────────────────────────────────────────────────────────────┐
-  │  Source Applications (Audio Streaming & Messaging Apps)     │
-  └───────────────┬─────────────────────────────┬───────────────┘
-                  │ MediaSession Token          │ System Notifications
-                  ▼                             ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  Fahrmony Isolated Automotive Process (:car)                │
-  │  - Session Discovery, Smart Arbitration & Cold Start Wakeup │
-  │  - Message Sanitization, Group Filtering & Translation      │
-  │  - Automotive Media Service (MediaBrowserServiceCompat)     │
-  │  - Persistent Foreground Daemon Service                     │
-  └─────────────────────────────┬───────────────────────────────┘
-                                │ Non-blocking Messenger IPC
-                                ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  Fahrmony Mobile Handset Process                            │
-  │  - Status Monitoring, App Configuration & Preferences       │
-  └─────────────────────────────┬───────────────────────────────┘
-                                │ Android Auto Interop Link
-                                ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  Vehicle Head Unit (Android Auto Display)                   │
-  │  - Split-Screen & Full-Screen Media Controls                │
-  │  - Google Assistant Voice Announcement                      │
-  └─────────────────────────────────────────────────────────────┘
+┌─ Source Applications (Audio Streaming & Messaging Apps)
+│  └─ MediaSession Token / System Notifications
+▼
+┌─ Fahrmony Isolated Automotive Process (:car)
+│  ├─ Session Discovery, Smart Arbitration & Auto Wakeup
+│  ├─ Message Sanitization, Group Filtering & Translation
+│  ├─ Automotive Media Service (MediaBrowserServiceCompat)
+│  └─ Persistent Foreground Daemon Service
+▼
+┌─ Fahrmony Mobile Handset Frontend (Main process)
+│  └─ Status Monitoring, App Configuration & Preferences
+▼
+┌─ Vehicle Head Unit (Android Auto Display)
+│  ├─ Split-Screen & Full-Screen Media Controls
+│  └─ Google Assistant Voice Announcement
 ```
 
 ## Tech Stack

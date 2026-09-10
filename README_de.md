@@ -135,7 +135,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 
 ## Diagnose und Feedback
 
-### Für Fahrer und Endanwender
+### Für die meisten Fahrer und Fahrzeugbesitzer
 
 Wenn im Alltag ein Problem auftritt, können Sie gerne eine Fehlermeldung auf GitHub einreichen. Bitte nutzen Sie folgende Vorlage (**Hinweis: Bitte niemals vertrauliche private Nachrichteninhalte übermitteln**):
 
@@ -149,7 +149,7 @@ Wenn im Alltag ein Problem auftritt, können Sie gerne eine Fehlermeldung auf Gi
 - Fehlerbeschreibung:
 ```
 
-### Für Entwickler und erfahrene Anwender
+### Für Entwickler und Technik-Enthusiasten
 
 Für tiefergehende Analysen steht der offizielle Desktop Head Unit (DHU) Emulator in Verbindung mit ADB bereit.
 
@@ -191,31 +191,21 @@ Entwickler können relevante Protokollauszüge optional an die Fehlermeldung anh
 ## Architektur
 
 ```text
-  ┌─────────────────────────────────────────────────────────────┐
-  │  Quell-Anwendungen (Audio-Streaming- und Messaging-Apps)    │
-  └───────────────┬─────────────────────────────┬───────────────┘
-                  │ Mediensitzungs-Token        │ Systembenachrichtigungen
-                  ▼                             ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  Fahrmony Isolierter Fahrzeug-Hintergrundprozess (:car)     │
-  │  - Sitzungserkennung, Schlichtung und Kaltstart             │
-  │  - Bereinigung von Nachrichten und Gruppenchat-Filter       │
-  │  - Standardisierter Fahrzeugdienst (MediaBrowserService)    │
-  │  - Dauerhafter Vordergrund-Schutzdienst                     │
-  └─────────────────────────────┬───────────────────────────────┘
-                                │ Lokale Prozesskommunikation (Messenger IPC)
-                                ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  Fahrmony Smartphone-Verwaltungsoberfläche                  │
-  │  - Statusanzeige, Berechtigungsprüfung und Einstellungen    │
-  └─────────────────────────────┬───────────────────────────────┘
-                                │ Fahrzeug-Schnittstelle
-                                ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  Fahrzeug-Display (Android Auto)                            │
-  │  - Mediensteuerung auf Vollbild und geteiltem Bildschirm   │
-  │  - Sichere Sprachausgabe eingehender Nachrichten            │
-  └─────────────────────────────────────────────────────────────┘
+┌─ Quell-Anwendungen (Audio-Streaming- und Messaging-Apps)
+│  └─ Mediensitzungs-Token / Systembenachrichtigungen
+▼
+┌─ Fahrmony Isolierter Fahrzeug-Hintergrundprozess (:car)
+│  ├─ Sitzungserkennung, Schlichtung und Aufwecken
+│  ├─ Bereinigung von Nachrichten und Gruppenchat-Filter
+│  ├─ Standardisierter Fahrzeugdienst (MediaBrowserServiceCompat)
+│  └─ Dauerhafter Vordergrund-Schutzdienst
+▼
+┌─ Fahrmony Smartphone-Frontend (Hauptprozess)
+│  └─ Statusanzeige, Berechtigungsprüfung und Einstellungen
+▼
+┌─ Fahrzeug-Display (Android Auto)
+│  ├─ Mediensteuerung auf Vollbild und geteiltem Bildschirm
+│  └─ Sichere Sprachausgabe eingehender Nachrichten
 ```
 
 ## Technologie-Stack
