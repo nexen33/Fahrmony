@@ -8,62 +8,260 @@
 ![Capacitor](https://img.shields.io/badge/Capacitor-v8-blue)
 ![React](https://img.shields.io/badge/React-v19-cyan)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
-![License](https://img.shields.io/badge/License-MIT-green)
+![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
+
+> A local-first interoperability bridge tailored for Android Auto, enabling car displays to naturally display and partially control your favorite Chinese streaming audio and messaging notifications while driving abroad.
+
+## What is Fahrmony?
 
 The name **Fahrmony** is a blend of the German word for driving (**Fahren**) and the English word **Harmony**.
 
-For many people living abroad who drive vehicles equipped with Android Auto, there has always been a frustrating disconnect: the native vehicle ecosystem rarely integrates the streaming and messaging apps they use on a daily basis. You might be playing your favorite music or podcasts on your phone, but on the car screen you are stuck with basic Bluetooth audio where changing tracks and viewing metadata is clunky, or taking risky glances at your phone whenever an important message arrives.
+For many drivers living abroad and driving vehicles equipped with Android Auto, a persistent frustration exists: the native in-car ecosystem rarely supports the Chinese music, podcast, and messaging apps they are accustomed to using. While phone background playback works, stepping into the car often reduces the experience to rudimentary Bluetooth audio—steering wheel and dashboard controls cannot change tracks or adjust progress, and when messages arrive from apps like WeChat or Feishu, drivers are tempted to risk glancing down at their phone screens.
 
-**Fahrmony** was born to bridge this gap. Functioning as a lightweight and safe in-car proxy, Fahrmony brings smooth media dashboard control and hands-free notification readouts to your vehicle display, making every journey abroad comfortable and harmonious.
+**Fahrmony was built to bridge this disconnect safely.** Without requiring root privileges and without modifying the operating system, it functions as standard-compliant lightweight in-car middleware. It mirrors phone background playback onto Android Auto full-screen and split-screen controls (including Coolwalk) and converts incoming chat notifications into driver-safe voice readouts (TTS), making trips abroad calmer and safer.
 
-Built on **official Android MediaBrowser architecture** and **React 19 + Capacitor**, Fahrmony operates without root or system modifications. 100% of your data stays offline on your phone.
+### What Fahrmony is NOT
 
-## Key Features
+To avoid misconceptions, please note:
+- **Not a standalone music player**: Contains no internal audio decoders and does not stream media independently.
+- **Not a replacement for original apps**: Accounts, VIP privileges, playlists, and audio decoding remain 100% managed by your installed apps.
+- **No media caching or relaying**: Does not download, proxy, or relay media files over remote servers.
+- **No root required**: Operates strictly within Android's standard application sandbox security boundaries.
+- **No private protocol reverse-engineering**: Does not decompile private commercial APIs or modify network packets.
 
-- **Standard In-Car Media Bridge**: Powered by AOSP `MediaBrowserServiceCompat` and `MediaSessionCompat` to deliver a native vehicle head-unit control interface.
-- **Cold/Warm Launch Arbitration**: Automatically wakes up target media apps when invoked from the car display, avoiding manual interaction with the handset.
-- **Hands-Free Notification Assistant**: Listens to system notifications and translates them into automotive-friendly voice announcements (TTS) and heads-up prompts, eliminating dangerous phone glances while driving.
-- **Multi-Process Architecture**: Native automotive services run in an isolated `:car` process for high resilience and long-lasting stability.
-- **Privacy-First (100% Offline)**: No cloud servers, no account registration, zero telemetry. All message texts and media states are strictly processed in local volatile RAM.
-- **Modern UI & Multi-Language**: Ergonomic design with dark/light themes, fully localized in English, German, Japanese, and Simplified Chinese.
+## How It Works
 
-## Compatibility & Interoperability
+Fahrmony establishes a bidirectional bridge using official Android standard interfaces:
 
-Fahrmony bridges apps via standard Android AOSP public APIs:
-- **Audio Controls**: Compatible with streaming media players supporting Android standard `MediaSession`.
-- **Message Prompts**: Compatible with instant messaging apps supporting standard Android system notifications for voice readout.
+1. **Audio Media Pipeline**: Discovers active media on the phone via notification listeners and media session managers, mapping playback state bidirectionally into an automotive media browser service for direct dashboard and steering wheel control.
+2. **Messaging Pipeline**: Captures incoming status bar notifications, cleans and normalizes their payload, and translates them into automotive-standard notification cards for safe voice readouts via the vehicle's assistant.
+3. **Process Isolation**: All automotive background services run in an isolated `:car` system process, physically decoupled from the mobile frontend and synchronized via non-blocking Messenger IPC.
 
-*Note: All third-party names, trademarks, and brand logos are the property of their respective owners, cited solely for technical compatibility and descriptive purposes.*
+## Features
 
+- **Standard Head-Unit Media Controls**: Seamless Play, Pause, Next, Previous, and Seek operations directly on your dashboard.
+- **Session Discovery & Smart Arbitration**: Automatically detects active playback across the system and anchors focus when switching apps to prevent card jumping.
+- **Cold Start & Auto Wakeup**: Automatically wakes up target media apps and starts playback when requested from the car display, with built-in retry handling for sluggish initializations.
+- **Adaptive Ambient Artwork**: Generates high-contrast gradient backdrops, completely resolving the common issue where dark album art or offline playback causes car playback capsule buttons to turn invisible black.
+- **Queue Passthrough & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; probes and supports standard repeat modes as well as vendor custom actions.
+- **Driving Safety Notification Assistant**: Deconstructs direct and group messages, filters out group chat spam, and generates automotive-standard cards with voice readout and "Mark as Read" actions.
+- **Anti-Jitter & Audio Leak Prevention**: Instantly claims transient audio focus and pauses all players upon car disconnection to eliminate speaker audio leakage; enforces an anti-jitter state lock during track switching to prevent UI flashing.
+- **Minimalist Handset Frontend**: A lightweight fluid interface on the handset with light/dark adaptive theming, 4-language support, and real-time local diagnostic logs.
 
-## Download & Installation
+## Compatibility
 
-Fahrmony is a clean, ad-free open-source project:
+> **Core Principle**: Compatibility is based strictly on **standard Android capabilities** rather than vendor lock-in. Any third-party application publishing standard media sessions or system notifications is supported.
 
-1. Navigate to the [Releases page](https://github.com/nexen33/Fahrmony/releases);
-2. Download the latest `Fahrmony_v1.0.0.apk`;
-3. Install the APK on your Android device and grant **"Notification Access"** and **"Unrestricted Battery"** following the in-app onboarding guide;
-4. Connect your phone to your car via Android Auto (wired or wireless), and launch Fahrmony from the dashboard.
+| Capability | Support Status | Implementation & Mechanism | Limitations & Boundaries |
+| :--- | :---: | :--- | :--- |
+| **Playback Controls** | **Full** | Issues play/pause commands with a debounce lock | Requires original app to handle standard media intents |
+| **Track Skip** | **Full** | Issues next/previous commands with state lock | Certain radio or podcast streams do not implement previous track |
+| **Seek** | **Supported** | Relays seek timestamps in milliseconds and syncs UI progress | Disabled for live streams or non-seekable streams |
+| **Track Metadata** | **Full** | Extracts title, artist, and album with local caching | Displays app name temporarily if metadata delivery is delayed |
+| **Cover Artwork** | **Adaptive** | Generates high-contrast gradient art to preserve button visibility | Avoids loading remote image bitmaps directly to prevent black buttons |
+| **Playback Queue** | **Passthrough** | Displays track lists on car display when provided by source app | Automatically hidden if the source app does not expose a queue |
+| **Repeat Modes** | **Adaptive** | Prioritizes standard flags; probes vendor actions as fallback | Depends on source app exposing standard or custom controls |
+| **Shuffle** | **Limited** | Functional only when source app exposes cycle actions | Most streaming apps do not expose standalone shuffle commands |
+| **Cold Start** | **Full** | Wakes dormant target app in background and resumes playback | Requires handset permission for background autostart |
+| **Notification Display** | **Full** | Parses messages and generates standardized car cards | Requires granted Notification Access permission |
+| **Voice Readout** | **System-driven** | Handled by vehicle voice assistant following automotive specs | Voice synthesis quality depends on system speech settings |
+| **Direct Reply** | **Unsupported** | Offers "Mark as Read" dismissal. **Replying back to source app is unsupported** | Messaging apps do not provide public third-party message-sending APIs |
 
-## Privacy Promise
+## Requirements
 
-- **No Network Requests**: Fahrmony does not request internet permissions and contains no analytic SDKs.
-- **Zero Disk Residue**: Notifications are parsed on-the-fly and wiped immediately after TTS / display.
+- **Handset OS**: Android 10.0 or higher (Android Auto is natively built into the system, plug and play; backwards compatible with Android 9.0 with manual app download from Google Play).
+- **In-Vehicle Environment**: Android Auto compatible vehicle display (wired USB or wireless), or official PC Desktop Head Unit (DHU) emulator.
+- **App Environment**: Standard audio streaming or messaging applications installed on the handset.
+
+## Installation
+
+1. **Download APK**: Visit the [Releases page](https://github.com/nexen33/Fahrmony/releases) and download the latest release package.
+2. **Grant Permissions**:
+   - Open Fahrmony and enable **Notification Access**;
+   - Enable **Ignore Battery Optimizations** to prevent the OS from terminating background services during long drives;
+   - On Android 13 or higher, allow the **Post Notifications** permission.
+3. **Enable Android Auto Developer Settings**:
+   - Open phone Settings -> search for `Android Auto`;
+   - Scroll to the bottom and tap Version 10 times to unlock developer mode;
+   - Tap the top-right three dots -> **Developer settings** -> check **Unknown sources**.
+4. **Connect to Vehicle**: Connect via USB cable or wireless projection. The **Fahrmony** icon will appear on your vehicle's dashboard.
+
+## Permissions
+
+All permissions declared in the system manifest and their actual technical purposes:
+
+| Permission | Component | Technical Purpose & Disclosure |
+| :--- | :--- | :--- |
+| **Network Access** | UI Container Environment | Standard configuration for hybrid WebView container. **Fahrmony contains zero backend servers, zero networking code, zero analytics, and never transmits data externally.** |
+| **Notification Access** | Core Media & Message Bridge | Essential permission. Used to discover media tokens from status bar notifications and capture messages for voice readouts. Processed purely in volatile RAM. |
+| **Foreground Service** | Background Daemon Stability | Maintains service persistence when the phone screen is locked or another app is in use. |
+| **Foreground Service Media Playback** | Automotive Audio Control | Declares compliant media service type to Android OS to ensure high-priority audio responsiveness. |
+| **Foreground Service Data Sync** | Inter-Process Sync | Facilitates safe and reliable state synchronization between handset UI and `:car` background service. |
+| **Post Notifications** | Vehicle Message Cards | Required on Android 13+ to post formatted notification cards for vehicle display and voice readouts. |
+| **Ignore Battery Optimizations** | Long-drive Protection | Excludes app from aggressive system power-saving killers during long navigation drives. |
+
+## Troubleshooting
+
+### 1. Fahrmony icon does not appear on car display
+- **Cause**: "Unknown sources" is not enabled in Android Auto developer settings.
+- **Fix**: Phone Settings -> Android Auto -> tap version 10 times -> top-right menu -> Developer settings -> check "Unknown sources", then reconnect.
+
+### 2. Car display shows "Waiting for audio" or sources list is empty
+- **Cause**: Target audio app was in deep sleep and has not yet registered a system media session.
+- **Fix**: Open the audio app on your phone once to start playback, or tap the app name in the head unit sources list to wake it up.
+
+### 3. Track title is blank or stuck on "Playing"
+- **Cause**: Certain audio apps delay posting metadata until decoding begins.
+- **Fix**: Fahrmony automatically extracts metadata from status bar notifications within milliseconds; the display will self-correct shortly.
+
+### 4. Play/Pause works, but Previous/Next does not respond
+- **Cause**: The active audio stream (such as a live radio broadcast) does not implement skip callbacks.
+- **Fix**: This is an implementation boundary of the underlying app.
+
+### 5. Tapping play on car screen fails to wake dormant player
+- **Cause**: Handset operating system restricts background autostart.
+- **Fix**: Phone Settings -> Apps -> Fahrmony and target media apps -> allow "Autostart" and background execution.
+
+### 6. Repeat or shuffle buttons do not respond
+- **Cause**: Target player does not expose repeat mode control via standard interfaces.
+- **Fix**: To avoid invalid state corruption, non-compliant apps remain in neutral state on the dashboard.
+
+### 7. Chat messages arrive but no alert or voice readout on car screen
+- **Cause**: Notification Access permission is missing, or "Filter group chats" is active in settings.
+- **Fix**: Verify in phone settings that both Notification Access and Post Notifications permissions are granted.
+
+### 8. Connection drops after driving for a while with screen locked
+- **Cause**: Phone power-saving policies killed background services.
+- **Fix**: In phone battery settings, set battery usage for Fahrmony and target audio apps to "Unrestricted".
+
+## Diagnostics & Feedback
+
+### For Drivers & End Users
+
+If you encounter an issue during daily driving, please file a report on GitHub Issues using the template below (**Note: Never submit personal private chat contents**):
+
+```text
+- Fahrmony Version: v1.0.0
+- Android OS Version: e.g., Android 14
+- Phone Model: e.g., Pixel 8 / Galaxy S24 / Xiaomi 14
+- Android Auto Version: e.g., 11.8
+- Connection Type: Wired USB / Wireless Android Auto
+- Affected Audio or Messaging App Name & Version:
+- Issue Description:
+```
+
+### For Developers & Advanced Users
+
+If you have a debugging setup, you can use the official Desktop Head Unit (DHU) emulator and ADB tool to capture native probe logs.
+
+#### 1. Port Forwarding & Starting DHU
+
+**Command Prompt (CMD):**
+```cmd
+adb forward tcp:5277 tcp:5277
+desktop-head-unit.exe
+```
+
+**PowerShell:**
+```powershell
+adb forward tcp:5277 tcp:5277
+.\desktop-head-unit.exe
+```
+
+#### 2. Capturing Probe Logs in Real Time
+
+**Command Prompt (CMD):**
+```cmd
+adb logcat -c && adb logcat -v time -s FahrmonyProbe:I
+```
+
+**PowerShell:**
+```powershell
+adb logcat -c; adb logcat -v time -s FahrmonyProbe:I
+```
+
+Developers may optionally attach relevant log excerpts to their issue submission.
+
+## Privacy Policy
+
+1. **100% Local-First**: All notifications, text parsing, and media states are **processed purely in volatile memory (RAM)** and discarded immediately; nothing is written to disk storage.
+2. **No Remote Servers**: No backend servers exist; zero network transmission takes place.
+3. **No Analytics or Trackers**: Completely free of advertising, behavior tracking, or crash analytics SDKs.
+4. **User Revocable**: Permissions can be revoked at any time through Android system settings.
+
+## Architecture
+
+```text
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Source Applications (Audio Streaming & Messaging Apps)     │
+  └───────────────┬─────────────────────────────┬───────────────┘
+                  │ MediaSession Token          │ System Notifications
+                  ▼                             ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Fahrmony Isolated Automotive Process (:car)                │
+  │  - Session Discovery, Smart Arbitration & Cold Start Wakeup │
+  │  - Message Sanitization, Group Filtering & Translation      │
+  │  - Automotive Media Service (MediaBrowserServiceCompat)     │
+  │  - Persistent Foreground Daemon Service                     │
+  └─────────────────────────────┬───────────────────────────────┘
+                                │ Non-blocking Messenger IPC
+                                ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Fahrmony Mobile Handset Process                            │
+  │  - Status Monitoring, App Configuration & Preferences       │
+  └─────────────────────────────┬───────────────────────────────┘
+                                │ Android Auto Interop Link
+                                ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Vehicle Head Unit (Android Auto Display)                   │
+  │  - Split-Screen & Full-Screen Media Controls                │
+  │  - Google Assistant Voice Announcement                      │
+  └─────────────────────────────────────────────────────────────┘
+```
 
 ## Tech Stack
 
-- **Native Automotive**: Kotlin, Android MediaBrowserCompat, MediaSessionCompat, IPC Messenger
-- **Frontend Architecture**: React 19, TypeScript, Vite, Capacitor v8
-- **Design System**: Fluid CSS Variables, Glassmorphism, Adaptive High Contrast
-- **Localization**: Lightweight native state-driven i18n engine
+- **Automotive Core (`:car` isolated process)**: Kotlin, Android Jetpack MediaCompat, Android Auto, Messenger IPC
+- **Handset Frontend (Main process)**: Capacitor v8, React 19, TypeScript, Vite
+- **Styling & Localization**: Vanilla CSS, Native i18n
+
+## FAQ
+
+#### Why can't I type or dictate replies to chat messages on the car screen?
+For driver safety and technical compliance. Typing on a dashboard while driving is extremely hazardous; furthermore, major messaging apps do not expose third-party external message-sending APIs. Fahrmony strictly maintains a read-only policy.
+
+#### Why does the screen show gradient artwork instead of the original cover?
+Certain source player covers are extremely dark, causing the in-car system to automatically tint playback control buttons into invisible black. Transmitting high-resolution bitmaps can also introduce latency. Adaptive gradients ensure buttons remain readable and track changes smooth.
+
+#### Does audio output from the car or the phone speaker?
+Audio automatically routes through the vehicle speakers when connected. Upon disconnection, Fahrmony's built-in leakage prevention pauses playback instantly, preventing sudden loud speaker output in public.
+
+#### Do I need to open the app on my phone before every drive?
+No. As long as background autostart permission is granted, simply tapping play or selecting a source on the vehicle display will automatically wake the corresponding media app in the background.
+
+## Contributing
+
+Bug reports and suggestions for AOSP-compliant standards are welcome! When submitting a Pull Request, please ensure:
+1. Strict type safety and proper exception handling;
+2. Strict adherence to process isolation to preserve `:car` daemon stability;
+3. No inclusion of proprietary vendor SDKs or undocumented private API hacks.
+
+## License
+
+Released under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)** license, Copyright (c) 2026 **Tun&PaMa AG**.
+- Canonical Legal Code: See [LICENSE](./LICENSE);
+- Trademark & Driving Safety Notices: See [NOTICE](./NOTICE);
+- Chinese Reference Translation: See [LICENSE.zh-CN.md](./LICENSE.zh-CN.md).
+
+**Notice: This project is strictly for personal research and non-commercial interoperability verification. Commercial exploitation, monetization, or paid redistribution is prohibited.**
 
 ## Disclaimer
 
-1. **Research & Educational Use**: This software is released under the MIT license for technical study and non-commercial interoperability research only. Commercial distribution or monetization is strictly prohibited.
-2. **Independent Implementation**: Fahrmony is an independent open-source project and is NOT affiliated with, sponsored by, authorized, or endorsed by Google LLC, Android Auto, or any third-party app developers.
-3. **No Infringement**: This software does NOT host, stream, cache, or decode any copyrighted media content, nor does it reverse-engineer or tamper with third-party software protocols. All media playback and messaging services are executed independently by legitimate apps installed on the user's device.
-4. **Trademarks & Fair Use**: Any references to third-party platforms or application categories are purely for technical compatibility description under nominative fair use. All intellectual property rights and trademarks belong to their respective owners. If you are a rights holder and believe any content causes concern, please contact us via GitHub Issues for immediate review and resolution.
-5. **Driving Safety First**: Operating a vehicle safely is the sole responsibility of the driver. Do not configure or interact with handset settings while driving. In no event shall the authors or copyright holders be held liable for any traffic infractions, accidents, injuries, or damages arising from the use of this software.
+1. **Research & Non-Commercial**: Created to improve personal driving ergonomics; commercial use is strictly prohibited.
+2. **Independent Implementation**: Fahrmony is an independent open-source project and is not affiliated with, endorsed by, or partnered with Google LLC, Android Auto, or any third-party app developers.
+3. **No Copyright Infringement**: Does not host, distribute, or decrypt copyright-protected media files. All media playback is handled independently by legitimate apps installed on the device.
+4. **Fair Use & Notice-and-Takedown**: References to standards or app classifications are solely for objective technical compatibility descriptions. All trademarks belong to their respective owners. Rights holders with concerns may contact via GitHub Issues for prompt review.
+5. **Driver Safety**: Compliance with traffic laws and safe vehicle operation remains the sole responsibility of the motor vehicle operator. Never configure or interact with handset settings while driving.
 
 ---
 

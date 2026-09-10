@@ -1,0 +1,74 @@
+Fahrmony
+Copyright (c) 2026 Tun&PaMa AG
+
+This product is licensed under the Creative Commons Attribution-NonCommercial 4.0 
+International Public License (CC BY-NC 4.0).
+See the LICENSE file in the root directory for the full official license text.
+For the Chinese translation of the license, see LICENSE.zh-CN.md.
+
+================================================================================
+ADDITIONAL PROJECT TERMS & LEGAL NOTICES (EN)
+================================================================================
+
+1. Non-Commercial Restriction Clarification:
+   In accordance with Section 2(a)(1) of the CC BY-NC 4.0 license, this software 
+   and its source code, assets, and compiled binary packages (including APKs) 
+   are provided exclusively for non-commercial purposes (personal research, 
+   education, and non-monetized individual use). Any commercial exploitation, 
+   commercial distribution, fee-based re-bundling, charging for downloads, 
+   or unauthorized integration into proprietary commercial automotive products 
+   without prior express written authorization from Tun&PaMa AG is strictly 
+   prohibited.
+
+2. Non-Affiliation and Trademarks:
+   "Fahrmony" is an independent open-source interoperability tool developed 
+   solely for technical research. It is NOT affiliated with, sponsored, 
+   authorized, or endorsed by Google LLC (Android Auto), or any third-party 
+   application vendors. All third-party trademarks, product names, logos, and 
+   brand identities mentioned in this project are the property of their 
+   respective owners and are referenced solely for nominative fair-use purposes 
+   to describe technical interoperability.
+
+3. Media and Content Copyright:
+   This software does NOT host, stream, cache, decode, store, or distribute any 
+   copyright-protected audio, video, or instant messaging contents. Fahrmony 
+   acts strictly as an on-device local interoperability bridge utilizing standard 
+   AOSP public APIs. All media playback, account privileges, and media streams 
+   remain 100% executed and managed by the respective standalone applications 
+   installed on the user's mobile device.
+
+4. Safe Driving Responsibility:
+   The operator of the motor vehicle assumes sole and exclusive legal 
+   responsibility for complying with all applicable traffic laws, road safety 
+   regulations, and safe vehicle operations. Never interact with or configure 
+   handset applications while driving. In no event shall Tun&PaMa AG or its 
+   individual contributors be held liable for any direct, indirect, incidental, 
+   consequential, or punitive damages, traffic violations, accidents, injuries, 
+   or vehicle damages resulting from the use or inability to use this software.
+
+================================================================================
+项目附加专项声明与法律告示（中文对照）
+================================================================================
+
+1. 非商业性使用特别声明：
+   根据 CC BY-NC 4.0 许可协议第二条之规定，本项目源码、编译产物（包括但不限于 
+   APK 安装包）及相关设计资产，仅供个人学习、技术研究与非营利目的使用。
+   未经 Tun&PaMa AG 事先明确书面许可，严禁任何个人或机构将本项目用于商业牟利、
+   有偿销售、付费下载、捆绑销售，或将其集成至任何专有商业车载软件及硬件产品中。
+
+2. 非官方从属与商标声明：
+   “Fahrmony”为独立第三方开源工具，旨在研究与验证车载系统互操作性。本项目与 
+   Google LLC、Android Auto 或任何第三方商业软件开发商均无任何商业合作、从属、
+   赞助或授权关系。文档中提及的所有第三方应用名称、商标与产品标识，知识产权
+   均归其各自权利人所有，此处引用仅作为技术兼容性客观描述之合理使用。
+
+3. 版权与媒体内容声明：
+   本软件不提供、不存储、不中继、不解码、不分发任何受版权保护的音视频或通讯
+   内容。Fahrmony 仅作为手机端本地的标准 AOSP 车载中间件运行，所有实际音频流、
+   账户权益与曲库解码均由用户设备上自行安装的正版第三方软件独立完成。
+
+4. 道路行车安全第一责任：
+   道路行车安全始终是机动车驾驶员的法定唯一责任。严禁驾驶员在行车途中进行
+   任何手机配置或造成分心的危险行为。对于因使用本软件或因违反交通法规所导致的
+   任何直接或间接交通事故、行政处罚、人身伤亡或财产损失，Tun&PaMa AG 及开发团队
+   概不承担任何法律责任。
