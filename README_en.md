@@ -77,7 +77,7 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 
 1. **Download APK**: Visit the [Releases page](https://github.com/nexen33/Fahrmony/releases) and download the latest release package.
 2. **Install Application**:
-   - When sideloading the APK, if prompted with a security warning (e.g., Google Play Protect or OEM scan alerts), expand "More details" and manually select **"Install anyway"**;
+   - When sideloading the APK, if prompted with a security warning (e.g., Google Play Protect or OEM scan alerts), expand "More details" and manually select **Install anyway**;
    - **OEM Note (e.g., Samsung One UI 6.0+)**: Knox Auto Blocker is enabled by default and blocks app sideloading from outside official app stores. If installation fails or is blocked, go to `Settings -> Security and privacy -> Auto Blocker` and temporarily toggle it off. You may re-enable it after installation.
 3. **Grant Permissions**:
    - Open Fahrmony and enable **Notification Access**;
@@ -88,7 +88,7 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
    - Scroll to the bottom and tap Version 10 times to unlock developer mode;
    - Tap the top-right three dots -> **Developer settings** -> check **Unknown sources**.
 5. **Connect to Vehicle**:
-   - Upon first use, navigate to the Fahrmony Settings page on your phone, select your default player, and tap **"Launch Player"** once to authorize Fahrmony to wake and bind the target audio app;
+   - Upon first use, navigate to the Fahrmony Settings page on your phone, select your default player, and tap **Launch Player** once to authorize Fahrmony to wake and bind the target audio app;
    - Connect via USB cable or wireless projection. The **Fahrmony** icon will appear on your vehicle's dashboard.
 
 ## Permissions

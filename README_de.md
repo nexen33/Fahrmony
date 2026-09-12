@@ -76,7 +76,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 
 1. **APK herunterladen**: Laden Sie die aktuelle `Fahrmony_v1.0.0.apk` von der [Releases-Seite](https://github.com/nexen33/Fahrmony/releases) herunter.
 2. **App installieren**:
-   - Beim manuellen Sideload der APK: Falls eine Sicherheitswarnung (z. B. Google Play Protect oder OEM-Sicherheitsprüfungen) erscheint, klappen Sie „Weitere Details“ auf und wählen Sie manuell **„Trotzdem installieren“**;
+   - Beim manuellen Sideload der APK: Falls eine Sicherheitswarnung (z. B. Google Play Protect oder OEM-Sicherheitsprüfungen) erscheint, klappen Sie „Weitere Details“ auf und wählen Sie manuell **Trotzdem installieren**;
    - **Besonderer Hinweis für angepasste Oberflächen (z. B. Samsung One UI 6.0+)**: Die herstellereigene Funktion „Automatische Sperre“ (Auto Blocker) ist standardmäßig aktiv und blockiert das Installieren von Apps außerhalb der offiziellen Stores. Falls die Installation fehlschlägt, navigieren Sie zu `Einstellungen -> Sicherheit und Datenschutz -> Automatische Sperre (Auto Blocker)` und deaktivieren Sie diese vorübergehend. Nach erfolgreicher Installation kann sie wieder eingeschaltet werden.
 3. **Berechtigungen vergeben**:
    - Fahrmony öffnen und den **Benachrichtigungszugriff** aktivieren;
@@ -87,7 +87,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
    - Ganz nach unten scrollen und 10 Mal auf die Versionsnummer tippen;
    - Oben rechts das Menü öffnen -> **Entwicklereinstellungen** -> **Unbekannte Quellen** aktivieren.
 5. **Mit dem Fahrzeug verbinden**:
-   - Bei der Ersteinrichtung wählen Sie auf der Fahrmony-Einstellungsseite auf dem Smartphone Ihren Standard-Player aus und tippen einmalig auf **„Player starten“**, um die Berechtigung zum Aufrufen der Audio-App zu erteilen;
+   - Bei der Ersteinrichtung wählen Sie auf der Fahrmony-Einstellungsseite auf dem Smartphone Ihren Standard-Player aus und tippen einmalig auf **Player starten**, um die Berechtigung zum Aufrufen der Audio-App zu erteilen;
    - Anschließend verbinden Sie das Smartphone per USB-Kabel oder kabellos mit dem Fahrzeug. Das **Fahrmony**-Symbol erscheint auf dem Autobildschirm.
 
 ## Berechtigungen
