@@ -76,15 +76,20 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 ## Installation
 
 1. **Download APK**: Visit the [Releases page](https://github.com/nexen33/Fahrmony/releases) and download the latest release package.
-2. **Grant Permissions**:
+2. **Install Application**:
+   - When sideloading the APK, if prompted with a security warning (e.g., Google Play Protect or OEM scan alerts), expand "More details" and manually select **"Install anyway"**;
+   - **OEM Note (e.g., Samsung One UI 6.0+)**: Knox Auto Blocker is enabled by default and blocks app sideloading from outside official app stores. If installation fails or is blocked, go to `Settings -> Security and privacy -> Auto Blocker` and temporarily toggle it off. You may re-enable it after installation.
+3. **Grant Permissions**:
    - Open Fahrmony and enable **Notification Access**;
    - Enable **Ignore Battery Optimizations** to prevent the OS from terminating background services during long drives;
    - On Android 13 or higher, allow the **Post Notifications** permission.
-3. **Enable Android Auto Developer Settings**:
+4. **Enable Android Auto Developer Settings**:
    - Open phone Settings -> search for `Android Auto`;
    - Scroll to the bottom and tap Version 10 times to unlock developer mode;
    - Tap the top-right three dots -> **Developer settings** -> check **Unknown sources**.
-4. **Connect to Vehicle**: Connect via USB cable or wireless projection. The **Fahrmony** icon will appear on your vehicle's dashboard.
+5. **Connect to Vehicle**:
+   - Upon first use, navigate to the Fahrmony Settings page on your phone, select your default player, and tap **"Launch Player"** once to authorize Fahrmony to wake and bind the target audio app;
+   - Connect via USB cable or wireless projection. The **Fahrmony** icon will appear on your vehicle's dashboard.
 
 ## Permissions
 
@@ -111,6 +116,9 @@ For driver safety and technical compliance. Typing on a dashboard while driving 
 #### Why does the screen show gradient artwork instead of the original cover?
 Certain source player covers are extremely dark, causing the in-car system to automatically tint playback control buttons into invisible black. Transmitting high-resolution bitmaps can also introduce latency. Adaptive gradients ensure buttons remain readable and track changes smooth.
 
+#### How can I display the original album artwork on the car screen?
+Fahrmony currently prioritizes its own mirrored split-screen cards with randomized background colors. When swiping horizontally on this default card, or in certain warm-reconnect scenarios where QQ Music's own focus takes precedence, you will see the delegated native card from QQ Music itself, which displays the original album artwork. Future versions will offer custom display preferences; currently, the randomized mirrored card remains the default experience.
+
 #### Does audio output from the car or the phone speaker?
 Audio automatically routes through the vehicle speakers when connected. Upon disconnection, Fahrmony's built-in leakage prevention pauses playback instantly, preventing sudden loud speaker output in public.
 
@@ -120,31 +128,35 @@ Audio automatically routes through the vehicle speakers when connected. Upon dis
 - **Cause**: "Unknown sources" is not enabled in Android Auto developer settings.
 - **Fix**: Phone Settings -> Android Auto -> tap version 10 times -> top-right menu -> Developer settings -> check "Unknown sources", then reconnect.
 
-### 2. Car display shows "Waiting for audio" or sources list is empty
+### 2. Player is running in the background, but the phone overview page does not show playback status
+- **Cause**: Fahrmony has not yet established an associated session link with the target player, or the system media controller (MediaSession) has not dispatched the active stream's listening token.
+- **Fix**: Upon first use, after granting all required permissions on the settings page and selecting your default player, tap "Launch Player" once to allow Fahrmony to wake and bind the corresponding audio app.
+
+### 3. Car display shows "Waiting for audio" or sources list is empty
 - **Cause**: Target audio app was in deep sleep and has not yet registered a system media session.
 - **Fix**: Open the audio app on your phone once to start playback, or tap the app name in the head unit sources list to wake it up.
 
-### 3. Track title is blank or stuck on "Playing"
+### 4. Track title is blank or stuck on "Playing"
 - **Cause**: Certain audio apps delay posting metadata until decoding begins.
 - **Fix**: Fahrmony automatically extracts metadata from status bar notifications within milliseconds; the display will self-correct shortly.
 
-### 4. Play/Pause works, but Previous/Next does not respond
+### 5. Play/Pause works, but Previous/Next does not respond
 - **Cause**: The active audio stream (such as a live radio broadcast) does not implement skip callbacks.
 - **Fix**: This is an implementation boundary of the underlying app.
 
-### 5. Tapping play on car screen fails to wake dormant player
+### 6. Tapping play on car screen fails to wake dormant player
 - **Cause**: Handset operating system restricts background autostart.
 - **Fix**: Phone Settings -> Apps -> Fahrmony and target media apps -> allow "Autostart" and background execution.
 
-### 6. Repeat or shuffle buttons do not respond
+### 7. Repeat or shuffle buttons do not respond
 - **Cause**: Target player does not expose repeat mode control via standard interfaces.
 - **Fix**: To avoid invalid state corruption, non-compliant apps remain in neutral state on the dashboard.
 
-### 7. Chat messages arrive but no alert or voice readout on car screen
+### 8. Chat messages arrive but no alert or voice readout on car screen
 - **Cause**: Notification Access permission is missing, or "Filter group chats" is active in settings.
 - **Fix**: Verify in phone settings that both Notification Access and Post Notifications permissions are granted.
 
-### 8. Connection drops after driving for a while with screen locked
+### 9. Connection drops after driving for a while with screen locked
 - **Cause**: Phone power-saving policies killed background services.
 - **Fix**: In phone battery settings, set battery usage for Fahrmony and target audio apps to "Unrestricted".
 

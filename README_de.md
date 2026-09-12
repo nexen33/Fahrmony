@@ -75,15 +75,20 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 ## Installation
 
 1. **APK herunterladen**: Laden Sie die aktuelle `Fahrmony_v1.0.0.apk` von der [Releases-Seite](https://github.com/nexen33/Fahrmony/releases) herunter.
-2. **Berechtigungen vergeben**:
+2. **App installieren**:
+   - Beim manuellen Sideload der APK: Falls eine Sicherheitswarnung (z. B. Google Play Protect oder OEM-Sicherheitsprüfungen) erscheint, klappen Sie „Weitere Details“ auf und wählen Sie manuell **„Trotzdem installieren“**;
+   - **Besonderer Hinweis für angepasste Oberflächen (z. B. Samsung One UI 6.0+)**: Die herstellereigene Funktion „Automatische Sperre“ (Auto Blocker) ist standardmäßig aktiv und blockiert das Installieren von Apps außerhalb der offiziellen Stores. Falls die Installation fehlschlägt, navigieren Sie zu `Einstellungen -> Sicherheit und Datenschutz -> Automatische Sperre (Auto Blocker)` und deaktivieren Sie diese vorübergehend. Nach erfolgreicher Installation kann sie wieder eingeschaltet werden.
+3. **Berechtigungen vergeben**:
    - Fahrmony öffnen und den **Benachrichtigungszugriff** aktivieren;
    - Die **Akku-Optimierung ignorieren** (auf „Nicht eingeschränkt“ stellen), damit Hintergrunddienste stabil laufen;
    - Unter Android 13 oder höher das **Senden von Benachrichtigungen** erlauben.
-3. **Android Auto Entwicklereinstellungen aktivieren**:
+4. **Android Auto Entwicklereinstellungen aktivieren**:
    - Systemeinstellungen des Smartphones öffnen -> nach `Android Auto` suchen;
    - Ganz nach unten scrollen und 10 Mal auf die Versionsnummer tippen;
    - Oben rechts das Menü öffnen -> **Entwicklereinstellungen** -> **Unbekannte Quellen** aktivieren.
-4. **Mit dem Fahrzeug verbinden**: Smartphone per USB-Kabel oder kabellos verbinden. Das **Fahrmony**-Symbol erscheint auf dem Autobildschirm.
+5. **Mit dem Fahrzeug verbinden**:
+   - Bei der Ersteinrichtung wählen Sie auf der Fahrmony-Einstellungsseite auf dem Smartphone Ihren Standard-Player aus und tippen einmalig auf **„Player starten“**, um die Berechtigung zum Aufrufen der Audio-App zu erteilen;
+   - Anschließend verbinden Sie das Smartphone per USB-Kabel oder kabellos mit dem Fahrzeug. Das **Fahrmony**-Symbol erscheint auf dem Autobildschirm.
 
 ## Berechtigungen
 
@@ -110,6 +115,9 @@ Aus Gründen der Verkehrssicherheit und der technischen Grenzen. Das Verfassen v
 #### Warum zeigt der Bildschirm farbige Flächen anstelle des Original-Covers?
 Einige Original-Cover sind sehr dunkel, was dazu führen kann, dass das Bordsystem die Bedientasten in unleserlichem Schwarz darstellt. Zudem können hochauflösende Bilder das System verlangsamen. Die Farbabstimmung sorgt dafür, dass die Tasten jederzeit klar lesbar bleiben.
 
+#### Wie kann ich das originale Album-Cover auf dem Autobildschirm anzeigen lassen?
+Fahrmony nutzt derzeit standardmäßig eine gespiegelte Splitscreen-Karte mit zufälligen Hintergrundfarben. Wenn Sie auf dieser Standardkarte nach links oder rechts wischen, oder in bestimmten Wiederverbindungsszenarien, in denen der Fokus von QQ Music Vorrang erhält, wird die weitergeleitete Originalkarte der App angezeigt, die das Original-Cover enthält. In zukünftigen Versionen wird diese Anzeige konfigurierbar sein; derzeit bleibt die farbige Spiegelungskarte die Standardansicht.
+
 #### Wird der Ton über das Auto oder das Smartphone ausgegeben?
 Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über die Lautsprecher des Fahrzeugs. Beim Abziehen des Kabels stoppt Fahrmony die Wiedergabe sofort, damit das Telefon nicht versehentlich in der Öffentlichkeit weiterspielt.
 
@@ -119,31 +127,35 @@ Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über di
 - **Ursache**: „Unbekannte Quellen“ in den Entwicklereinstellungen von Android Auto nicht aktiviert.
 - **Lösung**: Smartphone-Einstellungen -> Android Auto -> 10x auf Versionsnummer tippen -> Menü oben rechts -> Entwicklereinstellungen -> „Unbekannte Quellen“ aktivieren, danach neu anstecken.
 
-### 2. Bildschirm zeigt „Warten auf Musikwiedergabe“ oder Liste bleibt leer
+### 2. Der Player läuft im Hintergrund, aber die Übersichtsseite auf dem Smartphone zeigt keinen Wiedergabestatus an
+- **Ursache**: Fahrmony hat noch keine aktive Sitzungsverbindung zur Ziel-App aufgebaut, oder der System-Mediencontroller (MediaSession) hat das Abhörticket für den aktuellen Stream noch nicht übermittelt.
+- **Lösung**: Nach der Ersteinrichtung und Vergabe aller Berechtigungen wählen Sie den Standard-Player aus und tippen einmalig auf „Player starten“, damit Fahrmony die entsprechende Audio-App verknüpfen und aufrufen kann.
+
+### 3. Bildschirm zeigt „Warten auf Musikwiedergabe“ oder Liste bleibt leer
 - **Ursache**: Die Audio-App war im Tiefschlaf und hat dem System noch keine aktive Sitzung gemeldet.
 - **Lösung**: Audio-App auf dem Smartphone einmal kurz öffnen und anspielen, oder in der Quellenliste auf dem Autobildschirm auf den App-Namen tippen.
 
-### 3. Titelname ist leer oder zeigt nur „Wird abgespielt“
+### 4. Titelname ist leer oder zeigt nur „Wird abgespielt“
 - **Ursache**: Manche Player übermitteln Titeldaten erst mit einigen Sekunden Verzögerung.
 - **Lösung**: Das System liest die Daten automatisch aus der Statusleiste aus; die Anzeige aktualisiert sich nach kurzer Zeit von selbst.
 
-### 4. Wiedergabe und Pause funktionieren, aber Vor- oder Zurückspringen reagiert nicht
+### 5. Wiedergabe und Pause funktionieren, aber Vor- oder Zurückspringen reagiert nicht
 - **Ursache**: Der laufende Audiostream (z. B. Webradio) unterstützt das Wechseln von Titeln technisch nicht.
 - **Lösung**: Dies ist eine Eigenheit der jeweiligen Quell-App und stellt keinen Fehler dar.
 
-### 5. Antippen auf dem Autobildschirm startet die Ziel-App nicht
+### 6. Antippen auf dem Autobildschirm startet die Ziel-App nicht
 - **Ursache**: Das Handy-Betriebssystem blockiert das automatische Starten im Hintergrund.
 - **Lösung**: Smartphone-Einstellungen -> Apps -> Fahrmony sowie die jeweilige Audio-App aufrufen und „Autostart erlauben“ sowie Hintergrundaktivitäten gestatten.
 
-### 6. Wiederholungs- oder Zufallstaste reagiert nicht
+### 7. Wiederholungs- oder Zufallstaste reagiert nicht
 - **Ursache**: Die Ziel-App stellt diese Optionen nicht über die Standard-Medienschnittstelle bereit.
 - **Lösung**: Um Fehlbedienungen zu vermeiden, bleibt die Anzeige in einem neutralen Zustand.
 
-### 7. Nachrichten werden auf dem Autobildschirm nicht angezeigt oder vorgelesen
+### 8. Nachrichten werden auf dem Autobildschirm nicht angezeigt oder vorgelesen
 - **Ursache**: Der Benachrichtigungszugriff fehlt, oder die Option zum Filtern von Gruppenchats ist aktiv.
 - **Lösung**: In den Einstellungen prüfen, ob alle Berechtigungen erteilt sind.
 
-### 8. Verbindung bricht nach längerer Fahrzeit mit dunklem Display ab
+### 9. Verbindung bricht nach längerer Fahrzeit mit dunklem Display ab
 - **Ursache**: Energiesparfunktionen des Smartphones haben den Hintergrunddienst beendet.
 - **Lösung**: In den Akkueinstellungen des Handys für Fahrmony und die verwendeten Audio-Apps die Option „Nicht eingeschränkt“ wählen.
 
