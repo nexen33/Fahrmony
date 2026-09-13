@@ -1,6 +1,7 @@
 package com.fahrmony.app.nativebridge
 
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
@@ -27,6 +28,8 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
     companion object {
         const val ROOT_ID = "__FAHRMONY_MEDIA_ROOT__"
         var instance: FahrmonyMediaBrowserService? = null
+            private set
+        var isCarConnected: Boolean = false
             private set
     }
 
@@ -151,6 +154,8 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        isCarConnected = false
+        FahrmonyIpcBridge.notifyCarConnectedChanged(false)
         // 车机断连拔线，立即向底层播放器下发双脉冲暂停指令，杜绝冷启动首次断连时音频通道重建造成的手机外放漏音
         FahrmonyMediaManager.onCarDisconnected()
         // 返回 true 允许车机断开后未来重连时回调 onRebind，避免仅首次绑定才触发连接
@@ -159,8 +164,13 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
 
     override fun onRebind(intent: Intent?) {
         super.onRebind(intent)
-        // 车机重连瞬间，立即执行主导权确认与推流
-        FahrmonyMediaManager.onCarConnected(applicationContext)
+        val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+        val isCarMode = uiModeManager?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_CAR
+        if (isCarMode) {
+            isCarConnected = true
+            FahrmonyIpcBridge.notifyCarConnectedChanged(true)
+            FahrmonyMediaManager.onCarConnected(applicationContext)
+        }
     }
 
     override fun onGetRoot(
@@ -168,7 +178,14 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
         clientUid: Int,
         rootHints: Bundle?
     ): BrowserRoot {
-        FahrmonyMediaManager.onCarConnected(applicationContext)
+        val isRealCar = clientPackageName == "com.google.android.projection.gearhead" ||
+                        clientPackageName == "com.google.android.gms" ||
+                        clientPackageName.contains("car", ignoreCase = true)
+        if (isRealCar) {
+            isCarConnected = true
+            FahrmonyIpcBridge.notifyCarConnectedChanged(true)
+            FahrmonyMediaManager.onCarConnected(applicationContext)
+        }
         return BrowserRoot(ROOT_ID, null)
     }
 
@@ -257,6 +274,16 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
         }
     }
 
+    fun setSessionActive(active: Boolean) {
+        if (::mediaSession.isInitialized && mediaSession.isActive != active) {
+            mediaSession.isActive = active
+        }
+    }
+
+    fun isSessionActive(): Boolean {
+        return if (::mediaSession.isInitialized) mediaSession.isActive else false
+    }
+
     fun syncRepeatMode(repeatMode: Int) {
         if (::mediaSession.isInitialized) {
             mediaSession.setRepeatMode(repeatMode)
@@ -277,6 +304,8 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
     }
 
     override fun onDestroy() {
+        isCarConnected = false
+        FahrmonyIpcBridge.notifyCarConnectedChanged(false)
         FahrmonyMediaManager.unregisterBrowserService(this)
         if (instance == this) {
             instance = null

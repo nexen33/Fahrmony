@@ -26,6 +26,9 @@ class FahrmonyNotificationListener : NotificationListenerService() {
         // 目标监听包名映射
         val TARGET_PACKAGES = mapOf(
             "com.tencent.mm" to "微信",
+            "com.tencent.mobileqq" to "QQ",
+            "com.tencent.tim" to "TIM",
+            "com.tencent.qqlite" to "QQ",
             "com.ss.android.lark" to "飞书",
             "com.alibaba.android.rimet" to "钉钉"
         )
@@ -39,7 +42,6 @@ class FahrmonyNotificationListener : NotificationListenerService() {
         isConnected = true
         createNotificationChannel()
         FahrmonyLogBuffer.addLog("SYSTEM", "NotificationListener", "服务已连接", "成功绑定 Android 系统通知监听权")
-        FahrmonyIpcBridge.notifyCarConnectedChanged(true)
         // 通知监听器就绪后，直接初始化并唤醒 MediaManager 会话抓取
         FahrmonyMediaManager.init(applicationContext)
         FahrmonyMediaManager.refresh(applicationContext)
@@ -49,7 +51,6 @@ class FahrmonyNotificationListener : NotificationListenerService() {
         super.onListenerDisconnected()
         isConnected = false
         FahrmonyLogBuffer.addLog("SYSTEM", "NotificationListener", "服务已断开", "通知监听权被系统解绑")
-        FahrmonyIpcBridge.notifyCarConnectedChanged(false)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -68,9 +69,22 @@ class FahrmonyNotificationListener : NotificationListenerService() {
             sbn.notification?.extras?.getParcelable("android.mediaSession")
         }
 
-        if (mediaToken != null) {
-            FahrmonyMediaManager.attachToken(applicationContext, packageName, mediaToken, sbn.notification?.extras)
+        // 提取状态栏通知的真实高清专辑封面 (基于 Android 官方规范 Icon.loadDrawable 逆向解码)
+        var notificationArtwork: Bitmap? = null
+        try {
+            val icon = sbn.notification?.getLargeIcon()
+            if (icon != null) {
+                val drawable = icon.loadDrawable(applicationContext)
+                if (drawable != null) {
+                    notificationArtwork = drawableToBitmap(drawable)
+                }
+            }
+        } catch (ignored: Exception) {}
+
+        if (mediaToken != null && packageName in FahrmonyMediaManager.KNOWN_PACKAGES.keys) {
+            FahrmonyMediaManager.attachToken(applicationContext, packageName, mediaToken, sbn.notification?.extras, notificationArtwork)
         } else if (packageName in FahrmonyMediaManager.KNOWN_PACKAGES.keys) {
+            FahrmonyMediaManager.updateNotificationMeta(packageName, sbn.notification?.extras, notificationArtwork)
             FahrmonyMediaManager.refresh(applicationContext)
         }
 
@@ -90,8 +104,9 @@ class FahrmonyNotificationListener : NotificationListenerService() {
         // 过滤空通知或锁屏无内容占位
         if (rawTitle.isBlank() && rawText.isBlank()) return
 
-        // 深度群聊判定 (支持国内渠道版微信与飞书非标特征提取)
-        val isGroup = isGroupConversation(packageName, extras, rawTitle, rawText)
+        // 基于独立适配器路由判定群聊与单聊
+        val adapter = ImNotificationRouter.getAdapter(packageName) ?: return
+        val isGroup = adapter.isGroup(extras, rawTitle, rawText)
         if (isGroup && FahrmonyConfig.isFilterGroupChats(applicationContext)) {
             FahrmonyLogBuffer.addLog(
                 type = "IM_FILTERED",
@@ -102,79 +117,20 @@ class FahrmonyNotificationListener : NotificationListenerService() {
             return
         }
 
+        // 针对各 IM 专属规则执行独立解构与净化
+        val parsedMsg = adapter.parseMessage(rawTitle, rawText, isGroup, appName)
+
         // 记录捕获日志 (保持纯净用户级标签)
         FahrmonyLogBuffer.addLog(
             type = "IM_NOTIFICATION",
             tag = appName,
-            title = rawTitle.ifBlank { "新消息" },
-            content = rawText.ifBlank { "已收到消息（无文本摘要）" },
+            title = parsedMsg.senderName.ifBlank { rawTitle.ifBlank { "新消息" } },
+            content = parsedMsg.messageBody.ifBlank { rawText.ifBlank { "已收到消息（无文本摘要）" } },
             rawExtras = extras.keySet().joinToString(", ") { "$it=${extras.get(it)}" }
         )
 
         // 转换为 Android Auto 规范的 MessagingStyle 单向只读通知 (支持单聊/群聊结构化呈现)
-        forwardToCarMessagingStyle(appName, packageName, rawTitle, rawText, isGroup, sbn.id)
-    }
-
-    private fun isGroupConversation(packageName: String, extras: android.os.Bundle, title: String, text: String): Boolean {
-        // A. 系统级标准标志位 (适用于 Google Play 版或已规范化的应用)
-        if (extras.getBoolean("android.isGroupConversation", false)) return true
-        val convTitle = extras.getCharSequence("android.conversationTitle")?.toString() ?: ""
-        if (convTitle.isNotBlank()) return true
-
-        val subText = extras.getCharSequence("android.subText")?.toString() ?: ""
-
-        // B. 国内版微信 (com.tencent.mm) 与钉钉 (com.alibaba.android.rimet) 深度特征识别:
-        if (packageName == "com.tencent.mm" || packageName == "com.alibaba.android.rimet") {
-            // 1. 强特征：标题以 "[群聊]" 开头，或标题末尾带有群成员人数括号 (如 "家庭群(4)"、"技术组（38）")
-            if (title.contains(Regex("""[(\uff08]\s*\d{1,4}\s*[)\uff09]$""")) || title.startsWith("[群聊]")) {
-                return true
-            }
-            // 2. 强特征：subText 明确包含 "群" 或 "Group"
-            if (subText.contains("群") || subText.contains("Group", ignoreCase = true)) {
-                return true
-            }
-            // 3. 正文冒号协同验证：只有在会话具有群聊特征暗示时才进行冒号发言人切分，严禁将私聊正文中的冒号一票否决
-            val colonIdx = text.indexOfAny(charArrayOf(':', '：'))
-            if (colonIdx in 1..20 && !text.startsWith("http:", ignoreCase = true) && !text.startsWith("https:", ignoreCase = true)) {
-                val candidate = text.substring(0, colonIdx).trim()
-                // 排除多条单聊合并摘要 (如 title 为 "张三", text 为 "张三: 在吗" 或 "[2条]张三: 在吗")
-                val isSelfSummary = candidate.equals(title, ignoreCase = true) ||
-                        candidate.endsWith(title, ignoreCase = true) ||
-                        title.endsWith(candidate, ignoreCase = true)
-                // 排除日常单聊常见消息前缀 (避免 "时间：明天"、"地点：公司"、"注意：..." 等被误判为群发言人)
-                val isCommonMessagePrefix = candidate in setOf("时间", "地点", "注意", "提示", "链接", "电话", "地址", "开会", "电影", "回复", "提醒", "通知", "PS", "ps")
-
-                if (candidate.isNotEmpty() && !candidate.contains('\n') && !isSelfSummary && !isCommonMessagePrefix) {
-                    // 仅当标题明确包含群字样或带有群标识时，方可判定为群聊
-                    if (title.contains("群") || subText.isNotBlank()) {
-                        return true
-                    }
-                }
-            }
-            return false
-        }
-
-        // C. 飞书 (com.ss.android.lark) 深度特征识别:
-        if (packageName == "com.ss.android.lark") {
-            if (title.contains(Regex("""[(\uff08]\s*\d{1,4}\s*[)\uff09]$""")) || title.startsWith("[群聊]") || title.contains("群")) {
-                return true
-            }
-            if (subText.contains("群") || subText.contains("Group", ignoreCase = true)) {
-                return true
-            }
-            val colonIdx = text.indexOfAny(charArrayOf(':', '：'))
-            if (colonIdx in 1..20 && !text.startsWith("http:", ignoreCase = true) && !text.startsWith("https:", ignoreCase = true)) {
-                val candidate = text.substring(0, colonIdx).trim()
-                val isSelfSummary = candidate.equals(title, ignoreCase = true) || title.endsWith(candidate, ignoreCase = true)
-                val isCommonMessagePrefix = candidate in setOf("时间", "地点", "注意", "提示", "链接", "电话", "地址", "开会", "提醒")
-                if (candidate.isNotEmpty() && !candidate.contains('\n') && !isSelfSummary && !isCommonMessagePrefix && subText.isNotBlank()) {
-                    return true
-                }
-            }
-            return false
-        }
-
-        return false
+        forwardToCarMessagingStyle(appName, packageName, parsedMsg, sbn.id)
     }
 
     private fun getAppIconBitmap(context: Context, packageName: String): Bitmap? {
@@ -195,46 +151,16 @@ class FahrmonyNotificationListener : NotificationListenerService() {
     private fun forwardToCarMessagingStyle(
         appName: String,
         packageName: String,
-        rawTitle: String,
-        rawText: String,
-        isGroup: Boolean,
+        msg: ParsedImMessage,
         originalId: Int
     ) {
         val context = applicationContext
         val notificationId = 10000 + (Math.abs(originalId) % 8000)
 
-        // 智能解构群聊或单聊的发言人与正文
-        var senderName = rawTitle.ifBlank { appName }
-        var messageBody = rawText
-        var conversationName = appName
-
-        // 清洗正文中微信常见的汇总条数前缀 (如 "[2条]" 或 "[3条]")
-        val cleanedText = rawText.replace(Regex("""^\[\d+条\]\s*"""), "").trim()
-
-        if (isGroup) {
-            val colonIdx = cleanedText.indexOfAny(charArrayOf(':', '：'))
-            if (colonIdx in 1..25) {
-                senderName = cleanedText.substring(0, colonIdx).trim()
-                messageBody = cleanedText.substring(colonIdx + 1).trim()
-            } else {
-                messageBody = cleanedText
-            }
-            // 清理群名称后置的成员数字 "(18)"，呈现纯净群名
-            conversationName = rawTitle.replace(Regex("""[(\uff08]\d{1,4}[)\uff09]$"""), "").trim().ifBlank { appName }
-        } else {
-            // 单聊场景：若正文包含发信人自身前缀 (如 "Lutz: 到哪里了？")，自动剔除冒号前缀，呈现纯净消息内容
-            val colonIdx = cleanedText.indexOfAny(charArrayOf(':', '：'))
-            if (colonIdx in 1..25) {
-                val prefix = cleanedText.substring(0, colonIdx).trim()
-                if (prefix.equals(senderName, ignoreCase = true) || senderName.endsWith(prefix, ignoreCase = true)) {
-                    messageBody = cleanedText.substring(colonIdx + 1).trim()
-                } else {
-                    messageBody = cleanedText
-                }
-            } else {
-                messageBody = cleanedText
-            }
-        }
+        val senderName = msg.senderName
+        val messageBody = msg.messageBody
+        val conversationName = msg.conversationName
+        val isGroup = msg.isGroup
 
         // 遵循 i18n 规范构建发件人抬头，例如 "来自Lutz:" / "From Lutz:"
         val senderHeader = FahrmonyCarI18n.getFromSenderPrefix(context, senderName)
@@ -303,13 +229,11 @@ class FahrmonyNotificationListener : NotificationListenerService() {
             .build()
 
         // 挂载 NotificationCompat.CarExtender 车规扩展，注入应用官方品牌主色与 96x96 高清头像
-        val brandColor = when (packageName) {
-            "com.tencent.mm" -> 0xFF07C160.toInt()
-            "com.alibaba.android.rimet" -> 0xFF0089FF.toInt()
-            else -> 0xFF0052D9.toInt()
-        }
         val carExtender = NotificationCompat.CarExtender()
-            .setColor(brandColor)
+            .setColor(msg.brandColor)
+        if (appBitmap != null) {
+            carExtender.setLargeIcon(appBitmap)
+        }
         if (appBitmap != null) {
             carExtender.setLargeIcon(appBitmap)
         }
@@ -360,6 +284,364 @@ class FahrmonyNotificationListener : NotificationListenerService() {
             }
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
             manager?.createNotificationChannel(channel)
+        }
+    }
+
+    private fun drawableToBitmap(drawable: android.graphics.drawable.Drawable): Bitmap {
+        if (drawable is android.graphics.drawable.BitmapDrawable && drawable.bitmap != null) {
+            return drawable.bitmap
+        }
+        val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 256
+        val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 256
+        val bitmap = Bitmap.createBitmap(width.coerceAtMost(512), height.coerceAtMost(512), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bitmap
+    }
+}
+
+/**
+ * 跨 IM 归一化消息实体 (提供给 Android Auto MessagingStyle 渲染)
+ */
+data class ParsedImMessage(
+    val senderName: String,
+    val messageBody: String,
+    val conversationName: String,
+    val isGroup: Boolean,
+    val brandColor: Int
+)
+
+/**
+ * IM 通知独立适配策略接口
+ */
+interface ImNotificationAdapter {
+    fun isGroup(extras: android.os.Bundle, title: String, text: String): Boolean
+    fun parseMessage(rawTitle: String, rawText: String, isGroup: Boolean, appName: String): ParsedImMessage
+}
+
+/**
+ * 微信专属适配器 (保留并固化原有的成熟稳定逻辑)
+ */
+class WeChatNotificationAdapter : ImNotificationAdapter {
+    override fun isGroup(extras: android.os.Bundle, title: String, text: String): Boolean {
+        if (extras.getBoolean("android.isGroupConversation", false)) return true
+        val convTitle = extras.getCharSequence("android.conversationTitle")?.toString() ?: ""
+        if (convTitle.isNotBlank()) return true
+
+        val subText = extras.getCharSequence("android.subText")?.toString() ?: ""
+
+        // 1. 强特征：标题以 "[群聊]" 开头，或标题末尾带有群成员人数括号 (如 "家庭群(4)"、"技术组（38）")
+        if (title.contains(Regex("""[(\uff08]\s*\d{1,4}\s*[)\uff09]$""")) || title.startsWith("[群聊]")) {
+            return true
+        }
+        // 2. 强特征：subText 明确包含 "群" 或 "Group"
+        if (subText.contains("群") || subText.contains("Group", ignoreCase = true)) {
+            return true
+        }
+        // 3. 正文冒号协同验证：只有在会话具有群聊特征暗示时才进行冒号发言人切分，严禁将私聊正文中的冒号一票否决
+        val colonIdx = text.indexOfAny(charArrayOf(':', '：'))
+        if (colonIdx in 1..20 && !text.startsWith("http:", ignoreCase = true) && !text.startsWith("https:", ignoreCase = true)) {
+            val candidate = text.substring(0, colonIdx).trim()
+            val isSelfSummary = candidate.equals(title, ignoreCase = true) ||
+                    candidate.endsWith(title, ignoreCase = true) ||
+                    title.endsWith(candidate, ignoreCase = true)
+            val isCommonMessagePrefix = candidate in setOf("时间", "地点", "注意", "提示", "链接", "电话", "地址", "开会", "电影", "回复", "提醒", "通知", "PS", "ps")
+
+            if (candidate.isNotEmpty() && !candidate.contains('\n') && !isSelfSummary && !isCommonMessagePrefix) {
+                if (title.contains("群") || subText.isNotBlank()) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    override fun parseMessage(rawTitle: String, rawText: String, isGroup: Boolean, appName: String): ParsedImMessage {
+        var senderName = rawTitle.ifBlank { appName }
+        var messageBody = rawText
+        var conversationName = appName
+
+        val cleanedText = rawText.replace(Regex("""^\[\d+条\]\s*"""), "").trim()
+
+        if (isGroup) {
+            val colonIdx = cleanedText.indexOfAny(charArrayOf(':', '：'))
+            if (colonIdx in 1..25) {
+                senderName = cleanedText.substring(0, colonIdx).trim()
+                messageBody = cleanedText.substring(colonIdx + 1).trim()
+            } else {
+                messageBody = cleanedText
+            }
+            conversationName = rawTitle.replace(Regex("""[(\uff08]\d{1,4}[)\uff09]$"""), "").trim().ifBlank { appName }
+        } else {
+            val colonIdx = cleanedText.indexOfAny(charArrayOf(':', '：'))
+            if (colonIdx in 1..25) {
+                val prefix = cleanedText.substring(0, colonIdx).trim()
+                if (prefix.equals(senderName, ignoreCase = true) || senderName.endsWith(prefix, ignoreCase = true)) {
+                    messageBody = cleanedText.substring(colonIdx + 1).trim()
+                } else {
+                    messageBody = cleanedText
+                }
+            } else {
+                messageBody = cleanedText
+            }
+        }
+        return ParsedImMessage(
+            senderName = senderName,
+            messageBody = messageBody,
+            conversationName = conversationName,
+            isGroup = isGroup,
+            brandColor = 0xFF07C160.toInt() // 微信绿
+        )
+    }
+}
+
+/**
+ * QQ 专属适配器 (独立单聊/群聊与前缀清洗)
+ */
+class QQNotificationAdapter : ImNotificationAdapter {
+    override fun isGroup(extras: android.os.Bundle, title: String, text: String): Boolean {
+        if (extras.getBoolean("android.isGroupConversation", false)) return true
+        val convTitle = extras.getCharSequence("android.conversationTitle")?.toString() ?: ""
+        if (convTitle.isNotBlank()) return true
+
+        val subText = extras.getCharSequence("android.subText")?.toString() ?: ""
+
+        // 1. QQ 群与讨论组特征：标题带人数括号 (45)、以 [群聊] 开头，或包含 "群" / "讨论组" / "频道"
+        if (title.contains(Regex("""[(\uff08]\s*\d{1,4}\s*[)\uff09]$""")) ||
+            title.startsWith("[群聊]") ||
+            title.contains("群") ||
+            title.contains("讨论组") ||
+            title.contains("频道")) {
+            return true
+        }
+        if (subText.contains("群") || subText.contains("讨论组") || subText.contains("Group", ignoreCase = true)) {
+            return true
+        }
+
+        // 2. 正文冒号切分：QQ 群发信人通常为 "昵称: 内容" 或 "[2条]昵称: 内容"
+        val cleanCandidateText = text.replace(Regex("""^\[\d+条\]\s*"""), "").trim()
+        val colonIdx = cleanCandidateText.indexOfAny(charArrayOf(':', '：'))
+        if (colonIdx in 1..25 && !cleanCandidateText.startsWith("http:", ignoreCase = true) && !cleanCandidateText.startsWith("https:", ignoreCase = true)) {
+            val candidate = cleanCandidateText.substring(0, colonIdx).trim()
+            val isSelfSummary = candidate.equals(title, ignoreCase = true) ||
+                    candidate.endsWith(title, ignoreCase = true) ||
+                    title.endsWith(candidate, ignoreCase = true)
+            val isCommonMessagePrefix = candidate in setOf("时间", "地点", "注意", "提示", "链接", "电话", "地址", "开会", "提醒", "通知")
+
+            if (candidate.isNotEmpty() && !candidate.contains('\n') && !isSelfSummary && !isCommonMessagePrefix) {
+                return true
+            }
+        }
+        return false
+    }
+
+    override fun parseMessage(rawTitle: String, rawText: String, isGroup: Boolean, appName: String): ParsedImMessage {
+        var senderName = rawTitle.ifBlank { appName }
+        var messageBody = rawText
+        var conversationName = appName
+
+        // 清洗 QQ 常见的汇总条数前缀与特殊标识
+        var cleanedText = rawText.replace(Regex("""^\[\d+条\]\s*"""), "").trim()
+        cleanedText = cleanedText.replace(Regex("""^\[(特别关心|特别关注|QQ电话|语音通话|视频通话)\]\s*"""), "").trim()
+
+        if (isGroup) {
+            val colonIdx = cleanedText.indexOfAny(charArrayOf(':', '：'))
+            if (colonIdx in 1..25) {
+                var candidateSender = cleanedText.substring(0, colonIdx).trim()
+                // 清洗 QQ 群发言人附带的头衔后缀 (如 "张三(群主)"、"李四(管理员)")
+                candidateSender = candidateSender.replace(Regex("""[(\uff08](群主|管理员|堂主|长老|护法|帮主)[)\uff09]"""), "").trim()
+                senderName = candidateSender.ifBlank { rawTitle }
+                messageBody = cleanedText.substring(colonIdx + 1).trim()
+            } else {
+                messageBody = cleanedText
+            }
+            conversationName = rawTitle.replace(Regex("""[(\uff08]\d{1,4}[)\uff09]$"""), "").trim().ifBlank { appName }
+        } else {
+            val colonIdx = cleanedText.indexOfAny(charArrayOf(':', '：'))
+            if (colonIdx in 1..25) {
+                val prefix = cleanedText.substring(0, colonIdx).trim()
+                if (prefix.equals(senderName, ignoreCase = true) || senderName.endsWith(prefix, ignoreCase = true)) {
+                    messageBody = cleanedText.substring(colonIdx + 1).trim()
+                } else {
+                    messageBody = cleanedText
+                }
+            } else {
+                messageBody = cleanedText
+            }
+        }
+        return ParsedImMessage(
+            senderName = senderName,
+            messageBody = messageBody,
+            conversationName = conversationName,
+            isGroup = isGroup,
+            brandColor = 0xFF12B7F5.toInt() // QQ 官方标志蓝
+        )
+    }
+}
+
+/**
+ * 飞书专属适配器 (解除 subText 强约束，清洗飞书特有 @ 标签)
+ */
+class FeishuNotificationAdapter : ImNotificationAdapter {
+    override fun isGroup(extras: android.os.Bundle, title: String, text: String): Boolean {
+        if (extras.getBoolean("android.isGroupConversation", false)) return true
+        val convTitle = extras.getCharSequence("android.conversationTitle")?.toString() ?: ""
+        if (convTitle.isNotBlank()) return true
+
+        val subText = extras.getCharSequence("android.subText")?.toString() ?: ""
+
+        if (title.contains(Regex("""[(\uff08]\s*\d{1,4}\s*[)\uff09]$""")) || title.startsWith("[群聊]") || title.contains("群")) {
+            return true
+        }
+        if (subText.contains("群") || subText.contains("Group", ignoreCase = true)) {
+            return true
+        }
+
+        // 飞书工作群：剥离条数与 @ 前缀后，若发言人与群名不同，精准认定为群聊 (彻底解除对 subText 的依赖)
+        val cleanCandidateText = text.replace(Regex("""^\[\d+条\]\s*"""), "")
+            .replace(Regex("""^\[(有人@了你|@所有人|有人回复了你|有人提到你)\]\s*"""), "").trim()
+        val colonIdx = cleanCandidateText.indexOfAny(charArrayOf(':', '：'))
+        if (colonIdx in 1..25 && !cleanCandidateText.startsWith("http:", ignoreCase = true) && !cleanCandidateText.startsWith("https:", ignoreCase = true)) {
+            val candidate = cleanCandidateText.substring(0, colonIdx).trim()
+            val isSelfSummary = candidate.equals(title, ignoreCase = true) || title.endsWith(candidate, ignoreCase = true)
+            val isCommonMessagePrefix = candidate in setOf("时间", "地点", "注意", "提示", "链接", "电话", "地址", "开会", "提醒")
+            if (candidate.isNotEmpty() && !candidate.contains('\n') && !isSelfSummary && !isCommonMessagePrefix) {
+                return true
+            }
+        }
+        return false
+    }
+
+    override fun parseMessage(rawTitle: String, rawText: String, isGroup: Boolean, appName: String): ParsedImMessage {
+        var senderName = rawTitle.ifBlank { appName }
+        var messageBody = rawText
+        var conversationName = appName
+
+        var cleanedText = rawText.replace(Regex("""^\[\d+条\]\s*"""), "").trim()
+        cleanedText = cleanedText.replace(Regex("""^\[(有人@了你|@所有人|有人回复了你|有人提到你)\]\s*"""), "").trim()
+
+        if (isGroup) {
+            val colonIdx = cleanedText.indexOfAny(charArrayOf(':', '：'))
+            if (colonIdx in 1..25) {
+                senderName = cleanedText.substring(0, colonIdx).trim()
+                messageBody = cleanedText.substring(colonIdx + 1).trim()
+            } else {
+                messageBody = cleanedText
+            }
+            conversationName = rawTitle.replace(Regex("""[(\uff08]\d{1,4}[)\uff09]$"""), "").trim().ifBlank { appName }
+        } else {
+            val colonIdx = cleanedText.indexOfAny(charArrayOf(':', '：'))
+            if (colonIdx in 1..25) {
+                val prefix = cleanedText.substring(0, colonIdx).trim()
+                if (prefix.equals(senderName, ignoreCase = true) || senderName.endsWith(prefix, ignoreCase = true)) {
+                    messageBody = cleanedText.substring(colonIdx + 1).trim()
+                } else {
+                    messageBody = cleanedText
+                }
+            } else {
+                messageBody = cleanedText
+            }
+        }
+        return ParsedImMessage(
+            senderName = senderName,
+            messageBody = messageBody,
+            conversationName = conversationName,
+            isGroup = isGroup,
+            brandColor = 0xFF00D6B9.toInt() // 飞书蓝绿
+        )
+    }
+}
+
+/**
+ * 钉钉专属适配器 (独立处理企业架构与提示标签剥离)
+ */
+class DingTalkNotificationAdapter : ImNotificationAdapter {
+    override fun isGroup(extras: android.os.Bundle, title: String, text: String): Boolean {
+        if (extras.getBoolean("android.isGroupConversation", false)) return true
+        val convTitle = extras.getCharSequence("android.conversationTitle")?.toString() ?: ""
+        if (convTitle.isNotBlank()) return true
+
+        val subText = extras.getCharSequence("android.subText")?.toString() ?: ""
+
+        if (title.contains(Regex("""[(\uff08]\s*\d{1,4}\s*[)\uff09]$""")) || title.startsWith("[群聊]") || title.contains("群")) {
+            return true
+        }
+        if (subText.contains("群") || subText.contains("Group", ignoreCase = true)) {
+            return true
+        }
+
+        // 钉钉企业群：剥离提示标签后切分发言人
+        val cleanCandidateText = text.replace(Regex("""^\[\d+条\]\s*"""), "")
+            .replace(Regex("""^\[(有人@我|@所有人|特别关注|DING|重要)\]\s*"""), "").trim()
+        val colonIdx = cleanCandidateText.indexOfAny(charArrayOf(':', '：'))
+        if (colonIdx in 1..25 && !cleanCandidateText.startsWith("http:", ignoreCase = true) && !cleanCandidateText.startsWith("https:", ignoreCase = true)) {
+            val candidate = cleanCandidateText.substring(0, colonIdx).trim()
+            val isSelfSummary = candidate.equals(title, ignoreCase = true) || title.endsWith(candidate, ignoreCase = true)
+            val isCommonMessagePrefix = candidate in setOf("时间", "地点", "注意", "提示", "链接", "电话", "地址", "开会", "提醒")
+            if (candidate.isNotEmpty() && !candidate.contains('\n') && !isSelfSummary && !isCommonMessagePrefix) {
+                return true
+            }
+        }
+        return false
+    }
+
+    override fun parseMessage(rawTitle: String, rawText: String, isGroup: Boolean, appName: String): ParsedImMessage {
+        var senderName = rawTitle.ifBlank { appName }
+        var messageBody = rawText
+        var conversationName = appName
+
+        var cleanedText = rawText.replace(Regex("""^\[\d+条\]\s*"""), "").trim()
+        cleanedText = cleanedText.replace(Regex("""^\[(有人@我|@所有人|特别关注|DING|重要)\]\s*"""), "").trim()
+
+        if (isGroup) {
+            val colonIdx = cleanedText.indexOfAny(charArrayOf(':', '：'))
+            if (colonIdx in 1..25) {
+                senderName = cleanedText.substring(0, colonIdx).trim()
+                messageBody = cleanedText.substring(colonIdx + 1).trim()
+            } else {
+                messageBody = cleanedText
+            }
+            conversationName = rawTitle.replace(Regex("""[(\uff08]\d{1,4}[)\uff09]$"""), "").trim().ifBlank { appName }
+        } else {
+            val colonIdx = cleanedText.indexOfAny(charArrayOf(':', '：'))
+            if (colonIdx in 1..25) {
+                val prefix = cleanedText.substring(0, colonIdx).trim()
+                if (prefix.equals(senderName, ignoreCase = true) || senderName.endsWith(prefix, ignoreCase = true)) {
+                    messageBody = cleanedText.substring(colonIdx + 1).trim()
+                } else {
+                    messageBody = cleanedText
+                }
+            } else {
+                messageBody = cleanedText
+            }
+        }
+        return ParsedImMessage(
+            senderName = senderName,
+            messageBody = messageBody,
+            conversationName = conversationName,
+            isGroup = isGroup,
+            brandColor = 0xFF0089FF.toInt() // 钉钉蓝
+        )
+    }
+}
+
+/**
+ * IM 策略路由总线 (单例持有各独立适配器，杜绝分支逻辑交叉污染)
+ */
+object ImNotificationRouter {
+    private val weChatAdapter = WeChatNotificationAdapter()
+    private val qqAdapter = QQNotificationAdapter()
+    private val feishuAdapter = FeishuNotificationAdapter()
+    private val dingTalkAdapter = DingTalkNotificationAdapter()
+
+    fun getAdapter(packageName: String): ImNotificationAdapter? {
+        return when (packageName) {
+            "com.tencent.mm" -> weChatAdapter
+            "com.tencent.mobileqq", "com.tencent.tim", "com.tencent.qqlite" -> qqAdapter
+            "com.ss.android.lark" -> feishuAdapter
+            "com.alibaba.android.rimet" -> dingTalkAdapter
+            else -> null
         }
     }
 }

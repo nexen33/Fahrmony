@@ -28,6 +28,7 @@ object FahrmonyIpcBridge {
     const val MSG_MEDIA_COMMAND = 6
     const val MSG_CLEAR_LOGS = 7
     const val MSG_UPDATE_CONFIG = 8
+    const val MSG_REQUEST_REFRESH = 9
 
     // ==========================================
     // 1. :car 服务端 (运行于 :car 独立进程)
@@ -71,12 +72,13 @@ object FahrmonyIpcBridge {
                 MSG_MEDIA_COMMAND -> {
                     val action = msg.data.getString("action") ?: ""
                     val position = msg.data.getLong("position", 0L)
+                    val targetPackage = msg.data.getString("targetPackage")
                     if (action.equals("play", ignoreCase = true)) {
-                        FahrmonyMediaManager.play(context)
+                        FahrmonyMediaManager.play(context, targetPackage)
                     } else if (action.equals("seek_to", ignoreCase = true)) {
                         FahrmonyMediaManager.seekTo(position)
                     } else {
-                        FahrmonyMediaManager.sendCommand(action)
+                        FahrmonyMediaManager.sendCommand(action, targetPackage)
                     }
                 }
                 MSG_CLEAR_LOGS -> {
@@ -86,10 +88,19 @@ object FahrmonyIpcBridge {
                     val jsonStr = msg.data?.getString("configJson")
                     if (!jsonStr.isNullOrEmpty()) {
                         try {
-                            FahrmonyConfig.updateConfig(context, org.json.JSONObject(jsonStr))
+                            val json = org.json.JSONObject(jsonStr)
+                            FahrmonyConfig.updateConfig(context, json)
+                            val newDefault = json.optString("defaultPlayerPackage", "")
+                            if (newDefault.isNotBlank()) {
+                                FahrmonyMediaManager.onDefaultPlayerChanged(newDefault)
+                            }
                         } catch (ignored: Exception) {}
                     }
                     FahrmonyMediaManager.refresh(context)
+                }
+                MSG_REQUEST_REFRESH -> {
+                    FahrmonyMediaManager.refresh(context)
+                    sendSyncState(context)
                 }
                 else -> super.handleMessage(msg)
             }
@@ -122,7 +133,7 @@ object FahrmonyIpcBridge {
             val msg = Message.obtain(null, MSG_SYNC_STATE).apply {
                 data = Bundle().apply {
                     putParcelableArrayList("sessions", sessionBundles)
-                    putBoolean("isCarConnected", FahrmonyNotificationListener.isConnected)
+                    putBoolean("isCarConnected", FahrmonyMediaBrowserService.isCarConnected)
                 }
             }
             client.send(msg)
@@ -172,6 +183,7 @@ object FahrmonyIpcBridge {
     private val cachedSessions = CopyOnWriteArrayList<ActiveMediaSessionInfo>()
     private var isCarConnectedCache = false
     private var onSessionChangedCallback: ((ActiveMediaSessionInfo?) -> Unit)? = null
+    var onCarConnectedCallback: ((Boolean) -> Unit)? = null
 
     private val clientMessengerInstance = Messenger(object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(msg: Message) {
@@ -179,7 +191,12 @@ object FahrmonyIpcBridge {
                 MSG_SYNC_STATE -> {
                     val bundle = msg.data
                     if (bundle.containsKey("isCarConnected")) {
-                        isCarConnectedCache = bundle.getBoolean("isCarConnected", false)
+                        val newConn = bundle.getBoolean("isCarConnected", false)
+                        val changed = (isCarConnectedCache != newConn)
+                        isCarConnectedCache = newConn
+                        if (changed) {
+                            onCarConnectedCallback?.invoke(newConn)
+                        }
                     }
                     val sessionBundles = bundle.getParcelableArrayList<Bundle>("sessions")
                     if (sessionBundles != null) {
@@ -244,13 +261,16 @@ object FahrmonyIpcBridge {
         context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
-    fun sendMediaCommand(action: String, position: Long = 0L) {
+    fun sendMediaCommand(action: String, position: Long = 0L, targetPackage: String? = null) {
         val messenger = remoteServiceMessenger ?: return
         try {
             val msg = Message.obtain(null, MSG_MEDIA_COMMAND).apply {
                 data = Bundle().apply {
                     putString("action", action)
                     putLong("position", position)
+                    if (!targetPackage.isNullOrBlank()) {
+                        putString("targetPackage", targetPackage)
+                    }
                 }
             }
             messenger.send(msg)
@@ -280,6 +300,14 @@ object FahrmonyIpcBridge {
         } catch (ignored: RemoteException) {}
     }
 
+    fun requestRefresh() {
+        val messenger = remoteServiceMessenger ?: return
+        try {
+            val msg = Message.obtain(null, MSG_REQUEST_REFRESH)
+            messenger.send(msg)
+        } catch (ignored: RemoteException) {}
+    }
+
     fun getCachedSessions(): List<ActiveMediaSessionInfo> {
         return cachedSessions.toList()
     }
@@ -301,6 +329,7 @@ object FahrmonyIpcBridge {
             putBoolean("isPlaying", info.isPlaying)
             putLong("duration", info.duration)
             putLong("position", info.position)
+            putString("artworkData", info.artworkData)
         }
     }
 
@@ -313,7 +342,8 @@ object FahrmonyIpcBridge {
             album = bundle.getString("album") ?: "",
             isPlaying = bundle.getBoolean("isPlaying", false),
             duration = bundle.getLong("duration", 0L),
-            position = bundle.getLong("position", 0L)
+            position = bundle.getLong("position", 0L),
+            artworkData = bundle.getString("artworkData")
         )
     }
 

@@ -1,20 +1,33 @@
 package com.fahrmony.app.nativebridge
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
+import com.getcapacitor.annotation.Permission
+import com.getcapacitor.annotation.PermissionCallback
 
-@CapacitorPlugin(name = "FahrmonyPlugin")
+@CapacitorPlugin(
+    name = "FahrmonyPlugin",
+    permissions = [
+        Permission(
+            strings = [Manifest.permission.POST_NOTIFICATIONS],
+            alias = "postNotifications"
+        )
+    ]
+)
 class FahrmonyPlugin : Plugin() {
 
     override fun load() {
@@ -35,11 +48,20 @@ class FahrmonyPlugin : Plugin() {
                     put("isPlaying", info.isPlaying)
                     put("duration", info.duration)
                     put("position", info.position)
+                    put("artworkData", info.artworkData)
                 } else {
                     put("hasActiveSession", false)
                 }
             }
             notifyListeners("mediaSessionChanged", data)
+        }
+
+        // 监听底层车机连接状态推流，实时派发前端事件
+        FahrmonyIpcBridge.onCarConnectedCallback = { connected ->
+            val data = JSObject().apply {
+                put("connected", connected)
+            }
+            notifyListeners("carConnectionChanged", data)
         }
     }
 
@@ -64,6 +86,28 @@ class FahrmonyPlugin : Plugin() {
             put("postNotifications", areNotificationsEnabled)
         }
         call.resolve(ret)
+    }
+
+    @PluginMethod
+    fun requestNotificationPermission(call: PluginCall) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val isGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!isGranted) {
+                requestPermissionForAlias("postNotifications", call, "postNotificationCallback")
+                return
+            }
+        }
+        val areNotificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+        call.resolve(JSObject().put("granted", areNotificationsEnabled))
+    }
+
+    @PermissionCallback
+    private fun postNotificationCallback(call: PluginCall) {
+        val areNotificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+        call.resolve(JSObject().put("granted", areNotificationsEnabled))
     }
 
     @PluginMethod
@@ -126,6 +170,7 @@ class FahrmonyPlugin : Plugin() {
 
     @PluginMethod
     fun getActiveMediaSessions(call: PluginCall) {
+        FahrmonyIpcBridge.requestRefresh()
         val sessions = FahrmonyIpcBridge.getCachedSessions()
         val array = JSArray()
         for (session in sessions) {
@@ -138,6 +183,7 @@ class FahrmonyPlugin : Plugin() {
                 put("isPlaying", session.isPlaying)
                 put("duration", session.duration)
                 put("position", session.position)
+                put("artworkData", session.artworkData)
             }
             array.put(obj)
         }
@@ -148,6 +194,7 @@ class FahrmonyPlugin : Plugin() {
     fun sendMediaCommand(call: PluginCall) {
         val action = call.getString("action") ?: ""
         val pos = call.getDouble("position")?.toLong() ?: 0L
+        val packageName = call.getString("packageName")
 
         if (action.equals("play", ignoreCase = true)) {
             val am = context.getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
@@ -157,22 +204,24 @@ class FahrmonyPlugin : Plugin() {
 
             // 仅当系统没有任何音乐在播放且无活跃播放会话时，才拉起应用，杜绝已在播放时误弹
             if (!isAlreadyPlaying && !isAudioActive) {
-                val targetPkg = FahrmonyConfig.getDefaultPlayer(context)
-                val launchIntent = context.packageManager.getLaunchIntentForPackage(targetPkg)
-                if (launchIntent != null) {
-                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-                    try {
-                        if (activity != null) {
-                            activity.startActivity(launchIntent)
-                        } else {
-                            context.startActivity(launchIntent)
-                        }
-                    } catch (ignored: Exception) {}
+                val targetPkg = if (!packageName.isNullOrBlank()) packageName else FahrmonyConfig.getDefaultPlayer(context)
+                if (targetPkg.isNotBlank()) {
+                    val launchIntent = context.packageManager.getLaunchIntentForPackage(targetPkg)
+                    if (launchIntent != null) {
+                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                        try {
+                            if (activity != null) {
+                                activity.startActivity(launchIntent)
+                            } else {
+                                context.startActivity(launchIntent)
+                            }
+                        } catch (ignored: Exception) {}
+                    }
                 }
             }
         }
 
-        FahrmonyIpcBridge.sendMediaCommand(action, pos)
+        FahrmonyIpcBridge.sendMediaCommand(action, pos, packageName)
         call.resolve(JSObject().put("success", true))
     }
 

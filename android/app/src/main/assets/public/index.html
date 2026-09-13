@@ -8,16 +8,22 @@
     <script>
       (function() {
         try {
-          var t = localStorage.getItem('fahrmony_theme') || 'light';
-          document.documentElement.setAttribute('data-theme', t);
+          var t = localStorage.getItem('fahrmony_theme') || 'system';
+          var effective = t;
+          if (t === 'system') {
+            effective = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', effective);
+          var bg = effective === 'dark' ? '#0a0c10' : '#f8fafc';
+          document.documentElement.style.backgroundColor = bg;
         } catch(e) {}
       })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-QT-wBKSR.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CD80ae3V.css">
+    <script type="module" crossorigin src="/assets/index-D3Gmd7dI.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DdJOT0fI.css">
   </head>
   <body>
     <div id="root"></div>

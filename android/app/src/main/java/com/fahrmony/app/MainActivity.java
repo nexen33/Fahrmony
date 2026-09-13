@@ -9,6 +9,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import com.fahrmony.app.nativebridge.FahrmonyIpcBridge;
 import com.fahrmony.app.nativebridge.FahrmonyMediaManager;
 import com.fahrmony.app.nativebridge.FahrmonyPlugin;
 import com.getcapacitor.BridgeActivity;
@@ -34,9 +35,15 @@ public class MainActivity extends BridgeActivity {
 
     private void applyPersistedTheme() {
         SharedPreferences sp = getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
-        String savedTheme = sp.getString("fahrmony_theme", "light");
-        boolean isDark = "dark".equals(savedTheme);
-        int bgColor = Color.parseColor(isDark ? "#0B0D12" : "#F8FAFC");
+        String savedTheme = sp.getString("fahrmony_theme", "system");
+        boolean isDark;
+        if ("system".equals(savedTheme)) {
+            int nightModeFlags = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+            isDark = (nightModeFlags == Configuration.UI_MODE_NIGHT_YES);
+        } else {
+            isDark = "dark".equals(savedTheme);
+        }
+        int bgColor = Color.parseColor(isDark ? "#0A0C10" : "#F8FAFC");
 
         // 同步窗口底色与 WebView 底色，杜绝使用 setDefaultNightMode 触发 Activity recreate() 与白屏
         getWindow().setBackgroundDrawable(new ColorDrawable(bgColor));
@@ -44,6 +51,19 @@ public class MainActivity extends BridgeActivity {
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().setBackgroundColor(bgColor);
             getBridge().getWebView().invalidate();
+        }
+    }
+
+    private void checkFirstLaunchPostNotifications() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            SharedPreferences sp = getSharedPreferences("fahrmony_settings", Context.MODE_PRIVATE);
+            boolean hasPrompted = sp.getBoolean("has_prompted_post_notifications", false);
+            if (!hasPrompted) {
+                sp.edit().putBoolean("has_prompted_post_notifications", true).apply();
+                if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1002);
+                }
+            }
         }
     }
 
@@ -57,6 +77,7 @@ public class MainActivity extends BridgeActivity {
         applyPersistedTheme();
         FahrmonyMediaManager.INSTANCE.init(this);
         handleChainLaunch(getIntent());
+        checkFirstLaunchPostNotifications();
     }
 
     @Override
@@ -70,7 +91,7 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         applyPersistedTheme();
-        FahrmonyMediaManager.INSTANCE.refresh(this);
+        FahrmonyIpcBridge.INSTANCE.requestRefresh();
     }
 
     @Override
@@ -78,6 +99,6 @@ public class MainActivity extends BridgeActivity {
         super.onConfigurationChanged(newConfig);
         // 系统切入车载模式 (UI_MODE_TYPE_CAR) 或多屏投射时，执行无感防抖与主题对齐，防止 WebView 渲染管线挂起导致灰白屏
         applyPersistedTheme();
-        FahrmonyMediaManager.INSTANCE.refresh(this);
+        FahrmonyIpcBridge.INSTANCE.requestRefresh();
     }
 }

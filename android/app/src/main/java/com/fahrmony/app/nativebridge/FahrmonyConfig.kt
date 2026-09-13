@@ -14,8 +14,11 @@ object FahrmonyConfig {
     private const val KEY_WECHAT = "wechat"
     private const val KEY_FEISHU = "feishu"
     private const val KEY_DINGTALK = "dingtalk"
+    private const val KEY_QQ = "qq"
     private const val KEY_QQMUSIC = "qqmusic"
     private const val KEY_NETEASE = "netease"
+    private const val KEY_QISHUI = "qishui"
+    private const val KEY_BODIAN = "bodian"
     private const val KEY_KUGOU = "kugou"
     private const val KEY_KUWO = "kuwo"
     private const val KEY_XIMALAYA = "ximalaya"
@@ -24,6 +27,7 @@ object FahrmonyConfig {
     private const val KEY_DEFAULT_PLAYER = "defaultPlayerPackage"
     private const val KEY_FILTER_GROUP = "filterGroupChats"
     private const val KEY_HIDE_PREVIEW = "hidePreviewContent"
+    private const val KEY_RAW_PLAYER_CARD = "rawPlayerCard"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -32,18 +36,22 @@ object FahrmonyConfig {
     fun updateConfig(context: Context, json: JSONObject) {
         val editor = getPrefs(context).edit()
         if (json.has(KEY_WECHAT)) editor.putBoolean(KEY_WECHAT, json.optBoolean(KEY_WECHAT, true))
-        if (json.has(KEY_FEISHU)) editor.putBoolean(KEY_FEISHU, json.optBoolean(KEY_FEISHU, true))
-        if (json.has(KEY_DINGTALK)) editor.putBoolean(KEY_DINGTALK, json.optBoolean(KEY_DINGTALK, true))
+        if (json.has(KEY_FEISHU)) editor.putBoolean(KEY_FEISHU, json.optBoolean(KEY_FEISHU, false))
+        if (json.has(KEY_DINGTALK)) editor.putBoolean(KEY_DINGTALK, json.optBoolean(KEY_DINGTALK, false))
+        if (json.has(KEY_QQ)) editor.putBoolean(KEY_QQ, json.optBoolean(KEY_QQ, false))
         if (json.has(KEY_QQMUSIC)) editor.putBoolean(KEY_QQMUSIC, json.optBoolean(KEY_QQMUSIC, true))
         if (json.has(KEY_NETEASE)) editor.putBoolean(KEY_NETEASE, json.optBoolean(KEY_NETEASE, true))
+        if (json.has(KEY_QISHUI)) editor.putBoolean(KEY_QISHUI, json.optBoolean(KEY_QISHUI, true))
+        if (json.has(KEY_BODIAN)) editor.putBoolean(KEY_BODIAN, json.optBoolean(KEY_BODIAN, true))
         if (json.has(KEY_KUGOU)) editor.putBoolean(KEY_KUGOU, json.optBoolean(KEY_KUGOU, true))
         if (json.has(KEY_KUWO)) editor.putBoolean(KEY_KUWO, json.optBoolean(KEY_KUWO, true))
         if (json.has(KEY_XIMALAYA)) editor.putBoolean(KEY_XIMALAYA, json.optBoolean(KEY_XIMALAYA, true))
         if (json.has(KEY_XIAOYUZHOU)) editor.putBoolean(KEY_XIAOYUZHOU, json.optBoolean(KEY_XIAOYUZHOU, true))
         if (json.has(KEY_AUTO_PLAY)) editor.putBoolean(KEY_AUTO_PLAY, json.optBoolean(KEY_AUTO_PLAY, true))
-        if (json.has(KEY_DEFAULT_PLAYER)) editor.putString(KEY_DEFAULT_PLAYER, json.optString(KEY_DEFAULT_PLAYER, "com.tencent.qqmusic"))
+        if (json.has(KEY_DEFAULT_PLAYER)) editor.putString(KEY_DEFAULT_PLAYER, json.optString(KEY_DEFAULT_PLAYER, ""))
         if (json.has(KEY_FILTER_GROUP)) editor.putBoolean(KEY_FILTER_GROUP, json.optBoolean(KEY_FILTER_GROUP, false))
         if (json.has(KEY_HIDE_PREVIEW)) editor.putBoolean(KEY_HIDE_PREVIEW, json.optBoolean(KEY_HIDE_PREVIEW, false))
+        if (json.has(KEY_RAW_PLAYER_CARD)) editor.putBoolean(KEY_RAW_PLAYER_CARD, json.optBoolean(KEY_RAW_PLAYER_CARD, false))
         editor.apply()
     }
 
@@ -51,18 +59,22 @@ object FahrmonyConfig {
         val sp = getPrefs(context)
         return JSONObject().apply {
             put(KEY_WECHAT, sp.getBoolean(KEY_WECHAT, true))
-            put(KEY_FEISHU, sp.getBoolean(KEY_FEISHU, true))
-            put(KEY_DINGTALK, sp.getBoolean(KEY_DINGTALK, true))
+            put(KEY_FEISHU, sp.getBoolean(KEY_FEISHU, false))
+            put(KEY_DINGTALK, sp.getBoolean(KEY_DINGTALK, false))
+            put(KEY_QQ, sp.getBoolean(KEY_QQ, false))
             put(KEY_QQMUSIC, sp.getBoolean(KEY_QQMUSIC, true))
             put(KEY_NETEASE, sp.getBoolean(KEY_NETEASE, true))
+            put(KEY_QISHUI, sp.getBoolean(KEY_QISHUI, true))
+            put(KEY_BODIAN, sp.getBoolean(KEY_BODIAN, true))
             put(KEY_KUGOU, sp.getBoolean(KEY_KUGOU, true))
             put(KEY_KUWO, sp.getBoolean(KEY_KUWO, true))
             put(KEY_XIMALAYA, sp.getBoolean(KEY_XIMALAYA, true))
             put(KEY_XIAOYUZHOU, sp.getBoolean(KEY_XIAOYUZHOU, true))
             put(KEY_AUTO_PLAY, sp.getBoolean(KEY_AUTO_PLAY, true))
-            put(KEY_DEFAULT_PLAYER, sp.getString(KEY_DEFAULT_PLAYER, "com.tencent.qqmusic"))
+            put(KEY_DEFAULT_PLAYER, sp.getString(KEY_DEFAULT_PLAYER, "") ?: "")
             put(KEY_FILTER_GROUP, sp.getBoolean(KEY_FILTER_GROUP, false))
             put(KEY_HIDE_PREVIEW, sp.getBoolean(KEY_HIDE_PREVIEW, false))
+            put(KEY_RAW_PLAYER_CARD, sp.getBoolean(KEY_RAW_PLAYER_CARD, false))
         }
     }
 
@@ -70,10 +82,13 @@ object FahrmonyConfig {
         val sp = getPrefs(context)
         return when (packageName) {
             "com.tencent.mm" -> sp.getBoolean(KEY_WECHAT, true)
-            "com.ss.android.lark" -> sp.getBoolean(KEY_FEISHU, true)
-            "com.alibaba.android.rimet" -> sp.getBoolean(KEY_DINGTALK, true)
+            "com.ss.android.lark" -> sp.getBoolean(KEY_FEISHU, false)
+            "com.alibaba.android.rimet" -> sp.getBoolean(KEY_DINGTALK, false)
+            "com.tencent.mobileqq", "com.tencent.tim", "com.tencent.qqlite" -> sp.getBoolean(KEY_QQ, false)
             "com.tencent.qqmusic" -> sp.getBoolean(KEY_QQMUSIC, true)
             "com.netease.cloudmusic" -> sp.getBoolean(KEY_NETEASE, true)
+            "com.luna.music" -> sp.getBoolean(KEY_QISHUI, true)
+            "cn.wenyu.bodian" -> sp.getBoolean(KEY_BODIAN, true)
             "kugou.service", "com.kugou.android" -> sp.getBoolean(KEY_KUGOU, true)
             "cn.kuwo.player" -> sp.getBoolean(KEY_KUWO, true)
             "com.ximalaya.ting.android" -> sp.getBoolean(KEY_XIMALAYA, true)
@@ -90,8 +105,12 @@ object FahrmonyConfig {
         return getPrefs(context).getBoolean(KEY_AUTO_PLAY, true)
     }
 
+    fun isRawPlayerCardEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_RAW_PLAYER_CARD, false)
+    }
+
     fun getDefaultPlayer(context: Context): String {
-        return getPrefs(context).getString(KEY_DEFAULT_PLAYER, "com.tencent.qqmusic") ?: "com.tencent.qqmusic"
+        return getPrefs(context).getString(KEY_DEFAULT_PLAYER, "") ?: ""
     }
 
     fun getLanguage(context: Context): String {

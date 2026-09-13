@@ -13,12 +13,15 @@
     <queries>
         <!-- IM 应用 -->
         <package android:name="com.tencent.mm" />
+        <package android:name="com.tencent.mobileqq" />
         <package android:name="com.ss.android.lark" />
         <package android:name="com.alibaba.android.rimet" />
         
         <!-- 媒体应用 -->
         <package android:name="com.tencent.qqmusic" />
         <package android:name="com.netease.cloudmusic" />
+        <package android:name="com.luna.music" />
+        <package android:name="cn.wenyu.bodian" />
         <package android:name="com.ximalaya.ting.android" />
         <package android:name="app.podcast.cosmos" />
         <package android:name="kugou.service" />
