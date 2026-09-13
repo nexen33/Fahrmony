@@ -125,6 +125,21 @@
             </intent-filter>
         </receiver>
 
+        <!-- GitHub 更新通知交互接收器 (前往下载与忽略) -->
+        <receiver
+            android:name=".nativebridge.FahrmonyUpdateReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.fahrmony.app.ACTION_UPDATE_DOWNLOAD" />
+                <action android:name="com.fahrmony.app.ACTION_UPDATE_IGNORE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 每日 20:00 定时检测闹钟唤醒广播接收器 -->
+        <receiver
+            android:name=".nativebridge.FahrmonyUpdateAlarmReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>

@@ -289,4 +289,16 @@ class FahrmonyPlugin : Plugin() {
             call.resolve(JSObject().put("success", false).put("error", "未检测到已安装该应用"))
         }
     }
+
+    @PluginMethod
+    fun checkUpdate(call: PluginCall) {
+        FahrmonyUpdateManager.performCheckAndNotify(context, isManual = true) { info ->
+            val res = JSObject().apply {
+                put("hasUpdate", info.hasUpdate)
+                put("latestVersion", info.latestVersion)
+                put("downloadUrl", info.downloadUrl)
+            }
+            call.resolve(res)
+        }
+    }
 }

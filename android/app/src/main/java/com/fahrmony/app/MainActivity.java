@@ -12,6 +12,7 @@ import android.os.Looper;
 import com.fahrmony.app.nativebridge.FahrmonyIpcBridge;
 import com.fahrmony.app.nativebridge.FahrmonyMediaManager;
 import com.fahrmony.app.nativebridge.FahrmonyPlugin;
+import com.fahrmony.app.nativebridge.FahrmonyUpdateManager;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -76,6 +77,7 @@ public class MainActivity extends BridgeActivity {
         // 视图树加载完毕后再次确保 WebView 底色与持久化主题保持像素级一致
         applyPersistedTheme();
         FahrmonyMediaManager.INSTANCE.init(this);
+        FahrmonyUpdateManager.INSTANCE.init(this);
         handleChainLaunch(getIntent());
         checkFirstLaunchPostNotifications();
     }
