@@ -13,7 +13,7 @@
 > A local-first interoperability bridge tailored for Android Auto, enabling car displays to naturally display and partially control your favorite Chinese streaming audio and messaging notifications while driving abroad.
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.1.0/Fahrmony_v1.1.0.apk">
+  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.1.5/Fahrmony_v1.1.5.apk">
     <img src="https://img.shields.io/badge/Download_Latest_Fahrmony_APK-blue?style=forthebadge" height="60">
   </a>
 </p>  
@@ -52,7 +52,8 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 - **Queue Passthrough & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; probes and supports standard repeat modes as well as vendor custom actions.
 - **Driving Safety Notification Assistant**: Deconstructs direct and group messages, filters out group chat spam, and generates automotive-standard cards with voice readout and "Mark as Read" actions.
 - **Anti-Jitter & Audio Leak Prevention**: Instantly claims transient audio focus and pauses all players upon car disconnection to eliminate speaker audio leakage; enforces an anti-jitter state lock during track switching to prevent UI flashing.
-- **Minimalist Handset Frontend**: A lightweight fluid console on the handset displaying real-time media source detection status and notification relay records, with light/dark adaptive theming and "Follow System" mode, 4-language support, and permission setup guides.
+- **Minimalist Handset Frontend & Native-Like Interactions**: A lightweight fluid console on the handset displaying real-time media source detection status and notification relay records; browser scrollbars are completely hidden, delivering silky 120fps native-like stretch and overscroll bounce; supports adaptive light/dark theming with "Follow System" mode, 4-language support, and permission setup guides.
+- **Silent Update Detection**: Built-in lightweight update sensing checks the official GitHub Release once daily in the background with randomized jitter; double-tapping the app logo inside the "About" dialog also triggers an immediate update check to ensure you stay up to date.
 
 ## Compatibility
 
@@ -173,7 +174,7 @@ Audio automatically routes through the vehicle speakers when connected. Upon dis
 If you encounter an issue during daily driving, please file a report on GitHub Issues using the template below (**Note: Never submit personal private chat contents**):
 
 ```text
-- Fahrmony Version: v1.1.0
+- Fahrmony Version: v1.1.5
 - Android OS Version: e.g., Android 14
 - Phone Model: e.g., Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto Version: e.g., 11.8
@@ -217,7 +218,7 @@ Developers may optionally attach relevant log excerpts to their issue submission
 ## Privacy Policy
 
 1. **100% Local-First**: All notifications, text parsing, and media states are **processed purely in volatile memory (RAM)** and discarded immediately; nothing is written to disk storage.
-2. **No Remote Servers**: No backend servers exist; zero network transmission takes place.
+2. **No Proprietary Backend & Zero Data Harvesting**: No proprietary servers exist and no personal telemetry is collected; only a direct, read-only version query is sent to the official GitHub Releases API during update checks, with zero device identifiers or analytics attached.
 3. **No Analytics or Trackers**: Completely free of advertising, behavior tracking, or crash analytics SDKs.
 4. **User Revocable**: Permissions can be revoked at any time through Android system settings.
 
@@ -273,7 +274,7 @@ Released under the **Creative Commons Attribution-NonCommercial 4.0 Internationa
 
 ---
 
-## Preview v1.1.0
+## Preview v1.1.5
 
 <p align="center">
   <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/03007905-3bbb-43da-8f7e-d7d0d9532fb3" />

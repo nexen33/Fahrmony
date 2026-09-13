@@ -13,7 +13,7 @@
 > Eine lokale Schnittstellenbrücke für Android Auto, mit der Fahrzeug-Displays bei Fahrten im Ausland gängige chinesische Audio-Streaming- und Messaging-Dienste nahtlos anzeigen und teilweise steuern können.
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.1.0/Fahrmony_v1.1.0.apk">
+  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.1.5/Fahrmony_v1.1.5.apk">
     <img src="https://img.shields.io/badge/Neuestes_Fahrmony_APK_herunterladen-blue?style=forthebadge" height="60">
   </a>
 </p>  
@@ -51,7 +51,8 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 - **Wiedergabelisten und Wiederholungsmodi**: Reicht vorhandene Titellisten durch und unterstützt gängige Schleifen- und Wiederholungsmodi.
 - **Fahrgerechte Nachrichtenbenachrichtigung**: Filtert Gruppenchats und ermöglicht das Vorlesen sowie die Bestätigung als gelesen per Tastendruck.
 - **Schutz vor versehentlicher Tonwiedergabe**: Pausiert die Wiedergabe sofort beim Trennen des Kabels, damit das Handy nicht plötzlich laut weiterspielt.
-- **Schlankes Smartphone-Frontend**: Übersichtliche Smartphone-Oberfläche zur Anzeige des Erkennungsstatus von Audioquellen und Benachrichtigungsübertragungen, mit Hell-/Dunkelmodus und Modus „Systemstandard“, 4-Sprachen-Unterstützung sowie Berechtigungs-Leitfaden.
+- **Schlankes Smartphone-Frontend & Native Bedienung**: Übersichtliche Smartphone-Oberfläche zur Anzeige des Erkennungsstatus von Audioquellen und Benachrichtigungsübertragungen; Browser-Scrollbalken sind vollständig ausgeblendet und bieten seidenweiches 120-Hz-Overscroll-Verhalten wie eine native App; mit Hell-/Dunkelmodus und Modus „Systemstandard“, 4-Sprachen-Unterstützung sowie Berechtigungs-Leitfaden.
+- **Dezente Update-Prüfung**: Ein leichtgewichtiger Erkennungsdienst prüft einmal täglich nachts im Hintergrund diskret auf neue GitHub-Releases; ein Doppeltipp auf das App-Logo im Info-Dialog startet zudem jederzeit eine manuelle Prüfung.
 
 ## Kompatibilitätsmatrix
 
@@ -172,7 +173,7 @@ Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über di
 Wenn im Alltag ein Problem auftritt, können Sie gerne eine Fehlermeldung auf GitHub einreichen. Bitte nutzen Sie folgende Vorlage (**Hinweis: Bitte niemals vertrauliche private Nachrichteninhalte übermitteln**):
 
 ```text
-- Fahrmony-Version: v1.1.0
+- Fahrmony-Version: v1.1.5
 - Android-Version: z. B. Android 14
 - Smartphone-Modell: z. B. Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto-Version: z. B. 11.8
@@ -216,7 +217,7 @@ Entwickler können relevante Protokollauszüge optional an die Fehlermeldung anh
 ## Datenschutz
 
 1. **Vollständig lokal**: Alle Daten werden **ausschließlich im flüchtigen Arbeitsspeicher (RAM)** verarbeitet und niemals auf Speichergeräten abgelegt.
-2. **Keine externen Server**: Es existieren keine Hintergrundserver; es findet kein Datenaustausch über das Internet statt.
+2. **Keine proprietären Server & Null Datenerfassung**: Es existieren keine eigenen Backend-Server und es werden keinerlei personenbezogene Daten gesammelt; bei der Versionsprüfung erfolgt lediglich eine schreibgeschützte Abfrage der offiziellen GitHub Releases API – völlig ohne Geräte-IDs oder Nutzungsstatistiken.
 3. **Keine Tracking-Dienste**: Es sind keinerlei Analyse-, Werbe- oder Telemetrie-Module integriert.
 4. **Jederzeit widerrufbar**: Berechtigungen können in den Smartphone-Einstellungen jederzeit deaktiviert werden.
 
@@ -272,7 +273,7 @@ Dieses Projekt ist unter der Lizenz **Creative Commons Namensnennung - Nicht-kom
 
 ---
 
-## Vorschau v1.1.0
+## Vorschau v1.1.5
 
 <p align="center">
   <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/03007905-3bbb-43da-8f7e-d7d0d9532fb3" />
