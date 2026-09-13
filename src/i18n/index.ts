@@ -121,6 +121,9 @@ export interface Translations {
     close: string;
     aboutTarget: string;
     copyright: string;
+    checkingUpdateToast: string;
+    upToDateToast: string;
+    updateFoundToast: string;
   };
 }
 
@@ -244,6 +247,9 @@ export const translations: Record<LanguageKey, Translations> = {
       close: '关闭',
       aboutTarget: '为部分中国 App 的 Android Auto 适配打造',
       copyright: '© 2026 Tun&PaMa AG',
+      checkingUpdateToast: '正在检查更新...',
+      upToDateToast: '当前版本为最新',
+      updateFoundToast: '发现更新的版本，点击跳转下载',
     },
   },
   'en-US': {
@@ -365,6 +371,9 @@ export const translations: Record<LanguageKey, Translations> = {
       close: 'Close',
       aboutTarget: 'Tailored for Android Auto & Chinese Apps',
       copyright: '© 2026 Tun&PaMa AG',
+      checkingUpdateToast: 'Checking for updates...',
+      upToDateToast: 'Current version is up to date',
+      updateFoundToast: 'Newer version found, tap to download',
     },
   },
   'de-DE': {
@@ -486,6 +495,9 @@ export const translations: Record<LanguageKey, Translations> = {
       close: 'Schließen',
       aboutTarget: 'Optimiert für Android Auto & ausgewählte Apps',
       copyright: '© 2026 Tun&PaMa AG',
+      checkingUpdateToast: 'Suche nach Updates...',
+      upToDateToast: 'Aktuelle Version ist auf dem neuesten Stand',
+      updateFoundToast: 'Neuere Version gefunden, tippen zum Herunterladen',
     },
   },
   'ja-JP': {
@@ -607,6 +619,9 @@ export const translations: Record<LanguageKey, Translations> = {
       close: '閉じる',
       aboutTarget: 'Android Auto 向け中国主要アプリ最適化',
       copyright: '© 2026 Tun&PaMa AG',
+      checkingUpdateToast: 'アップデートを確認中...',
+      upToDateToast: '現在のバージョンは最新です',
+      updateFoundToast: '新しいバージョンが見つかりました、タップしてダウンロード',
     },
   },
 };

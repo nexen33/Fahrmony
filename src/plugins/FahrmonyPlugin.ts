@@ -70,6 +70,15 @@ export interface AppBridgeConfig {
   rawPlayerCard?: boolean;
 }
 
+export interface UpdateCheckResult {
+  hasUpdate: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  downloadUrl: string;
+  releaseUrl: string;
+  changelog: string;
+}
+
 export interface FahrmonyPluginInterface {
   checkPermissions(): Promise<PermissionStatusResult>;
   requestNotificationPermission?(): Promise<{ granted: boolean }>;
@@ -82,6 +91,7 @@ export interface FahrmonyPluginInterface {
   setAppBridgeConfig(options: { config: Partial<AppBridgeConfig> }): Promise<{ success: boolean }>;
   getAppBridgeConfig(): Promise<{ config: AppBridgeConfig }>;
   launchApp(options: { packageName: string }): Promise<{ success: boolean }>;
+  checkUpdate(options?: { manual?: boolean }): Promise<UpdateCheckResult>;
   addListener(
     eventName: 'mediaSessionChanged',
     listenerFunc: (data: MediaSessionChangedEvent) => void
@@ -168,7 +178,7 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
           type: 'IM_NOTIFICATION',
           tag: '飞书',
           title: '项目组通知',
-          content: '合拍 Android Auto 桥接版本 v1.1.0 测试通过',
+          content: '合拍 Android Auto 桥接版本 v1.1.5 测试通过',
         }
       ],
     }),
@@ -185,6 +195,14 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
       alert(`[Fahrmony 模拟环境] 已发送启动应用 Intent：${options.packageName}`);
       return { success: true };
     },
+    checkUpdate: async () => ({
+      hasUpdate: false,
+      currentVersion: 'v1.1.5',
+      latestVersion: 'v1.1.5',
+      downloadUrl: 'https://github.com/nexen33/Fahrmony/releases/latest',
+      releaseUrl: 'https://github.com/nexen33/Fahrmony/releases/latest',
+      changelog: '当前已是最新版本',
+    }),
     addListener: async () => ({
       remove: async () => {},
     } as any),

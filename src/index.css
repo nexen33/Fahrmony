@@ -6,7 +6,7 @@
   --bg-main: #f8fafc;
   --bg-surface: #ffffff;
   --bg-surface-elevated: #f1f5f9;
-  --bg-surface-glass: rgba(255, 255, 255, 0.88);
+  --bg-surface-glass: rgba(255, 255, 255, 0.72);
   --border-subtle: rgba(0, 0, 0, 0.07);
   --border-glass: rgba(0, 0, 0, 0.10);
   --text-primary: #0f172a;
@@ -41,7 +41,7 @@
   --bg-main: #0a0c10;
   --bg-surface: #12151c;
   --bg-surface-elevated: #181c25;
-  --bg-surface-glass: rgba(18, 21, 28, 0.82);
+  --bg-surface-glass: rgba(18, 21, 28, 0.70);
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-glass: rgba(255, 255, 255, 0.12);
   --text-primary: #f1f5f9;
@@ -62,7 +62,7 @@
   --bg-main: #f8fafc;
   --bg-surface: #ffffff;
   --bg-surface-elevated: #f1f5f9;
-  --bg-surface-glass: rgba(255, 255, 255, 0.88);
+  --bg-surface-glass: rgba(255, 255, 255, 0.72);
   --border-subtle: rgba(0, 0, 0, 0.07);
   --border-glass: rgba(0, 0, 0, 0.10);
   --text-primary: #0f172a;
@@ -253,17 +253,16 @@ body {
   }
 }
 
-/* Scrollbar polish */
+/* 类原生 App 滚动规范：保留原生丝滑手势物理滚动，彻底隐藏浏览器外观物理滚动条 */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
-  border-radius: 4px;
+
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 /* 全屏开屏轻快非线性动画 (Outfit 品牌字样原地从左至右非线性淡入，零物理位移，杜绝抽动) */

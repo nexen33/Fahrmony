@@ -286,6 +286,11 @@ export default function App() {
   const [showAboutModal, setShowAboutModal] = useState<boolean>(false);
   const [aboutViewMode, setAboutViewMode] = useState<'info' | 'changelog'>('info');
 
+  // 更新检测 Toast 状态与防抖双击 ref
+  const [updateToast, setUpdateToast] = useState<{ show: boolean; message: string; url?: string }>({ show: false, message: '' });
+  const lastLogoClickTimeRef = useRef<number>(0);
+  const isCheckingUpdateRef = useRef<boolean>(false);
+
   // 受限设置指引折叠状态 (默认折叠)
   const [isRestrictedExpanded, setIsRestrictedExpanded] = useState<boolean>(false);
 
@@ -383,6 +388,55 @@ export default function App() {
 
   const t = translations[lang];
   const playerOptions = useMemo(() => getPlayerOptions(t), [t]);
+
+  // Logo 双击主动检测更新 (<=320ms 双击阈值)
+  const handleLogoClick = async () => {
+    const now = Date.now();
+    if (now - lastLogoClickTimeRef.current <= 320) {
+      lastLogoClickTimeRef.current = 0;
+      if (isCheckingUpdateRef.current) return;
+      isCheckingUpdateRef.current = true;
+
+      setUpdateToast({
+        show: true,
+        message: t.settings.checkingUpdateToast,
+      });
+
+      try {
+        const res = await FahrmonyPlugin.checkUpdate();
+        if (res && res.hasUpdate && res.downloadUrl) {
+          setUpdateToast({
+            show: true,
+            message: t.settings.updateFoundToast,
+            url: res.downloadUrl,
+          });
+        } else {
+          setUpdateToast({
+            show: true,
+            message: t.settings.upToDateToast,
+          });
+        }
+      } catch {
+        setUpdateToast({
+          show: true,
+          message: t.settings.upToDateToast,
+        });
+      } finally {
+        isCheckingUpdateRef.current = false;
+      }
+    } else {
+      lastLogoClickTimeRef.current = now;
+    }
+  };
+
+  useEffect(() => {
+    if (!updateToast.show) return;
+    const duration = updateToast.url ? 6000 : 2500;
+    const timer = setTimeout(() => {
+      setUpdateToast({ show: false, message: '' });
+    }, duration);
+    return () => clearTimeout(timer);
+  }, [updateToast.show, updateToast.url, updateToast.message]);
 
   // 时间格式化辅助 (ms -> mm:ss)
   const formatTime = (ms?: number) => {
@@ -738,119 +792,86 @@ export default function App() {
     }
   };
 
-  // 120fps 零重绘 GPU 直驱物理拉伸引擎 (遵循 MyOmnis_design.md 规范)
+  // 真实视口感知容器锚点 (支持 ResizeObserver 与原生 120fps 硬件级 Overscroll)
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const transformContentRef = useRef<HTMLDivElement>(null);
-  const isPullingRef = useRef(false);
-  const startYRef = useRef(0);
-  const currentOffsetRef = useRef(0);
-  const hasTriggeredBoundaryHapticRef = useRef(false);
-  const rafIdRef = useRef<number | null>(null);
 
-  // 真实溢出门禁判定：若内容总高度未超出视口，物理锁定 overflowY 为 hidden，杜绝无意义上下滑动
+  // 真实溢出门禁判定：通过对比内容层自然高度与滚动容器可用视口高度，若未超出物理可视范围，严格锁定 overflowY 为 hidden，杜绝无意义上下滑动
   useLayoutEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    const checkOverflow = () => {
-      const canScroll = el.scrollHeight > el.clientHeight + 4;
-      setIsScrollable(canScroll);
-    };
-    checkOverflow();
-    window.addEventListener('resize', checkOverflow);
-    return () => window.removeEventListener('resize', checkOverflow);
-  }, [activeTab, logs.length, mediaSessions.length]);
-
-  useEffect(() => {
     const container = scrollContainerRef.current;
     const content = transformContentRef.current;
     if (!container || !content) return;
 
-    const triggerHaptic = () => {
-      if (typeof window !== 'undefined' && window.navigator?.vibrate) {
-        try {
-          window.navigator.vibrate(10);
-        } catch {
-          // ignore
-        }
+    const checkOverflow = () => {
+      // 读取容器的计算内边距，获取真正的中间可视净空高度 (扣除顶部栏和底部导航栏占用的内边距)
+      const computed = window.getComputedStyle(container);
+      const paddingTop = parseFloat(computed.paddingTop) || 0;
+      const paddingBottom = parseFloat(computed.paddingBottom) || 0;
+      const availableHeight = container.clientHeight - paddingTop - paddingBottom;
+      const contentHeight = content.offsetHeight;
+
+      // 仅当卡片内容真实总高严格大于中间可用可视高度时，才放行滚动 (+2px 亚像素抖动防护)
+      const canScroll = contentHeight > availableHeight + 2;
+      setIsScrollable(canScroll);
+
+      // 若处于不可滚动状态，强行复位滚动位置至顶部，杜绝无意义的留白残留
+      if (!canScroll && container.scrollTop !== 0) {
+        container.scrollTop = 0;
       }
     };
 
-    const handleTouchStart = (e: TouchEvent) => {
-      // 若内容总高度未超出视口，彻底锁死两端拉伸动效 (满足消融实验门禁原则)
-      const canScroll = isScrollable && (container.scrollHeight > container.clientHeight + 4);
-      if (!canScroll) {
-        isPullingRef.current = false;
-        return;
-      }
+    checkOverflow();
 
-      const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 1.5;
-      if (isAtBottom) {
-        isPullingRef.current = true;
-        startYRef.current = e.touches[0].clientY;
-        hasTriggeredBoundaryHapticRef.current = false;
-      } else {
-        isPullingRef.current = false;
-      }
-    };
+    // 采用现代 ResizeObserver 毫秒级感知 DOM 真实高度形变（折叠展开、日志列表增删、多语言重排等）
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        checkOverflow();
+      });
+      resizeObserver.observe(content);
+      resizeObserver.observe(container);
+    }
 
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isPullingRef.current || !isScrollable || container.scrollHeight <= container.clientHeight + 4) return;
-      const currentY = e.touches[0].clientY;
-      const pullDistance = startYRef.current - currentY;
-
-      if (pullDistance > 0) {
-        const dampedOffset = -(pullDistance * 0.42) / (1 + pullDistance * 0.0035);
-
-        if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = requestAnimationFrame(() => {
-          content.style.willChange = 'transform';
-          content.style.transition = 'none';
-          content.style.transform = `translate3d(0, ${dampedOffset.toFixed(2)}px, 0)`;
-          currentOffsetRef.current = dampedOffset;
-
-          if (dampedOffset <= -10 && !hasTriggeredBoundaryHapticRef.current) {
-            hasTriggeredBoundaryHapticRef.current = true;
-            triggerHaptic();
-          }
-        });
-      } else {
-        if (currentOffsetRef.current !== 0) {
-          content.style.transform = 'none';
-          currentOffsetRef.current = 0;
-        }
-      }
-    };
-
-    const handleTouchEnd = () => {
-      if (!isPullingRef.current) return;
-      isPullingRef.current = false;
-
-      if (currentOffsetRef.current !== 0) {
-        content.style.transition = 'transform 0.35s cubic-bezier(0.2, 0.8, 0.25, 1)';
-        content.style.transform = 'translate3d(0, 0, 0)';
-
-        setTimeout(() => {
-          content.style.willChange = 'auto';
-          content.style.transform = 'none';
-          content.style.transition = 'none';
-          currentOffsetRef.current = 0;
-        }, 360);
-      }
-    };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: true });
-    container.addEventListener('touchend', handleTouchEnd, { passive: true });
-    container.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+    window.addEventListener('resize', checkOverflow);
 
     return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('touchcancel', handleTouchEnd);
-      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      if (resizeObserver) resizeObserver.disconnect();
+      window.removeEventListener('resize', checkOverflow);
     };
-  }, [activeTab, logs.length, mediaSessions.length]);
+  }, [activeTab]);
+
+  // 智能 Toast 文本分行：中文环境保持单行 nowrap 绝对不折行；英/德/日环境在逗号处自然折为双行居中
+  const renderToastContent = (message: string, currentLang: LanguageKey) => {
+    if (currentLang === 'zh-CN') {
+      return (
+        <span style={{ whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+          {message}
+        </span>
+      );
+    }
+
+    const splitRegex = /([,，、。]\s*)/;
+    const match = message.match(splitRegex);
+    if (match && match.index !== undefined) {
+      const delimiterIndex = match.index + match[1].length;
+      const line1 = message.substring(0, delimiterIndex).trim();
+      const line2 = message.substring(delimiterIndex).trim();
+      if (line1 && line2) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.35 }}>
+            <span style={{ whiteSpace: 'nowrap' }}>{line1}</span>
+            <span style={{ whiteSpace: 'nowrap' }}>{line2}</span>
+          </div>
+        );
+      }
+    }
+
+    return (
+      <span style={{ whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+        {message}
+      </span>
+    );
+  };
 
   return (
     <div style={{ height: '100dvh', width: '100%', maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: 'var(--bg-main)', transition: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -1000,9 +1021,16 @@ export default function App() {
           overflowY: isScrollable ? 'auto' : 'hidden',
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'contain',
           boxSizing: 'border-box',
           paddingTop: 'calc(77px + var(--sat, 0px))',
-          paddingBottom: 'calc(104px + var(--sab, 0px))',
+          paddingBottom: 'calc(88px + var(--sab, 0px))',
+          WebkitMaskImage: isScrollable
+            ? 'linear-gradient(to bottom, black 0%, black calc(100% - 96px - var(--sab, 0px)), transparent calc(100% - 12px - var(--sab, 0px)))'
+            : 'none',
+          maskImage: isScrollable
+            ? 'linear-gradient(to bottom, black 0%, black calc(100% - 96px - var(--sab, 0px)), transparent calc(100% - 12px - var(--sab, 0px)))'
+            : 'none',
         }}
       >
         {/* GPU 直驱物理拉伸承接层 */}
@@ -1945,27 +1973,40 @@ export default function App() {
             <div style={{ minHeight: '240px', maxHeight: '300px', display: 'flex', flexDirection: 'column' }}>
               {aboutViewMode === 'info' ? (
                 <div style={{ flex: 1, overflowY: 'auto', textAlign: 'center' }}>
-                  <img
-                    src="/logo.png?v=14"
-                    alt="Fahrmony Logo"
+                  <div
+                    onClick={handleLogoClick}
                     style={{
-                      width: '64px',
-                      height: '64px',
-                      borderRadius: '16px',
-                      background: '#ffffff',
-                      boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
-                      marginBottom: '10px',
-                      objectFit: 'cover',
-                      transform: 'translateZ(0)',
-                      backfaceVisibility: 'hidden',
-                      imageRendering: '-webkit-optimize-contrast'
+                      cursor: 'pointer',
+                      display: 'inline-block',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      WebkitTapHighlightColor: 'transparent',
                     }}
-                  />
-                  <div style={{ fontSize: '21px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    Fahrmony
-                  </div>
-                  <div style={{ fontSize: '15px', color: 'var(--accent-primary)', fontWeight: 600, marginTop: '2px' }}>
-                    v1.1.0
+                    title="Double tap to check for updates"
+                  >
+                    <img
+                      src="/logo.png?v=14"
+                      alt="Fahrmony Logo"
+                      style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '16px',
+                        background: '#ffffff',
+                        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
+                        marginBottom: '10px',
+                        objectFit: 'cover',
+                        transform: 'translateZ(0)',
+                        backfaceVisibility: 'hidden',
+                        imageRendering: '-webkit-optimize-contrast',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                    <div style={{ fontSize: '21px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Fahrmony
+                    </div>
+                    <div style={{ fontSize: '15px', color: 'var(--accent-primary)', fontWeight: 600, marginTop: '2px' }}>
+                      v1.1.5
+                    </div>
                   </div>
 
                   <div style={{ marginTop: '14px', display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
@@ -2002,6 +2043,14 @@ export default function App() {
                   </div>
                   {/* 仅“更新日志”标题与下方双按钮之间的内容区域具有滚动能力 */}
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.1.5</div>
+                      <div style={{ marginTop: '4px' }}>
+                        • 新增: 更新检测功能，每晚后台静默检测一次，双击关于信息弹窗内的Logo也可发起更新检测<br />
+                        • 优化: 全面隐藏滚动条，页面跟手拉伸与回弹效果<br />
+                        • 优化: 一些 UI & UX 细节
+                      </div>
+                    </div>
                     <div>
                       <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.1.0</div>
                       <div style={{ marginTop: '4px' }}>
@@ -2065,6 +2114,67 @@ export default function App() {
                 {t.settings.close}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* GitHub 更新检测 Toast 提示组件 (超高层级覆盖模态弹窗，泛边缘舒适可点击热区，支持随内容自适应延伸) */}
+      {updateToast.show && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 'calc(env(safe-area-inset-top, 0px) + 28px)',
+            left: 0,
+            right: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 100000,
+            pointerEvents: 'none',
+            padding: '0 16px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              if (updateToast.url) {
+                window.open(updateToast.url, '_blank');
+                setUpdateToast({ show: false, message: '' });
+              }
+            }}
+            style={{
+              pointerEvents: 'auto',
+              cursor: updateToast.url ? 'pointer' : 'default',
+              padding: '12px 22px',
+              borderRadius: '9999px',
+              background: 'var(--bg-surface-elevated, #1c2128)',
+              color: 'var(--text-primary, #ffffff)',
+              border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.15))',
+              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.55)',
+              fontSize: '16px',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '9px',
+              animation: 'modalPop 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+              width: 'fit-content',
+              maxWidth: 'calc(100vw - 32px)',
+              boxSizing: 'border-box',
+              textAlign: 'center',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+            }}
+          >
+            {updateToast.url && (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary, #38bdf8)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            )}
+            {renderToastContent(updateToast.message, lang)}
           </div>
         </div>
       )}
