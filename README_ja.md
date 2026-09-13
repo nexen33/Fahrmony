@@ -297,10 +297,10 @@ adb logcat -c; adb logcat -v time -s FahrmonyProbe:I
 
 ---
 
-## プレビュー
+## プレビュー v1.1.0
 
 <p align="center">
-  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/cb70fe9f-eb4d-4c77-979a-098f5ffd5d10" />
+  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/03007905-3bbb-43da-8f7e-d7d0d9532fb3" />
 </p>
 
 <p align="center">
