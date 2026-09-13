@@ -80,7 +80,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {selectedOption?.icon}
-          <span style={{ whiteSpace: 'nowrap' }}>{selectedOption ? selectedOption.label : placeholder || '请选择'}</span>
+          <span style={{ whiteSpace: 'nowrap', color: selectedOption ? 'inherit' : 'var(--text-tertiary)' }}>
+            {selectedOption ? selectedOption.label : placeholder || '请选择'}
+          </span>
         </div>
         <svg
           width="12"

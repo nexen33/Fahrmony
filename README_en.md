@@ -12,6 +12,12 @@
 
 > A local-first interoperability bridge tailored for Android Auto, enabling car displays to naturally display and partially control your favorite Chinese streaming audio and messaging notifications while driving abroad.
 
+<p align="center">
+  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.1.0/Fahrmony_v1.1.0.apk">
+    <img src="https://img.shields.io/badge/Download_Latest_Fahrmony_APK-blue?style=forthebadge" height="60">
+  </a>
+</p>  
+
 ## What is Fahrmony?
 
 The name **Fahrmony** is a blend of the German word for driving (**Fahren**) and the English word **Harmony**.
@@ -42,11 +48,11 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 - **Standard Head-Unit Media Controls**: Seamless Play, Pause, Next, Previous, and Seek operations directly on your dashboard.
 - **Session Discovery & Smart Arbitration**: Automatically detects active playback across the system and anchors focus when switching apps to prevent card jumping.
 - **Cold Start & Warm Reconnect Resumption**: Finely polished for media app and Android Auto cold starts and warm reconnects. Upon connecting to Android Auto, the system automatically detects and resumes playback state without requiring manual clicks on the phone or car screen in most driving scenarios; features built-in self-healing retry logic for sluggish background starts.
-- **Adaptive Ambient Artwork**: Generates high-contrast gradient backdrops, completely resolving the common issue where dark album art or offline playback causes car playback capsule buttons to turn invisible black.
+- **Adaptive Ambient Artwork & Original Covers**: Generates high-contrast gradient backdrops by default to completely eliminate invisible black buttons on dark album art; optionally enable the "Audio App Original Playing Card" toggle in the phone's Media settings to display authentic original album covers directly on your car screen.
 - **Queue Passthrough & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; probes and supports standard repeat modes as well as vendor custom actions.
 - **Driving Safety Notification Assistant**: Deconstructs direct and group messages, filters out group chat spam, and generates automotive-standard cards with voice readout and "Mark as Read" actions.
 - **Anti-Jitter & Audio Leak Prevention**: Instantly claims transient audio focus and pauses all players upon car disconnection to eliminate speaker audio leakage; enforces an anti-jitter state lock during track switching to prevent UI flashing.
-- **Minimalist Handset Frontend**: A lightweight fluid console on the handset displaying real-time media source detection status and notification relay records, with light/dark adaptive theming, 4-language support, and permission setup guides.
+- **Minimalist Handset Frontend**: A lightweight fluid console on the handset displaying real-time media source detection status and notification relay records, with light/dark adaptive theming and "Follow System" mode, 4-language support, and permission setup guides.
 
 ## Compatibility
 
@@ -117,7 +123,7 @@ For driver safety and technical compliance. Typing on a dashboard while driving 
 Certain source player covers are extremely dark, causing the in-car system to automatically tint playback control buttons into invisible black. Transmitting high-resolution bitmaps can also introduce latency. Adaptive gradients ensure buttons remain readable and track changes smooth.
 
 #### How can I display the original album artwork on the car screen?
-Fahrmony currently prioritizes its own mirrored split-screen cards with randomized background colors. When swiping horizontally on this default card, or in certain warm-reconnect scenarios where QQ Music's own focus takes precedence, you will see the delegated native card from QQ Music itself, which displays the original album artwork. Future versions will offer custom display preferences; currently, the randomized mirrored card remains the default experience.
+Navigate to the "Media" tab in Fahrmony on your phone and enable the **"Audio App Original Playing Card"** toggle. Once enabled, the car screen will directly display the active audio app's native playing card and original album art (note: very dark covers may affect button contrast due to the car system's dynamic color matching). If you prefer buttons to remain permanently high-contrast and vivid, keep it disabled.
 
 #### Does audio output from the car or the phone speaker?
 Audio automatically routes through the vehicle speakers when connected. Upon disconnection, Fahrmony's built-in leakage prevention pauses playback instantly, preventing sudden loud speaker output in public.
@@ -167,7 +173,7 @@ Audio automatically routes through the vehicle speakers when connected. Upon dis
 If you encounter an issue during daily driving, please file a report on GitHub Issues using the template below (**Note: Never submit personal private chat contents**):
 
 ```text
-- Fahrmony Version: v1.0.0
+- Fahrmony Version: v1.1.0
 - Android OS Version: e.g., Android 14
 - Phone Model: e.g., Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto Version: e.g., 11.8

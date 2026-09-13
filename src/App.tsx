@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import FahrmonyPlugin, {
   type PermissionStatusResult,
   type BridgeStatusResult,
@@ -11,6 +12,7 @@ import FahrmonyPlugin, {
 import { translations, type LanguageKey } from './i18n/index.ts';
 import { Switch } from './components/Switch.tsx';
 import { CustomSelect } from './components/CustomSelect.tsx';
+import { SplashView } from './components/SplashView.tsx';
 
 // 392dp 基准全局屏幕动态自适应 (遵循老项目规范 line 419)
 const calculateZoomRatio = () => {
@@ -67,8 +69,14 @@ const Icons = {
       <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
     </svg>
   ),
+  SunMoon: () => (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a9 9 0 0 1 0 18V3z" fill="currentColor" />
+    </svg>
+  ),
   Play: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ transform: 'translateX(2px)' }}>
       <polygon points="5 3 19 12 5 21 5 3" />
     </svg>
   ),
@@ -177,11 +185,33 @@ const PlayerIcons = {
       <path d="M10.5 16V7.5l8-2.5V13.5" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+  Qishui: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ borderRadius: '4.5px', flexShrink: 0, display: 'block' }}>
+      <rect width="24" height="24" rx="5" fill="#121212" />
+      {/* 官方汽水音乐黑底荧光绿连音符徽标 */}
+      <circle cx="8" cy="15.5" r="2.5" fill="#22F26B" />
+      <circle cx="16" cy="13" r="2.5" fill="#22F26B" />
+      <path d="M10.5 15.5V6.5l8-2V13" stroke="#22F26B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10.5 9.8l8-2" stroke="#22F26B" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  ),
+  Bodian: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ borderRadius: '4.5px', flexShrink: 0, display: 'block' }}>
+      <rect width="24" height="24" rx="5" fill="#25E072" />
+      {/* 官方波点音乐绿底一体化黑胶b徽标：平滑加粗立柱、相切黑胶外环、内圈镂空绿环、轴孔黑色微波点 */}
+      <rect x="6" y="4.5" width="3.2" height="14.5" rx="1.6" fill="#111111" />
+      <circle cx="13.6" cy="14.5" r="5.5" fill="#111111" />
+      <circle cx="13.6" cy="14.5" r="2.6" fill="#25E072" />
+      <circle cx="13.6" cy="14.5" r="1.1" fill="#111111" />
+    </svg>
+  ),
 };
 
 const getPlayerOptions = (t: (typeof translations)[LanguageKey]) => [
   { value: 'com.tencent.qqmusic', label: t.bridge.qqmusic, icon: <PlayerIcons.QQMusic /> },
   { value: 'com.netease.cloudmusic', label: t.bridge.netease, icon: <PlayerIcons.NetEase /> },
+  { value: 'com.luna.music', label: t.bridge.qishui, icon: <PlayerIcons.Qishui /> },
+  { value: 'cn.wenyu.bodian', label: t.bridge.bodian, icon: <PlayerIcons.Bodian /> },
   { value: 'kugou.service', label: t.bridge.kugou, icon: <PlayerIcons.Kugou /> },
   { value: 'cn.kuwo.player', label: t.bridge.kuwo, icon: <PlayerIcons.Kuwo /> },
   { value: 'com.ximalaya.ting.android', label: t.bridge.ximalaya, icon: <PlayerIcons.Ximalaya /> },
@@ -195,9 +225,60 @@ const LANGUAGE_OPTIONS = [
   { value: 'ja-JP', label: '日本語' },
 ];
 
+// 官方明确支持纳管的 8 个媒体应用白名单 (含酷狗主包与前台Service包名，屏蔽淘宝等非音乐应用)
+const SUPPORTED_PLAYER_PACKAGES = [
+  'com.tencent.qqmusic',
+  'com.netease.cloudmusic',
+  'com.luna.music',
+  'cn.wenyu.bodian',
+  'kugou.service',
+  'com.kugou.android',
+  'cn.kuwo.player',
+  'com.ximalaya.ting.android',
+  'app.podcast.cosmos',
+];
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'overview' | 'notifications' | 'media' | 'guide'>('overview');
-  const [theme, setTheme] = useState<'dark' | 'light'>('light');
+  type ThemeMode = 'system' | 'dark' | 'light';
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    try {
+      const saved = localStorage.getItem('fahrmony_theme');
+      if (saved === 'system' || saved === 'dark' || saved === 'light') return saved as ThemeMode;
+    } catch { }
+    return 'system';
+  });
+
+  const [systemIsDark, setSystemIsDark] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    const listener = (e: MediaQueryListEvent) => {
+      setSystemIsDark(e.matches);
+    };
+    mql.addEventListener('change', listener);
+    return () => mql.removeEventListener('change', listener);
+  }, []);
+
+  const effectiveTheme: 'dark' | 'light' = themeMode === 'system' ? (systemIsDark ? 'dark' : 'light') : themeMode;
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', effectiveTheme);
+    document.body.setAttribute('data-theme', effectiveTheme);
+    const bg = effectiveTheme === 'dark' ? '#0A0C10' : '#F8FAFC';
+    document.documentElement.style.backgroundColor = bg;
+    document.body.style.backgroundColor = bg;
+  }, [effectiveTheme]);
+
+  // 全屏纯色开屏生命周期控制 (参考 MyOmnis_react 独立组件设计：总时长 <= 1.2s，由 SplashView 闭环控制，过渡结束设为 false 卸载)
+  const [showSplash, setShowSplash] = useState(true);
+
   const [lang, setLang] = useState<LanguageKey>('zh-CN');
   const [isScrollable, setIsScrollable] = useState<boolean>(false);
 
@@ -223,10 +304,12 @@ export default function App() {
   const [currentProgressMs, setCurrentProgressMs] = useState<number>(0);
 
   const [logs, setLogs] = useState<BridgeLogEntry[]>([]);
+  const [authorizedPlayers, setAuthorizedPlayers] = useState<string[]>([]);
   const [appConfig, setAppConfig] = useState<AppBridgeConfig>({
     wechat: true,
-    feishu: true,
-    dingtalk: true,
+    feishu: false,
+    dingtalk: false,
+    qq: false,
     qqmusic: true,
     netease: true,
     kugou: true,
@@ -234,16 +317,46 @@ export default function App() {
     ximalaya: true,
     xiaoyuzhou: true,
     autoPlayOnConnect: true,
-    defaultPlayerPackage: 'com.tencent.qqmusic',
+    defaultPlayerPackage: '',
     filterGroupChats: false,
     hidePreviewContent: false,
+    rawPlayerCard: false,
   });
 
-  const selectedPlayerPkg = appConfig.defaultPlayerPackage || 'com.tencent.qqmusic';
+  const selectedPlayerPkg = appConfig.defaultPlayerPackage || '';
   // 概览页大卡片精准映射当前选择播放器的实际后台实况：有对应后台会话则如实展示，无则进入干净的未播放等待态
   const displayedSession = useMemo(() => {
+    if (!selectedPlayerPkg) return null;
     return mediaSessions.find((s) => s.packageName === selectedPlayerPkg) || null;
   }, [mediaSessions, selectedPlayerPkg]);
+
+  // 严格白名单过滤后的活跃播放源列表 (彻底屏蔽淘宝等无关会话)
+  const supportedMediaSessions = useMemo(() => {
+    return mediaSessions.filter((s) => SUPPORTED_PLAYER_PACKAGES.includes(s.packageName));
+  }, [mediaSessions]);
+
+  // 封面非线性淡入淡出与切歌双图层过渡机制
+  const [activeArtwork, setActiveArtwork] = useState<string | null>(null);
+  const [prevArtwork, setPrevArtwork] = useState<string | null>(null);
+
+  useEffect(() => {
+    const nextArt = (displayedSession && displayedSession.artworkData) ? displayedSession.artworkData : null;
+    if (nextArt !== activeArtwork) {
+      if (activeArtwork) {
+        setPrevArtwork(activeArtwork);
+      }
+      setActiveArtwork(nextArt);
+    }
+  }, [displayedSession?.artworkData]);
+
+  useEffect(() => {
+    if (prevArtwork) {
+      const timer = setTimeout(() => {
+        setPrevArtwork(null);
+      }, 450);
+      return () => clearTimeout(timer);
+    }
+  }, [prevArtwork]);
 
   // 本地进度平滑走针机制：当处于播放态时，前端每秒匀速自增 1000ms，在原生事件到达时自动校准
   useEffect(() => {
@@ -291,12 +404,13 @@ export default function App() {
       document.documentElement.style.setProperty('--safe-fallback', '0px');
     }
 
-    // 读取持久化主题 (默认浅色: light)
+    // 读取持久化主题偏好 (默认跟随系统: system)
     Preferences.get({ key: 'fahrmony_theme' }).then(({ value }) => {
-      const initialTheme = (value as 'dark' | 'light') || 'light';
-      setTheme(initialTheme);
-      document.documentElement.setAttribute('data-theme', initialTheme);
-      document.body.setAttribute('data-theme', initialTheme);
+      if (value === 'system' || value === 'dark' || value === 'light') {
+        setThemeMode(value);
+      } else {
+        setThemeMode('system');
+      }
     });
 
     // 读取持久化语言
@@ -306,32 +420,122 @@ export default function App() {
       }
     });
 
-    // 读取持久化配置
+    // 读取持久化配置 (含旧版本向后兼容平滑迁移)
     Preferences.get({ key: 'fahrmony_app_config' }).then(({ value }) => {
       if (value) {
         try {
           const parsed = JSON.parse(value);
           setAppConfig((prev) => ({ ...prev, ...parsed }));
+          // 向后兼容升级：若旧版本中已持久化过有效播放器，自动补齐到授权记忆中，防止升级后误跳
+          if (parsed.defaultPlayerPackage && typeof parsed.defaultPlayerPackage === 'string') {
+            setAuthorizedPlayers((prev) => Array.from(new Set([...prev, parsed.defaultPlayerPackage])));
+          }
         } catch {
           // ignore
         }
       }
     });
+
+    // 读取已确认授权过的播放器列表 (杜绝后续切换重复拉起跳转)
+    Preferences.get({ key: 'fahrmony_authorized_players' }).then(({ value }) => {
+      if (value) {
+        try {
+          const parsed = JSON.parse(value);
+          if (Array.isArray(parsed)) {
+            setAuthorizedPlayers((prev) => Array.from(new Set([...prev, ...parsed])));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    });
+
+    // 首次启动通知权限询问核检
+    Preferences.get({ key: 'has_prompted_post_notifications' }).then(({ value }) => {
+      if (!value) {
+        Preferences.set({ key: 'has_prompted_post_notifications', value: 'true' });
+        FahrmonyPlugin.checkPermissions().then((perm) => {
+          if (!perm.postNotifications && FahrmonyPlugin.requestNotificationPermission) {
+            FahrmonyPlugin.requestNotificationPermission().then((res) => {
+              if (res && res.granted) {
+                setPermissions((p) => ({ ...p, postNotifications: true }));
+              }
+            }).catch(() => { });
+          }
+        }).catch(() => { });
+      }
+    });
   }, []);
 
-  // 2. 主题切换与持久化 (Capacitor Preferences + Web localStorage 双写保障)
+  // 顶部提示胶囊 Toast 状态管理 (带 1s 相同消息去重抑制)
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<any>(null);
+  const lastToastRef = useRef<{ msg: string; time: number }>({ msg: '', time: 0 });
+
+  const showToast = (msg: string) => {
+    const now = Date.now();
+    if (lastToastRef.current.msg === msg && now - lastToastRef.current.time < 1000) {
+      return;
+    }
+    lastToastRef.current = { msg, time: now };
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setToastMessage(msg);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 2500);
+  };
+
+  // 监听车机连接状态跃迁 (由未连接 false 跃迁为已连接 true 时触发 Toast 弹窗，首次冷启动不误弹)
+  const prevIsCarConnectedRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (prevIsCarConnectedRef.current === false && bridgeStatus.isCarConnected === true) {
+      showToast(t.status.carConnectedToast);
+    }
+    prevIsCarConnectedRef.current = bridgeStatus.isCarConnected;
+  }, [bridgeStatus.isCarConnected, t]);
+
+  // 2. 主题三态循环切换：浅色 -> 深色 -> 跟随系统 -> 浅色 (无文字歧义，配合顶部胶囊轻提示)
   const toggleTheme = async () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(nextTheme);
-    document.documentElement.setAttribute('data-theme', nextTheme);
-    document.body.setAttribute('data-theme', nextTheme);
+    let nextMode: ThemeMode;
+    let toastMsg: string;
+    if (themeMode === 'light') {
+      nextMode = 'dark';
+      toastMsg = t.settings.themeDarkToast;
+    } else if (themeMode === 'dark') {
+      nextMode = 'system';
+      toastMsg = t.settings.themeSystemToast;
+    } else {
+      nextMode = 'light';
+      toastMsg = t.settings.themeLightToast;
+    }
+    setThemeMode(nextMode);
+    showToast(toastMsg);
     try {
-      localStorage.setItem('fahrmony_theme', nextTheme);
+      localStorage.setItem('fahrmony_theme', nextMode);
     } catch {
       // ignore
     }
-    await Preferences.set({ key: 'fahrmony_theme', value: nextTheme });
+    await Preferences.set({ key: 'fahrmony_theme', value: nextMode });
   };
+
+  // 吸取 MyOmnis 架构优点：纯前端接管沉浸式状态栏底色与深浅模式自动反色 (零侵入 Android 原生 Window)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const updateStatusBar = async () => {
+      try {
+        const isDark = effectiveTheme === 'dark';
+        const baseHex = isDark ? '#0A0C10' : '#F8FAFC';
+        const statusStyle = isDark ? Style.Dark : Style.Light;
+        await StatusBar.setBackgroundColor({ color: baseHex });
+        await StatusBar.setStyle({ style: statusStyle });
+      } catch {
+        // ignore
+      }
+    };
+    updateStatusBar();
+  }, [effectiveTheme]);
 
   // 3. 语言切换与持久化
   const handleLangChange = async (newLang: string) => {
@@ -369,8 +573,8 @@ export default function App() {
       ]);
       setPermissions(perm);
       setBridgeStatus(status);
-      // 同源会话去重：按 packageName 归一，优先保留 isPlaying 活跃会话
-      const rawSessions = media.sessions || [];
+      // 同源会话去重与白名单过滤：只收录已支持的 8 个播放源，彻底屏蔽淘宝等非支持应用
+      const rawSessions = (media.sessions || []).filter((s) => SUPPORTED_PLAYER_PACKAGES.includes(s.packageName));
       const deduplicated = rawSessions.reduce((acc, curr) => {
         const idx = acc.findIndex((s) => s.packageName === curr.packageName);
         if (idx === -1) {
@@ -401,6 +605,8 @@ export default function App() {
     let listenerHandle: any = null;
     FahrmonyPlugin.addListener('mediaSessionChanged', (event) => {
       if (event && event.packageName) {
+        // 白名单守卫：非受支持的媒体源 (如淘宝等) 坚决不推入活跃会话列表
+        if (!SUPPORTED_PLAYER_PACKAGES.includes(event.packageName)) return;
         setMediaSessions((prev) => {
           const updated: MediaSessionItem = {
             packageName: event.packageName!,
@@ -411,6 +617,7 @@ export default function App() {
             isPlaying: event.isPlaying ?? false,
             duration: event.duration || 0,
             position: event.position || 0,
+            artworkData: event.artworkData ?? null,
           };
           const idx = prev.findIndex((s) => s.packageName === updated.packageName);
           if (idx === -1) {
@@ -426,6 +633,19 @@ export default function App() {
       }
     }).then((handle) => {
       listenerHandle = handle;
+    });
+
+    // 监听车机连接/断连事件，实时更新并提示
+    let carConnHandle: any = null;
+    FahrmonyPlugin.addListener('carConnectionChanged', (event) => {
+      if (event && typeof event.connected === 'boolean') {
+        setBridgeStatus((prev) => ({ ...prev, isCarConnected: event.connected }));
+        if (event.connected) {
+          showToast(t.status.carConnectedToast);
+        }
+      }
+    }).then((handle) => {
+      carConnHandle = handle;
     });
 
     // 仅保留 20 秒极低频轻量心跳（确保后台通知授权/连接状态校准），杜绝主线程与 Binder 泛洪
@@ -445,6 +665,9 @@ export default function App() {
       if (listenerHandle?.remove) {
         listenerHandle.remove();
       }
+      if (carConnHandle?.remove) {
+        carConnHandle.remove();
+      }
       clearInterval(heartbeatTimer);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
@@ -459,13 +682,14 @@ export default function App() {
     }
   }, [activeTab]);
 
-  // 媒体指令发送 (带同步重入与 350ms 防抖锁保护)
+  // 媒体指令发送 (带同步重入与 350ms 防抖锁保护，定向绑定当前大卡片对应播放器包名)
   const isMediaCommandInFlightRef = useRef(false);
   const handleMediaControl = async (action: 'play' | 'pause' | 'skip_next' | 'skip_previous') => {
     if (isMediaCommandInFlightRef.current) return;
     isMediaCommandInFlightRef.current = true;
     try {
-      await FahrmonyPlugin.sendMediaCommand({ action });
+      const targetPkg = selectedPlayerPkg || displayedSession?.packageName || undefined;
+      await FahrmonyPlugin.sendMediaCommand({ action, packageName: targetPkg });
       setTimeout(refreshNativeState, 200);
     } catch (e) {
       console.warn('Media command error:', e);
@@ -476,20 +700,6 @@ export default function App() {
     }
   };
 
-  // 顶部提示胶囊 Toast 状态
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const toastTimerRef = useRef<any>(null);
-
-  const showToast = (msg: string) => {
-    if (toastTimerRef.current) {
-      clearTimeout(toastTimerRef.current);
-    }
-    setToastMessage(msg);
-    toastTimerRef.current = setTimeout(() => {
-      setToastMessage(null);
-    }, 2500);
-  };
-
   // 清除日志
   const handleClearLogs = async () => {
     await FahrmonyPlugin.clearLogs();
@@ -498,7 +708,8 @@ export default function App() {
 
   // 启动播放器 (带未查找到该App的胶囊弹窗提示)
   const handleLaunchPlayer = async (pkg?: string) => {
-    const target = pkg || appConfig.defaultPlayerPackage || 'com.tencent.qqmusic';
+    const target = pkg || appConfig.defaultPlayerPackage;
+    if (!target) return;
     try {
       const res = await FahrmonyPlugin.launchApp({ packageName: target });
       if (!res || !res.success) {
@@ -506,6 +717,24 @@ export default function App() {
       }
     } catch {
       showToast('未查找到该App');
+    }
+  };
+
+  // 选择播放器：写入持久化配置；仅首次切换到该播放器时执行 300ms 延时自然拉起以激活授权流，已确认过的播放器仅做切换不再跳转
+  const handleSelectPlayer = (pkg: string) => {
+    updateConfig({ defaultPlayerPackage: pkg });
+    if (!pkg) return;
+
+    // 智能判断：若播放器此前已授权确认过，或当前后台已有活跃会话，则静默切换，绝不再跳出应用
+    const isAlreadyConfirmed = authorizedPlayers.includes(pkg) || mediaSessions.some((s) => s.packageName === pkg);
+    if (!isAlreadyConfirmed) {
+      const nextAuthorized = [...authorizedPlayers, pkg];
+      setAuthorizedPlayers(nextAuthorized);
+      Preferences.set({ key: 'fahrmony_authorized_players', value: JSON.stringify(nextAuthorized) });
+
+      setTimeout(() => {
+        handleLaunchPlayer(pkg);
+      }, 300);
     }
   };
 
@@ -626,7 +855,15 @@ export default function App() {
   return (
     <div style={{ height: '100dvh', width: '100%', maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: 'var(--bg-main)', transition: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
 
-      {/* 顶部胶囊弹窗 (Top Capsule Toast: 靠上的toast胶囊弹窗，“未查找到该App”) */}
+      {/* 沉浸式纯色全屏开屏 (参考 MyOmnis_react 独立组件设计：Portal 顶层渲染，纯色底全屏覆盖，Outfit 品牌字样水平居中、垂直 45% 非线性淡入) */}
+      {showSplash && (
+        <SplashView
+          onFinish={() => setShowSplash(false)}
+          theme={effectiveTheme}
+        />
+      )}
+
+      {/* 顶部胶囊弹窗 (Top Capsule Toast: 动态自适应深浅色偏好) */}
       {toastMessage && (
         <div
           style={{
@@ -635,15 +872,15 @@ export default function App() {
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 99999,
-            background: 'rgba(24, 27, 34, 0.92)',
+            background: effectiveTheme === 'dark' ? 'rgba(24, 27, 34, 0.92)' : 'rgba(241, 245, 249, 0.92)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            color: '#f8fafc',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+            color: effectiveTheme === 'dark' ? '#f8fafc' : '#0f172a',
+            border: effectiveTheme === 'dark' ? '1px solid rgba(255, 255, 255, 0.14)' : '1px solid rgba(0, 0, 0, 0.08)',
+            boxShadow: effectiveTheme === 'dark' ? '0 8px 30px rgba(0, 0, 0, 0.35)' : '0 8px 30px rgba(0, 0, 0, 0.12)',
             padding: '8px 18px',
             borderRadius: '9999px',
-            fontSize: '14px',
+            fontSize: '15px',
             fontWeight: 500,
             display: 'flex',
             alignItems: 'center',
@@ -651,6 +888,7 @@ export default function App() {
             animation: 'toastDropIn 240ms cubic-bezier(0.16, 1, 0.3, 1)',
             pointerEvents: 'none',
             whiteSpace: 'nowrap',
+            transition: 'background-color 200ms ease, color 200ms ease, border-color 200ms ease, box-shadow 200ms ease',
           }}
         >
           <div
@@ -673,8 +911,8 @@ export default function App() {
           left: 0,
           right: 0,
           width: '100%',
-          height: 'calc(var(--header-base-height, 58px) + var(--sat, 0px))',
-          paddingTop: 'var(--sat, 0px)',
+          height: 'calc(var(--header-base-height, 58px) + var(--sat, 0px) + 3px)',
+          paddingTop: 'calc(var(--sat, 0px) + 3px)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           background: 'var(--bg-surface-glass)',
@@ -745,9 +983,9 @@ export default function App() {
               background: 'var(--bg-surface-elevated)',
               color: 'var(--text-primary)',
             }}
-            aria-label="切换主题"
+            aria-label="切换外观偏好"
           >
-            {theme === 'dark' ? <Icons.Sun /> : <Icons.Moon />}
+            {themeMode === 'light' ? <Icons.Sun /> : (themeMode === 'dark' ? <Icons.Moon /> : <Icons.SunMoon />)}
           </button>
         </div>
       </header>
@@ -763,7 +1001,7 @@ export default function App() {
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           boxSizing: 'border-box',
-          paddingTop: 'calc(74px + var(--sat, 0px))',
+          paddingTop: 'calc(77px + var(--sat, 0px))',
           paddingBottom: 'calc(104px + var(--sab, 0px))',
         }}
       >
@@ -808,47 +1046,64 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* IM 状态指示徽章：开启绿色，关闭灰色并加斜杠 */}
+                    {/* IM 状态指示徽章：未启用时不显示，启用项按微信、飞书、钉钉顺序排列 */}
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <span
-                        style={{
-                          fontSize: '13px',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          background: appConfig.wechat ? 'var(--status-success-bg)' : 'var(--bg-surface-elevated)',
-                          color: appConfig.wechat ? 'var(--status-success)' : 'var(--text-tertiary)',
-                          fontWeight: 600,
-                          textDecoration: appConfig.wechat ? 'none' : 'line-through',
-                        }}
-                      >
-                        微信
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '13px',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          background: appConfig.feishu ? 'var(--status-success-bg)' : 'var(--bg-surface-elevated)',
-                          color: appConfig.feishu ? 'var(--status-success)' : 'var(--text-tertiary)',
-                          fontWeight: 600,
-                          textDecoration: appConfig.feishu ? 'none' : 'line-through',
-                        }}
-                      >
-                        飞书
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '13px',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          background: appConfig.dingtalk ? 'var(--status-success-bg)' : 'var(--bg-surface-elevated)',
-                          color: appConfig.dingtalk ? 'var(--status-success)' : 'var(--text-tertiary)',
-                          fontWeight: 600,
-                          textDecoration: appConfig.dingtalk ? 'none' : 'line-through',
-                        }}
-                      >
-                        钉钉
-                      </span>
+                      {appConfig.wechat && (
+                        <span
+                          style={{
+                            fontSize: '13px',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: 'var(--status-success-bg)',
+                            color: 'var(--status-success)',
+                            fontWeight: 600,
+                          }}
+                        >
+                          微信
+                        </span>
+                      )}
+                      {appConfig.feishu && (
+                        <span
+                          style={{
+                            fontSize: '13px',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: 'var(--status-success-bg)',
+                            color: 'var(--status-success)',
+                            fontWeight: 600,
+                          }}
+                        >
+                          飞书
+                        </span>
+                      )}
+                      {appConfig.dingtalk && (
+                        <span
+                          style={{
+                            fontSize: '13px',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: 'var(--status-success-bg)',
+                            color: 'var(--status-success)',
+                            fontWeight: 600,
+                          }}
+                        >
+                          钉钉
+                        </span>
+                      )}
+                      {appConfig.qq && (
+                        <span
+                          style={{
+                            fontSize: '13px',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            background: 'var(--status-success-bg)',
+                            color: 'var(--status-success)',
+                            fontWeight: 600,
+                          }}
+                        >
+                          QQ
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -868,8 +1123,9 @@ export default function App() {
                     <div style={{ flexShrink: 0 }}>
                       <CustomSelect
                         compact
-                        value={appConfig.defaultPlayerPackage || 'com.tencent.qqmusic'}
-                        onChange={(val) => updateConfig({ defaultPlayerPackage: val })}
+                        value={appConfig.defaultPlayerPackage || ''}
+                        placeholder={t.mediaTab.selectPlayerPlaceholder}
+                        onChange={handleSelectPlayer}
                         options={playerOptions}
                       />
                     </div>
@@ -893,6 +1149,7 @@ export default function App() {
                         overflow: 'hidden',
                       }}
                     >
+                      {/* 底层 Placeholder 占位 (左移 1px 至 left: -2px，下移 2px 至 top: 6px 达成极致光学视觉居中) */}
                       <div
                         style={{
                           position: 'absolute',
@@ -904,25 +1161,65 @@ export default function App() {
                           opacity: 0.25,
                         }}
                       />
-                      <div style={{ transform: 'scale(1.8)', opacity: 0.9, position: 'relative', zIndex: 1, top: '1px', left: '-1px' }}>
+                      <div style={{ transform: 'scale(1.8)', opacity: 0.9, position: 'relative', zIndex: 1, top: '6px', left: '-2px' }}>
                         <Icons.Music />
                       </div>
+
+                      {/* 切歌过渡底衬图层 (Backing Crossfade Layer) */}
+                      {prevArtwork && (
+                        <img
+                          src={prevArtwork}
+                          alt="Previous Album Artwork"
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            borderRadius: '19px',
+                            zIndex: 2,
+                          }}
+                        />
+                      )}
+
+                      {/* 当前活跃真实专辑封面 (非线性淡入浮现动画 cubic-bezier(0.16, 1, 0.3, 1)) */}
+                      {activeArtwork && (
+                        <img
+                          key={activeArtwork.slice(-32)}
+                          src={activeArtwork}
+                          alt="Album Artwork"
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            borderRadius: '19px',
+                            zIndex: 3,
+                            animation: 'coverFadeIn 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                          }}
+                          onError={() => {
+                            setActiveArtwork(null);
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
 
                   {/* 歌曲与艺术家信息 (与外部音乐 App 实时保持一致) */}
-                  <div style={{ marginBottom: '16px' }}>
+                  <div style={{ marginBottom: '17px' }}>
                     {(() => {
                       const hasTrack = Boolean(displayedSession && displayedSession.title && displayedSession.title.trim().length > 0);
-                      const targetPlayerName = playerOptions.find((p) => p.value === selectedPlayerPkg)?.label || '媒体应用';
+                      const targetPlayerName = playerOptions.find((p) => p.value === selectedPlayerPkg)?.label || t.appName;
+                      const emptyHeader = selectedPlayerPkg ? `${targetPlayerName} · ${t.nowPlaying.emptyTitle}` : t.nowPlaying.emptyTitle;
                       return (
                         <>
-                          <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {hasTrack ? displayedSession!.title : `${targetPlayerName} · ${t.nowPlaying.emptyTitle}`}
+                          <div style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {hasTrack ? displayedSession!.title : emptyHeader}
                           </div>
-                          <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {hasTrack
-                              ? `${displayedSession!.artist || '未知艺术家'}${displayedSession!.album ? ' · ' + displayedSession!.album : ''}${displayedSession!.appName ? ' · ' + displayedSession!.appName : ''}`
+                              ? `${displayedSession!.artist || '未知艺术家'}${displayedSession!.album ? ' · ' + displayedSession!.album : ''}`
                               : t.nowPlaying.emptyDesc}
                           </div>
                         </>
@@ -1107,6 +1404,17 @@ export default function App() {
                       />
                     </div>
 
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>{t.notifications.qqToggle}</div>
+                        <div style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '3px' }}>{t.notifications.qqDesc}</div>
+                      </div>
+                      <Switch
+                        checked={appConfig.qq}
+                        onChange={(checked) => updateConfig({ qq: checked })}
+                      />
+                    </div>
+
                     <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>{t.notifications.filterGroup}</div>
@@ -1121,7 +1429,7 @@ export default function App() {
                 </div>
 
                 {/* 通讯记录列表 */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 16px', marginBottom: '12px' }}>
                   <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     {t.notifications.recordTitle} ({logs.filter((l) => l.type === 'IM_NOTIFICATION').length})
                   </div>
@@ -1185,8 +1493,9 @@ export default function App() {
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                         <div style={{ flex: 1 }}>
                           <CustomSelect
-                            value={appConfig.defaultPlayerPackage || 'com.tencent.qqmusic'}
-                            onChange={(val) => updateConfig({ defaultPlayerPackage: val })}
+                            value={appConfig.defaultPlayerPackage || ''}
+                            placeholder={t.mediaTab.selectPlayerPlaceholder}
+                            onChange={handleSelectPlayer}
                             options={playerOptions}
                           />
                         </div>
@@ -1231,19 +1540,39 @@ export default function App() {
                         onChange={(checked) => updateConfig({ autoPlayOnConnect: checked })}
                       />
                     </div>
+
+                    {/* 音频 App 原始播放卡片 Toggle */}
+                    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ paddingRight: '12px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {t.mediaTab.rawCardTitle}
+                        </div>
+                        <div style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                          {t.mediaTab.rawCardDesc}
+                        </div>
+                      </div>
+                      <Switch
+                        checked={!!appConfig.rawPlayerCard}
+                        onChange={(checked) => updateConfig({ rawPlayerCard: checked })}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* 当前活跃媒体源列表 */}
-                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px' }}>
-                  {t.mediaTab.sourcesTitle} ({mediaSessions.length})
+                {/* 当前活跃媒体源列表 (严格仅渲染受支持的 8 个播放源) */}
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', padding: '0 16px', marginBottom: '10px' }}>
+                  {t.mediaTab.sourcesTitle} ({supportedMediaSessions.length})
                 </div>
-                {mediaSessions.map((session) => (
+                {supportedMediaSessions.map((session) => (
                   <div key={session.packageName} className="surface-card" style={{ padding: '16px', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <div>
-                        <div style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)' }}>{session.title || '无曲目'}</div>
-                        <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginTop: '2px' }}>{session.artist} · {session.album}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                      <div style={{ flex: 1, minWidth: 0, paddingRight: '4px' }}>
+                        <div style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                          {session.title || '无曲目'}
+                        </div>
+                        <div style={{ fontSize: '15px', color: 'var(--text-secondary)', marginTop: '2px', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                          {session.artist} · {session.album}
+                        </div>
                       </div>
                       <span
                         style={{
@@ -1254,6 +1583,8 @@ export default function App() {
                           background: session.isPlaying ? 'var(--status-success-bg)' : 'var(--bg-surface-elevated)',
                           color: session.isPlaying ? 'var(--status-success)' : 'var(--text-tertiary)',
                           fontWeight: 500,
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
                         }}
                       >
                         {session.isPlaying ? t.nowPlaying.playing : t.nowPlaying.paused}
@@ -1270,6 +1601,7 @@ export default function App() {
             {/* ========== 4. 设置 Tab (Settings & Permissions) ========== */}
             {activeTab === 'guide' && (
               <div>
+
                 {/* 多语言切换卡片：使用紧凑 CustomSelect */}
                 <div className="surface-card" style={{ padding: '16px', marginBottom: '16px' }}>
                   <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
@@ -1289,6 +1621,51 @@ export default function App() {
                   </h3>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {/* 行 0：通知提醒权限 (Fahrmony 自身通知权限) */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ flex: 1, paddingRight: '14px', minWidth: 0 }}>
+                        <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>{t.settings.postNotifPerm}</div>
+                        <div style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{t.settings.postNotifPermDesc}</div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!permissions.postNotifications) {
+                            try {
+                              if (FahrmonyPlugin.requestNotificationPermission) {
+                                const res = await FahrmonyPlugin.requestNotificationPermission();
+                                if (res && res.granted) {
+                                  setPermissions((p) => ({ ...p, postNotifications: true }));
+                                  return;
+                                }
+                              }
+                            } catch { }
+                            await FahrmonyPlugin.openPermissionSettings({ type: 'app_notification' });
+                          }
+                        }}
+                        className="btn-jelly"
+                        style={{
+                          width: '84px',
+                          minWidth: '84px',
+                          flexShrink: 0,
+                          height: '36px',
+                          padding: '0 8px',
+                          borderRadius: '10px',
+                          fontSize: '15px',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          textAlign: 'center',
+                          whiteSpace: 'nowrap',
+                          boxSizing: 'border-box',
+                          background: permissions.postNotifications ? 'var(--bg-surface-elevated)' : 'var(--accent-primary)',
+                          color: permissions.postNotifications ? 'var(--status-success)' : '#ffffff',
+                        }}
+                      >
+                        {permissions.postNotifications ? t.settings.granted : t.settings.toGrant}
+                      </button>
+                    </div>
+
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ flex: 1, paddingRight: '14px', minWidth: 0 }}>
                         <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>{t.settings.notifPerm}</div>
@@ -1478,56 +1855,58 @@ export default function App() {
         </div>
       </div>
 
-      {/* 底部悬浮毛玻璃 Dock 导航栏 (自适应底部手势横条安全区) */}
-      <nav
-        className="glass-card"
-        style={{
-          position: 'fixed',
-          bottom: 'calc(12px + var(--sab, 0px))',
-          left: '16px',
-          right: '16px',
-          maxWidth: '448px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-around',
-          padding: '10px 0',
-          borderRadius: '24px',
-          zIndex: 100,
-          animation: 'dockSlideUpIn 380ms cubic-bezier(0.16, 1, 0.3, 1) 70ms both',
-          willChange: 'transform, opacity',
-        }}
-      >
-        {[
-          { key: 'overview', label: t.tabs.overview, Icon: Icons.Car },
-          { key: 'notifications', label: t.tabs.notifications, Icon: Icons.Bell },
-          { key: 'media', label: t.tabs.media, Icon: Icons.Music },
-          { key: 'guide', label: t.tabs.settings, Icon: Icons.Settings },
-        ].map(({ key, label, Icon }) => {
-          const isActive = activeTab === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key as any)}
-              className="btn-jelly"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-                background: 'transparent',
-                border: 'none',
-                color: isActive ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-                padding: '4px 14px',
-              }}
-            >
-              <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon />
-              </div>
-              <span style={{ fontSize: '15px', fontWeight: isActive ? 600 : 400 }}>{label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      {/* 底部悬浮毛玻璃 Dock 导航栏 (自适应底部手势横条安全区，开屏期间彻底隐藏，过渡完成后平滑滑入) */}
+      {!showSplash && (
+        <nav
+          className="glass-card"
+          style={{
+            position: 'fixed',
+            bottom: 'calc(12px + var(--sab, 0px))',
+            left: '16px',
+            right: '16px',
+            maxWidth: '448px',
+            margin: '0 auto',
+            display: 'flex',
+            justifyContent: 'space-around',
+            padding: '10px 0',
+            borderRadius: '24px',
+            zIndex: 100,
+            animation: 'dockSlideUpIn 380ms cubic-bezier(0.16, 1, 0.3, 1) 70ms both',
+            willChange: 'transform, opacity',
+          }}
+        >
+          {[
+            { key: 'overview', label: t.tabs.overview, Icon: Icons.Car },
+            { key: 'notifications', label: t.tabs.notifications, Icon: Icons.Bell },
+            { key: 'media', label: t.tabs.media, Icon: Icons.Music },
+            { key: 'guide', label: t.tabs.settings, Icon: Icons.Settings },
+          ].map(({ key, label, Icon }) => {
+            const isActive = activeTab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key as any)}
+                className="btn-jelly"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: isActive ? 'var(--accent-primary)' : 'var(--text-tertiary)',
+                  padding: '4px 14px',
+                }}
+              >
+                <div style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon />
+                </div>
+                <span style={{ fontSize: '15px', fontWeight: isActive ? 600 : 400 }}>{label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       {/* “关于 Fahrmony” 全局提权模态弹窗 (遵循 MyOmnis_design.md 第 4 节包含块隔离原则) */}
       {showAboutModal && (
@@ -1586,7 +1965,7 @@ export default function App() {
                     Fahrmony
                   </div>
                   <div style={{ fontSize: '15px', color: 'var(--accent-primary)', fontWeight: 600, marginTop: '2px' }}>
-                    v1.0.0
+                    v1.1.0
                   </div>
 
                   <div style={{ marginTop: '14px', display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
@@ -1622,7 +2001,18 @@ export default function App() {
                     {t.settings.changelog}
                   </div>
                   {/* 仅“更新日志”标题与下方双按钮之间的内容区域具有滚动能力 */}
-                  <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.1.0</div>
+                      <div style={{ marginTop: '4px' }}>
+                        • 新增: 支持汽水音乐、波点音乐播放控制，QQ 消息通知播报<br />
+                        • 新增: 媒体页“音频App原始播放卡片”开关，支持直接显示原始专辑封面<br />
+                        • 新增: 深浅色支持“跟随系统”，胶囊弹窗轻提醒<br />
+                        • 修复: 车机未连接时状态指示灯误显示绿色的问题<br />
+                        • 优化: 播放器控制绑定机制，播放器封面显示，通知路由处理机制<br />
+                        • 优化: 首次安装默认设定，UI & UX 细节完善
+                      </div>
+                    </div>
                     <div>
                       <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.0.0</div>
                       <div style={{ marginTop: '4px' }}>

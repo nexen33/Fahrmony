@@ -241,6 +241,18 @@ body {
   }
 }
 
+/* 专辑封面非线性淡入浮现动画 (采用现代非线性减速曲线 cubic-bezier(0.16, 1, 0.3, 1)) */
+@keyframes coverFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Scrollbar polish */
 ::-webkit-scrollbar {
   width: 4px;
@@ -252,4 +264,21 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--border-subtle);
   border-radius: 4px;
+}
+
+/* 全屏开屏轻快非线性动画 (Outfit 品牌字样原地从左至右非线性淡入，零物理位移，杜绝抽动) */
+@keyframes splashTextMaskReveal {
+  0% {
+    opacity: 0;
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
+  }
 }

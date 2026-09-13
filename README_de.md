@@ -12,6 +12,12 @@
 
 > Eine lokale Schnittstellenbrücke für Android Auto, mit der Fahrzeug-Displays bei Fahrten im Ausland gängige chinesische Audio-Streaming- und Messaging-Dienste nahtlos anzeigen und teilweise steuern können.
 
+<p align="center">
+  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.1.0/Fahrmony_v1.1.0.apk">
+    <img src="https://img.shields.io/badge/Neuestes_Fahrmony_APK_herunterladen-blue?style=forthebadge" height="60">
+  </a>
+</p>  
+
 ## Was ist Fahrmony?
 
 Der Name **Fahrmony** verbindet das deutsche Wort **Fahren** mit dem englischen Begriff **Harmony** (Harmonie und Synchronisation).
@@ -41,11 +47,11 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 - **Standard-Bedienelemente im Fahrzeug**: Wiedergabe, Pause, Vor- und Zurückspringen sowie präzises Spulen direkt am Bordbildschirm.
 - **Sitzungserkennung und -fokus**: Erkennt aktive Audiositzungen und stabilisiert die Steuerung beim Wechsel zwischen mehreren Audio-Apps.
 - **Kaltstart und automatische Wiederverbindung**: Speziell optimiert für Kaltstart und Wiederverbindung von Apps und Android Auto. Bei Verbindung mit Android Auto wird der letzte Wiedergabestatus automatisch erkannt und fortgesetzt – in den allermeisten Alltagsszenarien ganz ohne manuelles Tippen auf dem Smartphone oder Autobildschirm. Inklusive robuster Selbstheilungs- und Wiederholungslogik für ruhende Hintergrund-Apps.
-- **Adaptiver Hintergrund**: Dynamische Farbabstimmung verhindert, dass dunkle Cover-Bilder oder Offline-Wiedergabe die Bedientasten auf dem Monitor schwarz und unlesbar machen.
+- **Adaptiver Hintergrund & Original-Cover**: Dynamische Farbabstimmung verhindert standardmäßig, dass dunkle Cover-Bilder die Bedientasten unleserlich machen; optional lässt sich über die Option „Audio-App Original-Wiedergabekarte“ in den Smartphone-Medieneinstellungen direkt das echte Original-Cover im Auto anzeigen.
 - **Wiedergabelisten und Wiederholungsmodi**: Reicht vorhandene Titellisten durch und unterstützt gängige Schleifen- und Wiederholungsmodi.
 - **Fahrgerechte Nachrichtenbenachrichtigung**: Filtert Gruppenchats und ermöglicht das Vorlesen sowie die Bestätigung als gelesen per Tastendruck.
 - **Schutz vor versehentlicher Tonwiedergabe**: Pausiert die Wiedergabe sofort beim Trennen des Kabels, damit das Handy nicht plötzlich laut weiterspielt.
-- **Schlankes Smartphone-Frontend**: Übersichtliche Smartphone-Oberfläche zur Anzeige des Erkennungsstatus von Audioquellen und Benachrichtigungsübertragungen, mit Hell-/Dunkelmodus, 4-Sprachen-Unterstützung sowie Berechtigungs-Leitfaden.
+- **Schlankes Smartphone-Frontend**: Übersichtliche Smartphone-Oberfläche zur Anzeige des Erkennungsstatus von Audioquellen und Benachrichtigungsübertragungen, mit Hell-/Dunkelmodus und Modus „Systemstandard“, 4-Sprachen-Unterstützung sowie Berechtigungs-Leitfaden.
 
 ## Kompatibilitätsmatrix
 
@@ -116,7 +122,7 @@ Aus Gründen der Verkehrssicherheit und der technischen Grenzen. Das Verfassen v
 Einige Original-Cover sind sehr dunkel, was dazu führen kann, dass das Bordsystem die Bedientasten in unleserlichem Schwarz darstellt. Zudem können hochauflösende Bilder das System verlangsamen. Die Farbabstimmung sorgt dafür, dass die Tasten jederzeit klar lesbar bleiben.
 
 #### Wie kann ich das originale Album-Cover auf dem Autobildschirm anzeigen lassen?
-Fahrmony nutzt derzeit standardmäßig eine gespiegelte Splitscreen-Karte mit zufälligen Hintergrundfarben. Wenn Sie auf dieser Standardkarte nach links oder rechts wischen, oder in bestimmten Wiederverbindungsszenarien, in denen der Fokus von QQ Music Vorrang erhält, wird die weitergeleitete Originalkarte der App angezeigt, die das Original-Cover enthält. In zukünftigen Versionen wird diese Anzeige konfigurierbar sein; derzeit bleibt die farbige Spiegelungskarte die Standardansicht.
+Öffnen Sie auf dem Smartphone den Reiter „Medien“ in den Fahrmony-Einstellungen und aktivieren Sie die Option **„Audio-App Original-Wiedergabekarte“**. Nach der Aktivierung zeigt das Fahrzeugdisplay direkt die native Medienkarte der jeweiligen Audio-App mit dem echten Album-Cover an (Hinweis: Bei extrem dunklen Covern können die Bedientasten je nach Farbautomatik des Fahrzeugsystems dunkler ausfallen). Bleibt die Option deaktiviert, behalten die Bedientasten stets ihren optimalen Kontrast.
 
 #### Wird der Ton über das Auto oder das Smartphone ausgegeben?
 Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über die Lautsprecher des Fahrzeugs. Beim Abziehen des Kabels stoppt Fahrmony die Wiedergabe sofort, damit das Telefon nicht versehentlich in der Öffentlichkeit weiterspielt.
@@ -166,7 +172,7 @@ Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über di
 Wenn im Alltag ein Problem auftritt, können Sie gerne eine Fehlermeldung auf GitHub einreichen. Bitte nutzen Sie folgende Vorlage (**Hinweis: Bitte niemals vertrauliche private Nachrichteninhalte übermitteln**):
 
 ```text
-- Fahrmony-Version: v1.0.0
+- Fahrmony-Version: v1.1.0
 - Android-Version: z. B. Android 14
 - Smartphone-Modell: z. B. Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto-Version: z. B. 11.8

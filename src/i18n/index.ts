@@ -18,6 +18,7 @@ export interface Translations {
     serviceStopped: string;
     permReady: string;
     permPending: string;
+    carConnectedToast: string;
   };
   nowPlaying: {
     title: string;
@@ -41,8 +42,11 @@ export interface Translations {
     wechat: string;
     feishu: string;
     dingtalk: string;
+    qq: string;
     qqmusic: string;
     netease: string;
+    qishui: string;
+    bodian: string;
     kugou: string;
     kuwo: string;
     ximalaya: string;
@@ -62,6 +66,8 @@ export interface Translations {
     feishuDesc: string;
     dingtalkToggle: string;
     dingtalkDesc: string;
+    qqToggle: string;
+    qqDesc: string;
     filterGroup: string;
     filterGroupDesc: string;
     recordTitle: string;
@@ -76,12 +82,17 @@ export interface Translations {
     autoPlayDesc: string;
     defaultPlayerTitle: string;
     defaultPlayerDesc: string;
+    rawCardTitle: string;
+    rawCardDesc: string;
     sourcesTitle: string;
     sourceApp: string;
+    selectPlayerPlaceholder: string;
   };
   settings: {
     title: string;
     permSection: string;
+    postNotifPerm: string;
+    postNotifPermDesc: string;
     notifPerm: string;
     notifPermDesc: string;
     batteryPerm: string;
@@ -90,6 +101,13 @@ export interface Translations {
     toGrant: string;
     toConfig: string;
     language: string;
+    themeModeTitle: string;
+    themeLight: string;
+    themeDark: string;
+    themeSystem: string;
+    themeLightToast: string;
+    themeDarkToast: string;
+    themeSystemToast: string;
     restrictedTitle: string;
     restrictedDesc: string;
     aaConfigTitle: string;
@@ -118,11 +136,12 @@ export const translations: Record<LanguageKey, Translations> = {
     },
     status: {
       connected: '车机已连接',
-      standby: '车机待命',
+      standby: '车机待连接',
       serviceRunning: '守护运行中',
       serviceStopped: '未启动',
       permReady: '权限就绪',
       permPending: '待授权',
+      carConnectedToast: '车机连接成功',
     },
     nowPlaying: {
       title: '正在播放',
@@ -146,8 +165,11 @@ export const translations: Record<LanguageKey, Translations> = {
       wechat: '微信',
       feishu: '飞书',
       dingtalk: '钉钉',
+      qq: 'QQ',
       qqmusic: 'QQ 音乐',
       netease: '网易云音乐',
+      qishui: '汽水音乐',
+      bodian: '波点音乐',
       kugou: '酷狗音乐',
       kuwo: '酷我音乐',
       ximalaya: '喜马拉雅',
@@ -159,7 +181,7 @@ export const translations: Record<LanguageKey, Translations> = {
     notifications: {
       title: '通知管理',
       safetyTitle: '行车安全提示',
-      safetyDesc: '为保障行车安全，车载屏幕仅单向播报消息提醒，不支持回复',
+      safetyDesc: '为保障行车安全，车机仅单向播报消息提醒，不支持回复',
       configTitle: '播报与隐私设置',
       wechatToggle: '微信消息播报',
       wechatDesc: '转译微信通知并同步至车机屏幕',
@@ -167,34 +189,48 @@ export const translations: Record<LanguageKey, Translations> = {
       feishuDesc: '转译飞书通知并同步至车机屏幕',
       dingtalkToggle: '钉钉消息播报',
       dingtalkDesc: '转译钉钉通知并同步至车机屏幕',
+      qqToggle: 'QQ消息播报',
+      qqDesc: '转译QQ通知并同步至车机屏幕',
       filterGroup: '忽略群聊消息',
       filterGroupDesc: '仅播报单聊联系人消息，减少驾驶干扰',
       recordTitle: '近期通知记录',
       clear: '清空',
-      empty: '暂无通讯消息，微信、飞书或钉钉收到通知后将自动在此记录',
+      empty: '暂无通讯消息，开启播报的通讯App收到通知后将自动记录在此',
     },
     mediaTab: {
       title: '媒体控制',
       bannerTitle: '车载媒体互联',
       bannerDesc: '在手机端播放音乐和播客时，车机将会自动同步媒体信息\n也支持在车机端控制媒体播放',
       autoPlayTitle: '车载连接自动播放',
-      autoPlayDesc: '连接 Android Auto 后，自动继续播放上次的音乐',
-      defaultPlayerTitle: '默认音乐应用',
-      defaultPlayerDesc: '车载切歌与快速启动时优先使用的音乐软件',
+      autoPlayDesc: '连接 Android Auto 后，自动继续播放上次的音频',
+      defaultPlayerTitle: '默认音频 App',
+      defaultPlayerDesc: '车载切歌与快速启动时优先使用的音频App',
+      rawCardTitle: '音频 App 原始播放卡片',
+      rawCardDesc: '关闭后将显示原始播放卡片，按键颜色会受封面影响',
       sourcesTitle: '活跃播放源',
       sourceApp: '来源应用',
+      selectPlayerPlaceholder: '请选择播放器',
     },
     settings: {
       title: '系统权限与设置',
       permSection: '系统权限状态',
+      postNotifPerm: '通知提醒权限',
+      postNotifPermDesc: '展示前台服务与车载状态通知',
       notifPerm: '通知读取权限',
-      notifPermDesc: '捕获微信、飞书与媒体播报',
+      notifPermDesc: '捕获IM通知与媒体状态',
       batteryPerm: '后台运行权限',
       batteryPermDesc: '允许后台常驻，防止系统查杀',
       granted: '已开启',
       toGrant: '去开启',
       toConfig: '去配置',
       language: '语言 (Language)',
+      themeModeTitle: '外观偏好',
+      themeLight: '浅色模式',
+      themeDark: '深色模式',
+      themeSystem: '跟随系统',
+      themeLightToast: '已切换为浅色模式',
+      themeDarkToast: '已切换为深色模式',
+      themeSystemToast: '已设为跟随系统偏好',
       restrictedTitle: '若遇“受限设置”无法开启',
       restrictedDesc: 'Android 13+ 出于系统安全策略可能会限制侧载应用的通知权限：\n1. 打开手机 系统设置 → 应用管理\n2. 找到 Fahrmony 应用信息页\n3. 点击右上角 更多菜单 (⋮)\n4. 选择 “允许受限设置”，完成指纹/密码验证后即可开启',
       aaConfigTitle: 'Android Auto 车机端配置',
@@ -226,6 +262,7 @@ export const translations: Record<LanguageKey, Translations> = {
       serviceStopped: 'Stopped',
       permReady: 'Ready',
       permPending: 'Required',
+      carConnectedToast: 'Vehicle Connected Successfully',
     },
     nowPlaying: {
       title: 'Now Playing',
@@ -249,8 +286,11 @@ export const translations: Record<LanguageKey, Translations> = {
       wechat: 'WeChat',
       feishu: 'Feishu Lark',
       dingtalk: 'DingTalk',
+      qq: 'QQ',
       qqmusic: 'QQ Music',
       netease: 'NetEase Music',
+      qishui: 'Soda Music',
+      bodian: 'Bodian Music',
       kugou: 'Kugou Music',
       kuwo: 'Kuwo Music',
       ximalaya: 'Ximalaya',
@@ -262,7 +302,7 @@ export const translations: Record<LanguageKey, Translations> = {
     notifications: {
       title: 'Notifications',
       safetyTitle: 'Driver Safety Notice',
-      safetyDesc: 'Notifications are displayed read-only on the car display to prevent distracted driving. Keyboard reply is disabled.',
+      safetyDesc: 'Notifications are displayed read-only on the head unit to prevent distracted driving. Keyboard reply is disabled.',
       configTitle: 'Relay & Privacy Settings',
       wechatToggle: 'WeChat Notifications',
       wechatDesc: 'Relay WeChat messages to head unit display',
@@ -270,34 +310,48 @@ export const translations: Record<LanguageKey, Translations> = {
       feishuDesc: 'Relay Feishu messages to head unit display',
       dingtalkToggle: 'DingTalk Notifications',
       dingtalkDesc: 'Relay DingTalk messages to head unit display',
+      qqToggle: 'QQ Notifications',
+      qqDesc: 'Relay QQ messages to head unit display',
       filterGroup: 'Ignore Group Chats',
       filterGroupDesc: 'Only relay direct personal messages to minimize driving distractions',
       recordTitle: 'Recent Messages',
       clear: 'Clear',
-      empty: 'No notifications captured yet.',
+      empty: 'No communication messages yet. Incoming notifications from active communication apps will be recorded here automatically',
     },
     mediaTab: {
       title: 'Media Hub',
       bannerTitle: 'Android Auto Media Bridge',
       bannerDesc: 'Connected via universal MediaSession. Head unit displays cover art, track info, and playback controls seamlessly.',
       autoPlayTitle: 'Auto-Resume on Connect',
-      autoPlayDesc: 'Automatically resume playback when connected to Android Auto',
-      defaultPlayerTitle: 'Default Music Player',
-      defaultPlayerDesc: 'Preferred music app for in-car controls and quick launch',
+      autoPlayDesc: 'Automatically resume playback of previous audio when connected to Android Auto',
+      defaultPlayerTitle: 'Default Audio App',
+      defaultPlayerDesc: 'Preferred audio app for in-car controls and quick launch',
+      rawCardTitle: 'Audio App Original Playing Card',
+      rawCardDesc: 'Disabling mirror card shows original playing card; button colors may be affected by cover art',
       sourcesTitle: 'Active Media Sessions',
       sourceApp: 'Application',
+      selectPlayerPlaceholder: 'Select a player',
     },
     settings: {
       title: 'Settings & Permissions',
       permSection: 'System Permissions',
+      postNotifPerm: 'Notification Permission',
+      postNotifPermDesc: 'Show foreground service & car status alerts',
       notifPerm: 'Notification Access',
-      notifPermDesc: 'Required to mirror chat messages and playback sessions to car screen',
+      notifPermDesc: 'Capture IM notifications & media state',
       batteryPerm: 'Background Running',
       batteryPermDesc: 'Prevent system from killing services when screen locks',
       granted: 'Enabled',
       toGrant: 'Enable',
       toConfig: 'Configure',
       language: 'Language',
+      themeModeTitle: 'Appearance',
+      themeLight: 'Light Mode',
+      themeDark: 'Dark Mode',
+      themeSystem: 'System Preference',
+      themeLightToast: 'Switched to Light Mode',
+      themeDarkToast: 'Switched to Dark Mode',
+      themeSystemToast: 'Following System Preference',
       restrictedTitle: 'Restricted Settings Guide (Android 13+)',
       restrictedDesc: 'If Android blocks notification access as "Restricted setting":\n1. Go to Settings → Apps → Fahrmony\n2. Tap the top-right menu (⋮)\n3. Tap "Allow restricted settings"\n4. Authenticate with fingerprint/PIN.',
       aaConfigTitle: 'Android Auto Developer Setup',
@@ -329,6 +383,7 @@ export const translations: Record<LanguageKey, Translations> = {
       serviceStopped: 'Inaktiv',
       permReady: 'Bereit',
       permPending: 'Erforderlich',
+      carConnectedToast: 'Fahrzeug erfolgreich verbunden',
     },
     nowPlaying: {
       title: 'Aktuelle Wiedergabe',
@@ -352,8 +407,11 @@ export const translations: Record<LanguageKey, Translations> = {
       wechat: 'WeChat',
       feishu: 'Feishu Lark',
       dingtalk: 'DingTalk',
+      qq: 'QQ',
       qqmusic: 'QQ Music',
       netease: 'NetEase Music',
+      qishui: 'Soda Music',
+      bodian: 'Bodian Music',
       kugou: 'Kugou Music',
       kuwo: 'Kuwo Music',
       ximalaya: 'Ximalaya',
@@ -365,7 +423,7 @@ export const translations: Record<LanguageKey, Translations> = {
     notifications: {
       title: 'Benachrichtigungen',
       safetyTitle: 'Fahrsicherheitshinweis',
-      safetyDesc: 'Nachrichten werden nur lesbar auf dem Display angezeigt, um Ablenkung während der Fahrt zu vermeiden.',
+      safetyDesc: 'Nachrichten werden nur lesbar auf der Head Unit angezeigt, um Ablenkung während der Fahrt zu vermeiden.',
       configTitle: 'Übertragungs- & Datenschutzeinstellungen',
       wechatToggle: 'WeChat Benachrichtigungen',
       wechatDesc: 'WeChat Nachrichten an Head Unit übertragen',
@@ -373,34 +431,48 @@ export const translations: Record<LanguageKey, Translations> = {
       feishuDesc: 'Feishu Nachrichten an Head Unit übertragen',
       dingtalkToggle: 'DingTalk Benachrichtigungen',
       dingtalkDesc: 'DingTalk Nachrichten an Head Unit übertragen',
+      qqToggle: 'QQ Benachrichtigungen',
+      qqDesc: 'QQ Nachrichten an Head Unit übertragen',
       filterGroup: 'Gruppenchats Ignorieren',
       filterGroupDesc: 'Nur Direktnachrichten anzeigen, um Fahrablenkung zu minimieren',
       recordTitle: 'Nachrichtenverlauf',
       clear: 'Leeren',
-      empty: 'Noch keine Benachrichtigungen erfasst.',
+      empty: 'Noch keine Nachrichten. Benachrichtigungen von aktiven Messenger-Apps werden hier automatisch aufgezeichnet',
     },
     mediaTab: {
       title: 'Medienzentrale',
       bannerTitle: 'Android Auto Medienbrücke',
       bannerDesc: 'Über Standard-MediaSession angebunden. Anzeige von Albumcover, Titel und Steuerung im Fahrzeug.',
       autoPlayTitle: 'Autoplay bei Verbindung',
-      autoPlayDesc: 'Setzt die Musikwiedergabe bei Verbindung mit dem Fahrzeug automatisch fort',
-      defaultPlayerTitle: 'Standard-Musikplayer',
-      defaultPlayerDesc: 'Bevorzugter Musikplayer für Fahrzeugsteuerung und Schnellstart',
+      autoPlayDesc: 'Setzt die Audiowiedergabe bei Verbindung mit dem Fahrzeug automatisch fort',
+      defaultPlayerTitle: 'Standard-Audio-App',
+      defaultPlayerDesc: 'Bevorzugte Audio-App für Fahrzeugsteuerung und Schnellstart',
+      rawCardTitle: 'Original-Wiedergabekarte der Audio-App',
+      rawCardDesc: 'Nach dem Deaktivieren wird die Originalkarte angezeigt; Tastenfarben können vom Cover beeinflusst werden',
       sourcesTitle: 'Aktive Medien-Sessions',
       sourceApp: 'Quell-Anwendung',
+      selectPlayerPlaceholder: 'Player auswählen',
     },
     settings: {
       title: 'Einstellungen & Berechtigungen',
       permSection: 'Systemberechtigungen',
+      postNotifPerm: 'Benachrichtigungsberechtigung',
+      postNotifPermDesc: 'Vordergrunddienst & Fahrzeugstatus anzeigen',
       notifPerm: 'Benachrichtigungszugriff',
-      notifPermDesc: 'Erforderlich zur Anzeige von Nachrichten und Musik auf dem Fahrzeugdisplay',
+      notifPermDesc: 'IM-Benachrichtigungen & Medienstatus erfassen',
       batteryPerm: 'Hintergrundbetrieb',
       batteryPermDesc: 'Verhindert das Schließen des Dienstes im Hintergrund',
       granted: 'Aktiviert',
       toGrant: 'Aktivieren',
       toConfig: 'Konfigurieren',
       language: 'Sprache (Language)',
+      themeModeTitle: 'Erscheinungsbild',
+      themeLight: 'Heller Modus',
+      themeDark: 'Dunkler Modus',
+      themeSystem: 'Systemstandard',
+      themeLightToast: 'Zu hellem Modus gewechselt',
+      themeDarkToast: 'Zu dunklem Modus gewechselt',
+      themeSystemToast: 'Folgt dem Systemstandard',
       restrictedTitle: 'Eingeschränkte Einstellungen (Android 13+)',
       restrictedDesc: 'Wenn Android den Benachrichtigungszugriff einschränkt:\n1. Einstellungen → Apps → Fahrmony öffnen\n2. Menü oben rechts (⋮) antippen\n3. "Eingeschränkte Einstellungen zulassen" wählen.',
       aaConfigTitle: 'Android Auto Entwickleroptionen',
@@ -432,6 +504,7 @@ export const translations: Record<LanguageKey, Translations> = {
       serviceStopped: '停止中',
       permReady: '設定済み',
       permPending: '要設定',
+      carConnectedToast: '車載機器に接続しました',
     },
     nowPlaying: {
       title: '再生中',
@@ -455,8 +528,11 @@ export const translations: Record<LanguageKey, Translations> = {
       wechat: 'WeChat',
       feishu: 'Feishu Lark',
       dingtalk: 'DingTalk',
+      qq: 'QQ',
       qqmusic: 'QQ 音楽',
       netease: 'NetEase Music',
+      qishui: 'ソーダ音楽',
+      bodian: '波点音楽',
       kugou: 'KuGou 音楽',
       kuwo: 'KuWo 音楽',
       ximalaya: 'シマラヤ',
@@ -468,7 +544,7 @@ export const translations: Record<LanguageKey, Translations> = {
     notifications: {
       title: '通知管理',
       safetyTitle: '安全運転に関するご注意',
-      safetyDesc: '運転中の安全を最優先するため、車載画面には通知のみを読み取り専用で表示します。',
+      safetyDesc: '運転中の安全を最優先するため、車載機には通知のみを読み取り専用で表示します。',
       configTitle: '通知・プライバシー設定',
       wechatToggle: 'WeChat 通知連携',
       wechatDesc: 'WeChat メッセージを車載画面に転送',
@@ -476,34 +552,48 @@ export const translations: Record<LanguageKey, Translations> = {
       feishuDesc: 'Feishu メッセージを車载画面に転送',
       dingtalkToggle: 'DingTalk 通知連携',
       dingtalkDesc: 'DingTalk メッセージを車载画面に転送',
+      qqToggle: 'QQ 通知連携',
+      qqDesc: 'QQ メッセージを車載画面に転送',
       filterGroup: 'グループチャットを除外',
       filterGroupDesc: '個別メッセージのみを転送し、運転中の通知頻度を抑制',
       recordTitle: '最近の通知履歴',
       clear: '消去',
-      empty: '受信通知はありません。',
+      empty: '通信メッセージはありません。通知連携が有効なアプリから受信するとここに自動記録されます',
     },
     mediaTab: {
       title: 'メディア操作',
       bannerTitle: '車載メディア連携',
       bannerDesc: 'システム標準の MediaSession と連携。楽曲情報、アルバムアート、再生操作が車載画面と自動同期します。',
       autoPlayTitle: '車載機接続時に自動再生',
-      autoPlayDesc: '車載機に接続時、前回の音楽再生を自動で再开します',
-      defaultPlayerTitle: 'デフォルト音楽アプリ',
-      defaultPlayerDesc: '車載操作およびクイック起動で優先する音楽アプリ',
+      autoPlayDesc: '車載機に接続時、前回のオーディオ再生を自動で再開します',
+      defaultPlayerTitle: 'デフォルトオーディオApp',
+      defaultPlayerDesc: '車載操作およびクイック起動で優先するオーディオApp',
+      rawCardTitle: 'オーディオAppのオリジナル再生カード',
+      rawCardDesc: 'オフにするとオリジナルの再生カードを表示します（ボタンの色がカバーの影響を受ける場合があります）',
       sourcesTitle: 'アクティブな再生ソース',
       sourceApp: '再生元アプリ',
+      selectPlayerPlaceholder: '音楽アプリを選択',
     },
     settings: {
       title: '権限と設定',
       permSection: 'システム権限状況',
+      postNotifPerm: '通知リマインダー権限',
+      postNotifPermDesc: 'フォアグラウンドサービスと車載状態の通知を表示',
       notifPerm: '通知アクセス権限',
-      notifPermDesc: '車載画面へのメッセージ通知および楽曲同期に必要',
+      notifPermDesc: 'IM通知とメディアステータスをキャプチャ',
       batteryPerm: 'バックグラウンド実行',
       batteryPermDesc: '画面消灯時のバックグラウンド切断を防止',
       granted: '許可済み',
       toGrant: '設定する',
       toConfig: '確認する',
       language: '言語 (Language)',
+      themeModeTitle: '外観設定',
+      themeLight: 'ライトモード',
+      themeDark: 'ダークモード',
+      themeSystem: 'システムに従う',
+      themeLightToast: 'ライトモードに切り替えました',
+      themeDarkToast: 'ダークモードに切り替えました',
+      themeSystemToast: 'システム設定に従います',
       restrictedTitle: '制限付き設定が表示された場合 (Android 13+)',
       restrictedDesc: 'Android のセキュリティ保護によりアクセスが制限される場合：\n1. 設定 → アプリ → Fahrmony を開く\n2. 右上のメニュー (⋮) をタップ\n3. 「制限付き設定を許可」を選択し認証してください',
       aaConfigTitle: 'Android Auto 開発者設定',

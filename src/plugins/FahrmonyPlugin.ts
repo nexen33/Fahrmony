@@ -24,6 +24,7 @@ export interface MediaSessionItem {
   duration: number;
   position: number;
   artworkBase64?: string;
+  artworkData?: string | null;
 }
 
 export interface MediaSessionChangedEvent {
@@ -36,6 +37,7 @@ export interface MediaSessionChangedEvent {
   isPlaying?: boolean;
   duration?: number;
   position?: number;
+  artworkData?: string | null;
 }
 
 export interface BridgeLogEntry {
@@ -52,8 +54,11 @@ export interface AppBridgeConfig {
   wechat: boolean;
   feishu: boolean;
   dingtalk: boolean;
+  qq: boolean;
   qqmusic: boolean;
   netease: boolean;
+  qishui?: boolean;
+  bodian?: boolean;
   kugou: boolean;
   kuwo: boolean;
   ximalaya: boolean;
@@ -62,11 +67,13 @@ export interface AppBridgeConfig {
   defaultPlayerPackage?: string;
   filterGroupChats?: boolean;
   hidePreviewContent?: boolean;
+  rawPlayerCard?: boolean;
 }
 
 export interface FahrmonyPluginInterface {
   checkPermissions(): Promise<PermissionStatusResult>;
-  openPermissionSettings(options: { type: 'notification_listener' | 'battery_optimization' | 'restricted_settings' | 'app_details' }): Promise<{ success: boolean }>;
+  requestNotificationPermission?(): Promise<{ granted: boolean }>;
+  openPermissionSettings(options: { type: 'notification_listener' | 'battery_optimization' | 'restricted_settings' | 'app_details' | 'app_notification' }): Promise<{ success: boolean }>;
   getBridgeStatus(): Promise<BridgeStatusResult>;
   getActiveMediaSessions(): Promise<{ sessions: MediaSessionItem[] }>;
   sendMediaCommand(options: { packageName?: string; action: 'play' | 'pause' | 'skip_next' | 'skip_previous' }): Promise<{ success: boolean }>;
@@ -79,14 +86,21 @@ export interface FahrmonyPluginInterface {
     eventName: 'mediaSessionChanged',
     listenerFunc: (data: MediaSessionChangedEvent) => void
   ): Promise<PluginListenerHandle> & PluginListenerHandle;
+  addListener(
+    eventName: 'carConnectionChanged',
+    listenerFunc: (data: { connected: boolean }) => void
+  ): Promise<PluginListenerHandle> & PluginListenerHandle;
 }
 
 let mockConfig: AppBridgeConfig = {
   wechat: true,
-  feishu: true,
-  dingtalk: true,
+  feishu: false,
+  dingtalk: false,
+  qq: false,
   qqmusic: true,
   netease: true,
+  qishui: true,
+  bodian: true,
   kugou: true,
   kuwo: true,
   ximalaya: true,
@@ -95,6 +109,7 @@ let mockConfig: AppBridgeConfig = {
   defaultPlayerPackage: 'com.tencent.qqmusic',
   filterGroupChats: false,
   hidePreviewContent: false,
+  rawPlayerCard: false,
 };
 
 const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin', {
@@ -106,7 +121,10 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
       postNotifications: true,
       isRestrictedSettingsDetected: false,
     }),
-    openPermissionSettings: async (options: { type: 'notification_listener' | 'battery_optimization' | 'restricted_settings' | 'app_details' }) => {
+    requestNotificationPermission: async () => ({
+      granted: true,
+    }),
+    openPermissionSettings: async (options: { type: 'notification_listener' | 'battery_optimization' | 'restricted_settings' | 'app_details' | 'app_notification' }) => {
       console.log('[Web Mock] Open permission settings:', options.type);
       return { success: true };
     },
@@ -150,7 +168,7 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
           type: 'IM_NOTIFICATION',
           tag: '飞书',
           title: '项目组通知',
-          content: '合拍 Android Auto 桥接版本 v1.0.0 测试通过',
+          content: '合拍 Android Auto 桥接版本 v1.1.0 测试通过',
         }
       ],
     }),
