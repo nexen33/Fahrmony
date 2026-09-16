@@ -6,6 +6,7 @@ import FahrmonyPlugin, {
   type PermissionStatusResult,
   type BridgeStatusResult,
   type MediaSessionItem,
+  type DiscoveredMediaSessionItem,
   type BridgeLogEntry,
   type AppBridgeConfig,
 } from './plugins/FahrmonyPlugin.ts';
@@ -24,7 +25,7 @@ const calculateZoomRatio = () => {
 
 const APP_ZOOM_RATIO = calculateZoomRatio();
 
-// SVG 图标原语 (遵循 design_taste_v1 严禁 Emoji 规则)
+// SVG 图标原语
 const Icons = {
   Car: ({ size = 22 }: { size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -124,6 +125,18 @@ const Icons = {
       <line x1="12" y1="8" x2="12.01" y2="8" />
     </svg>
   ),
+  Plus: ({ size = 16 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  ),
+  X: ({ size = 16 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  ),
 };
 
 // 播放器品牌图标 (高保真 16x16 矢量徽标)
@@ -205,18 +218,86 @@ const PlayerIcons = {
       <circle cx="13.6" cy="14.5" r="1.1" fill="#111111" />
     </svg>
   ),
+  CustomEmpty: () => (
+    <div
+      style={{
+        width: '16px',
+        height: '16px',
+        borderRadius: '4.5px',
+        border: '1.2px dashed var(--text-tertiary)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        boxSizing: 'border-box',
+        color: 'var(--text-tertiary)',
+      }}
+    >
+      <Icons.Plus size={10} />
+    </div>
+  ),
+  CustomFilled: () => (
+    <div
+      style={{
+        width: '16px',
+        height: '16px',
+        borderRadius: '4.5px',
+        background: 'var(--accent-primary)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        color: '#ffffff',
+      }}
+    >
+      <Icons.Music size={10} />
+    </div>
+  ),
 };
 
-const getPlayerOptions = (t: (typeof translations)[LanguageKey]) => [
-  { value: 'com.tencent.qqmusic', label: t.bridge.qqmusic, icon: <PlayerIcons.QQMusic /> },
-  { value: 'com.netease.cloudmusic', label: t.bridge.netease, icon: <PlayerIcons.NetEase /> },
-  { value: 'com.luna.music', label: t.bridge.qishui, icon: <PlayerIcons.Qishui /> },
-  { value: 'cn.wenyu.bodian', label: t.bridge.bodian, icon: <PlayerIcons.Bodian /> },
-  { value: 'kugou.service', label: t.bridge.kugou, icon: <PlayerIcons.Kugou /> },
-  { value: 'cn.kuwo.player', label: t.bridge.kuwo, icon: <PlayerIcons.Kuwo /> },
-  { value: 'com.ximalaya.ting.android', label: t.bridge.ximalaya, icon: <PlayerIcons.Ximalaya /> },
-  { value: 'app.podcast.cosmos', label: t.bridge.xiaoyuzhou, icon: <PlayerIcons.Xiaoyuzhou /> },
-];
+const getPlayerOptions = (
+  t: (typeof translations)[LanguageKey],
+  customPlayer: { pkg: string; name: string; iconBase64?: string } | null
+) => {
+  const options = [
+    { value: 'com.tencent.qqmusic', label: t.bridge.qqmusic, icon: <PlayerIcons.QQMusic /> },
+    { value: 'com.netease.cloudmusic', label: t.bridge.netease, icon: <PlayerIcons.NetEase /> },
+    { value: 'com.luna.music', label: t.bridge.qishui, icon: <PlayerIcons.Qishui /> },
+    { value: 'cn.wenyu.bodian', label: t.bridge.bodian, icon: <PlayerIcons.Bodian /> },
+    { value: 'kugou.service', label: t.bridge.kugou, icon: <PlayerIcons.Kugou /> },
+    { value: 'cn.kuwo.player', label: t.bridge.kuwo, icon: <PlayerIcons.Kuwo /> },
+    { value: 'com.ximalaya.ting.android', label: t.bridge.ximalaya, icon: <PlayerIcons.Ximalaya /> },
+    { value: 'app.podcast.cosmos', label: t.bridge.xiaoyuzhou, icon: <PlayerIcons.Xiaoyuzhou /> },
+  ];
+
+  if (customPlayer && customPlayer.pkg) {
+    options.push({
+      value: customPlayer.pkg,
+      label: customPlayer.name,
+      icon: customPlayer.iconBase64 ? (
+        <img
+          src={customPlayer.iconBase64}
+          alt={customPlayer.name}
+          style={{ width: '16px', height: '16px', borderRadius: '4px', objectFit: 'cover', display: 'block', flexShrink: 0 }}
+        />
+      ) : (
+        <PlayerIcons.CustomFilled />
+      ),
+      isCustomSlot: true,
+      isConfiguredCustom: true,
+    } as any);
+  } else {
+    options.push({
+      value: '__custom_slot__',
+      label: t.customPlayer.emptySlot,
+      icon: <PlayerIcons.CustomEmpty />,
+      isCustomSlot: true,
+      isConfiguredCustom: false,
+    } as any);
+  }
+
+  return options;
+};
 
 const LANGUAGE_OPTIONS = [
   { value: 'zh-CN', label: '简体中文' },
@@ -225,8 +306,8 @@ const LANGUAGE_OPTIONS = [
   { value: 'ja-JP', label: '日本語' },
 ];
 
-// 官方明确支持纳管的 8 个媒体应用白名单 (含酷狗主包与前台Service包名，屏蔽淘宝等非音乐应用)
-const SUPPORTED_PLAYER_PACKAGES = [
+// 官方明确支持纳管的 8 个媒体应用基础白名单 (含酷狗主包与前台Service包名，屏蔽淘宝等非音乐应用)
+const BASE_SUPPORTED_PLAYER_PACKAGES = [
   'com.tencent.qqmusic',
   'com.netease.cloudmusic',
   'com.luna.music',
@@ -276,13 +357,13 @@ export default function App() {
     document.body.style.backgroundColor = bg;
   }, [effectiveTheme]);
 
-  // 全屏纯色开屏生命周期控制 (参考 MyOmnis_react 独立组件设计：总时长 <= 1.2s，由 SplashView 闭环控制，过渡结束设为 false 卸载)
+  // 全屏纯色开屏生命周期控制 (独立组件设计：总时长 <= 1.2s，由 SplashView 闭环控制，过渡结束设为 false 卸载)
   const [showSplash, setShowSplash] = useState(true);
 
   const [lang, setLang] = useState<LanguageKey>('zh-CN');
   const [isScrollable, setIsScrollable] = useState<boolean>(false);
 
-  // 关于弹窗状态 (遵循 MyOmnis_design.md 提权原则)
+  // 关于弹窗状态 (顶层全局模态)
   const [showAboutModal, setShowAboutModal] = useState<boolean>(false);
   const [aboutViewMode, setAboutViewMode] = useState<'info' | 'changelog'>('info');
 
@@ -310,6 +391,18 @@ export default function App() {
 
   const [logs, setLogs] = useState<BridgeLogEntry[]>([]);
   const [authorizedPlayers, setAuthorizedPlayers] = useState<string[]>([]);
+
+  // 自定义音源状态管理 (支持动态识别与持久化)
+  const [customPlayer, setCustomPlayer] = useState<{ pkg: string; name: string; iconBase64?: string } | null>(null);
+  const customPlayerRef = useRef<{ pkg: string; name: string; iconBase64?: string } | null>(null);
+  customPlayerRef.current = customPlayer;
+
+  const [discoveredSessions, setDiscoveredSessions] = useState<DiscoveredMediaSessionItem[]>([]);
+  const [showCustomPlayerPickerModal, setShowCustomPlayerPickerModal] = useState<boolean>(false);
+  const [showDeleteCustomPlayerModal, setShowDeleteCustomPlayerModal] = useState<boolean>(false);
+  const [selectedDiscoveredPkg, setSelectedDiscoveredPkg] = useState<string | null>(null);
+  const [dismissedDiscoveredPkg, setDismissedDiscoveredPkg] = useState<string | null>(null);
+
   const [appConfig, setAppConfig] = useState<AppBridgeConfig>({
     wechat: true,
     feishu: false,
@@ -327,6 +420,8 @@ export default function App() {
     hidePreviewContent: false,
     rawPlayerCard: false,
   });
+  const appConfigRef = useRef<AppBridgeConfig>(appConfig);
+  appConfigRef.current = appConfig;
 
   const selectedPlayerPkg = appConfig.defaultPlayerPackage || '';
   // 概览页大卡片精准映射当前选择播放器的实际后台实况：有对应后台会话则如实展示，无则进入干净的未播放等待态
@@ -335,10 +430,24 @@ export default function App() {
     return mediaSessions.find((s) => s.packageName === selectedPlayerPkg) || null;
   }, [mediaSessions, selectedPlayerPkg]);
 
-  // 严格白名单过滤后的活跃播放源列表 (彻底屏蔽淘宝等无关会话)
+  // 严格白名单与自定义音源过滤后的活跃播放源列表 (彻底屏蔽淘宝等无关会话)
   const supportedMediaSessions = useMemo(() => {
-    return mediaSessions.filter((s) => SUPPORTED_PLAYER_PACKAGES.includes(s.packageName));
-  }, [mediaSessions]);
+    const validPackages = [...BASE_SUPPORTED_PLAYER_PACKAGES];
+    if (customPlayer?.pkg) {
+      validPackages.push(customPlayer.pkg);
+    }
+    return mediaSessions.filter((s) => validPackages.includes(s.packageName));
+  }, [mediaSessions, customPlayer]);
+
+  // 途径 2: 概览页静默感知候选会话 (当自定义位为空且有未被关闭的未知音乐在播放时呈现)
+  const candidateDiscoveredSession = useMemo(() => {
+    if (customPlayer) return null;
+    return (
+      discoveredSessions.find(
+        (s) => s.isPlaying && s.packageName !== dismissedDiscoveredPkg && !BASE_SUPPORTED_PLAYER_PACKAGES.includes(s.packageName)
+      ) || null
+    );
+  }, [customPlayer, discoveredSessions, dismissedDiscoveredPkg]);
 
   // 封面非线性淡入淡出与切歌双图层过渡机制
   const [activeArtwork, setActiveArtwork] = useState<string | null>(null);
@@ -387,7 +496,7 @@ export default function App() {
   }, [displayedSession]);
 
   const t = translations[lang];
-  const playerOptions = useMemo(() => getPlayerOptions(t), [t]);
+  const playerOptions = useMemo(() => getPlayerOptions(t, customPlayer), [t, customPlayer]);
 
   // Logo 双击主动检测更新 (<=320ms 双击阈值)
   const handleLogoClick = async () => {
@@ -474,15 +583,42 @@ export default function App() {
       }
     });
 
-    // 读取持久化配置 (含旧版本向后兼容平滑迁移)
+    // 读取持久化配置 (含旧版本向后兼容平滑迁移与自定义音源读取)
     Preferences.get({ key: 'fahrmony_app_config' }).then(({ value }) => {
       if (value) {
         try {
           const parsed = JSON.parse(value);
           setAppConfig((prev) => ({ ...prev, ...parsed }));
+          appConfigRef.current = { ...appConfigRef.current, ...parsed };
+          if (parsed.customPlayerPackage && parsed.customPlayerName) {
+            const custom = {
+              pkg: parsed.customPlayerPackage,
+              name: parsed.customPlayerName,
+              iconBase64: parsed.customPlayerIcon,
+            };
+            setCustomPlayer(custom);
+            customPlayerRef.current = custom;
+            setTimeout(refreshNativeState, 50);
+          }
           // 向后兼容升级：若旧版本中已持久化过有效播放器，自动补齐到授权记忆中，防止升级后误跳
           if (parsed.defaultPlayerPackage && typeof parsed.defaultPlayerPackage === 'string') {
             setAuthorizedPlayers((prev) => Array.from(new Set([...prev, parsed.defaultPlayerPackage])));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    });
+
+    // 单独读取持久化自定义音源
+    Preferences.get({ key: 'fahrmony_custom_player' }).then(({ value }) => {
+      if (value) {
+        try {
+          const parsed = JSON.parse(value);
+          if (parsed && parsed.pkg) {
+            setCustomPlayer(parsed);
+            customPlayerRef.current = parsed;
+            setTimeout(refreshNativeState, 50);
           }
         } catch {
           // ignore
@@ -574,7 +710,7 @@ export default function App() {
     await Preferences.set({ key: 'fahrmony_theme', value: nextMode });
   };
 
-  // 吸取 MyOmnis 架构优点：纯前端接管沉浸式状态栏底色与深浅模式自动反色 (零侵入 Android 原生 Window)
+  // 纯前端接管沉浸式状态栏底色与深浅模式自动反色 (零侵入 Android 原生 Window)
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     const updateStatusBar = async () => {
@@ -617,18 +753,27 @@ export default function App() {
     isRefreshingRef.current = true;
     try {
       const isNotificationTab = activeTabRef.current === 'notifications';
-      const [perm, status, media, logData, cfg] = await Promise.all([
+      const [perm, status, media, discovered, logData, cfg] = await Promise.all([
         FahrmonyPlugin.checkPermissions(),
         FahrmonyPlugin.getBridgeStatus(),
         FahrmonyPlugin.getActiveMediaSessions(),
+        FahrmonyPlugin.getDiscoveredMediaSessions().catch(() => ({ discoveredSessions: [] })),
         // 消融实验优化：仅在通知页拉取大尺寸日志列表，降低非必要跨进程序列化负载
         isNotificationTab ? FahrmonyPlugin.getCapturedLogs() : Promise.resolve({ logs: null as any }),
         FahrmonyPlugin.getAppBridgeConfig(),
       ]);
       setPermissions(perm);
       setBridgeStatus(status);
-      // 同源会话去重与白名单过滤：只收录已支持的 8 个播放源，彻底屏蔽淘宝等非支持应用
-      const rawSessions = (media.sessions || []).filter((s) => SUPPORTED_PLAYER_PACKAGES.includes(s.packageName));
+      if (discovered && discovered.discoveredSessions) {
+        setDiscoveredSessions(discovered.discoveredSessions);
+      }
+      // 同源会话去重：收录 8 大基础白名单及当前已配置的自定义音源，彻底屏蔽淘宝等无关会话
+      const currentValidPackages = [...BASE_SUPPORTED_PLAYER_PACKAGES];
+      const activeCustomPkg = customPlayerRef.current?.pkg || customPlayer?.pkg;
+      if (activeCustomPkg) {
+        currentValidPackages.push(activeCustomPkg);
+      }
+      const rawSessions = (media.sessions || []).filter((s) => currentValidPackages.includes(s.packageName));
       const deduplicated = rawSessions.reduce((acc, curr) => {
         const idx = acc.findIndex((s) => s.packageName === curr.packageName);
         if (idx === -1) {
@@ -644,6 +789,7 @@ export default function App() {
       }
       if (cfg.config) {
         setAppConfig((prev) => ({ ...prev, ...cfg.config }));
+        appConfigRef.current = { ...appConfigRef.current, ...cfg.config };
       }
     } catch (e) {
       console.warn('Fahrmony state pull error:', e);
@@ -659,8 +805,10 @@ export default function App() {
     let listenerHandle: any = null;
     FahrmonyPlugin.addListener('mediaSessionChanged', (event) => {
       if (event && event.packageName) {
-        // 白名单守卫：非受支持的媒体源 (如淘宝等) 坚决不推入活跃会话列表
-        if (!SUPPORTED_PLAYER_PACKAGES.includes(event.packageName)) return;
+        // 白名单与自定义音源守卫：非受支持的媒体源 (如淘宝等) 坚决不推入活跃会话列表
+        const activeCustom = customPlayerRef.current?.pkg;
+        const isSupported = BASE_SUPPORTED_PLAYER_PACKAGES.includes(event.packageName) || (activeCustom && activeCustom === event.packageName);
+        if (!isSupported) return;
         setMediaSessions((prev) => {
           const updated: MediaSessionItem = {
             packageName: event.packageName!,
@@ -696,6 +844,9 @@ export default function App() {
         setBridgeStatus((prev) => ({ ...prev, isCarConnected: event.connected }));
         if (event.connected) {
           showToast(t.status.carConnectedToast);
+        } else {
+          // 断开车机连接后自动清空近期通知记录，保持界面清爽
+          setLogs([]);
         }
       }
     }).then((handle) => {
@@ -792,6 +943,71 @@ export default function App() {
     }
   };
 
+  // 确认添加自定义音源 (支持途径 1 与途径 2)
+  const handleConfirmAddCustomPlayer = (item: DiscoveredMediaSessionItem) => {
+    const custom = {
+      pkg: item.packageName,
+      name: item.appName,
+      iconBase64: item.iconBase64,
+    };
+    customPlayerRef.current = custom;
+    setCustomPlayer(custom);
+    Preferences.set({ key: 'fahrmony_custom_player', value: JSON.stringify(custom) });
+
+    // 0ms 瞬时直出：将已检测到的活跃会话直接注入 mediaSessions 列表，主界面大卡片立刻渲染正在播放
+    const immediateSession: MediaSessionItem = {
+      packageName: item.packageName,
+      appName: item.appName,
+      title: item.title || '正在播放',
+      artist: item.artist || '',
+      album: '',
+      isPlaying: true,
+      duration: 0,
+      position: 0,
+      artworkData: item.iconBase64 || null,
+    };
+    setMediaSessions((prev) => {
+      const next = prev.filter((s) => s.packageName !== item.packageName);
+      return [immediateSession, ...next];
+    });
+
+    // 设为默认播放器并多端同步
+    updateConfig({
+      defaultPlayerPackage: item.packageName,
+      customPlayerPackage: item.packageName,
+      customPlayerName: item.appName,
+      customPlayerIcon: item.iconBase64,
+    });
+
+    const nextAuthorized = Array.from(new Set([...authorizedPlayers, item.packageName]));
+    setAuthorizedPlayers(nextAuthorized);
+    Preferences.set({ key: 'fahrmony_authorized_players', value: JSON.stringify(nextAuthorized) });
+
+    setShowCustomPlayerPickerModal(false);
+
+    // 延迟 500ms 触发已有授权唤醒流
+    setTimeout(() => {
+      handleLaunchPlayer(item.packageName);
+    }, 500);
+  };
+
+  // 确认移除自定义音源 (长按删除弹窗)
+  const handleConfirmRemoveCustomPlayer = () => {
+    const isCurrentDefault = appConfig.defaultPlayerPackage === customPlayer?.pkg;
+    customPlayerRef.current = null;
+    setCustomPlayer(null);
+    Preferences.remove({ key: 'fahrmony_custom_player' });
+
+    updateConfig({
+      defaultPlayerPackage: isCurrentDefault ? '' : appConfig.defaultPlayerPackage,
+      customPlayerPackage: '',
+      customPlayerName: '',
+      customPlayerIcon: '',
+    });
+
+    setShowDeleteCustomPlayerModal(false);
+  };
+
   // 真实视口感知容器锚点 (支持 ResizeObserver 与原生 120fps 硬件级 Overscroll)
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const transformContentRef = useRef<HTMLDivElement>(null);
@@ -874,9 +1090,9 @@ export default function App() {
   };
 
   return (
-    <div style={{ height: '100dvh', width: '100%', maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: 'var(--bg-main)', transition: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
+    <div style={{ height: '100%', width: '100%', maxWidth: '480px', margin: '0 auto', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: 'var(--bg-main)', transition: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
 
-      {/* 沉浸式纯色全屏开屏 (参考 MyOmnis_react 独立组件设计：Portal 顶层渲染，纯色底全屏覆盖，Outfit 品牌字样水平居中、垂直 45% 非线性淡入) */}
+      {/* 沉浸式纯色全屏开屏 (Portal 顶层渲染，纯色底全屏覆盖，Outfit 品牌字样水平居中、垂直 45% 非线性淡入) */}
       {showSplash && (
         <SplashView
           onFinish={() => setShowSplash(false)}
@@ -1024,12 +1240,12 @@ export default function App() {
           overscrollBehaviorY: 'contain',
           boxSizing: 'border-box',
           paddingTop: 'calc(77px + var(--sat, 0px))',
-          paddingBottom: 'calc(88px + var(--sab, 0px))',
+          paddingBottom: 'calc(104px + var(--sab, 0px))',
           WebkitMaskImage: isScrollable
-            ? 'linear-gradient(to bottom, black 0%, black calc(100% - 96px - var(--sab, 0px)), transparent calc(100% - 12px - var(--sab, 0px)))'
+            ? 'linear-gradient(to bottom, black 0%, black calc(100% - 116px - var(--sab, 0px)), transparent calc(100% - 78px - var(--sab, 0px)))'
             : 'none',
           maskImage: isScrollable
-            ? 'linear-gradient(to bottom, black 0%, black calc(100% - 96px - var(--sab, 0px)), transparent calc(100% - 12px - var(--sab, 0px)))'
+            ? 'linear-gradient(to bottom, black 0%, black calc(100% - 116px - var(--sab, 0px)), transparent calc(100% - 78px - var(--sab, 0px)))'
             : 'none',
         }}
       >
@@ -1155,6 +1371,16 @@ export default function App() {
                         placeholder={t.mediaTab.selectPlayerPlaceholder}
                         onChange={handleSelectPlayer}
                         options={playerOptions}
+                        onCustomSlotClick={() => {
+                          setSelectedDiscoveredPkg(null);
+                          setShowCustomPlayerPickerModal(true);
+                          refreshNativeState();
+                        }}
+                        onLongPressOption={(opt) => {
+                          if (opt.isConfiguredCustom) {
+                            setShowDeleteCustomPlayerModal(true);
+                          }
+                        }}
                       />
                     </div>
                   </div>
@@ -1375,6 +1601,110 @@ export default function App() {
                     </button>
                   </div>
                 </div>
+
+                {/* 途径 2: 概览页静默感知临时推荐卡片 (16px下边距与左边距对齐，大卡片与Tab栏净空高度垂直居中，12px防误触间距) */}
+                {!customPlayer && candidateDiscoveredSession && (
+                  <div
+                    className="surface-card"
+                    style={{
+                      margin: '16px 0 6px 0',
+                      padding: '13px 16px 16px 16px',
+                      borderRadius: '16px',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                      animation: 'modalPop 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {/* 第一行：左侧提示文案，右侧关闭按钮 */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        {t.customPlayer.discoveredBannerTitle}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setDismissedDiscoveredPkg(candidateDiscoveredSession.packageName)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '6px',
+                          cursor: 'pointer',
+                          color: 'var(--text-tertiary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        aria-label="Close"
+                      >
+                        <Icons.X size={15} />
+                      </button>
+                    </div>
+
+                    {/* 第二行：左侧 2/3 音源 Logo 与应用名，右侧 1/3 确认添加按钮 */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                        {candidateDiscoveredSession.iconBase64 ? (
+                          <img
+                            src={candidateDiscoveredSession.iconBase64}
+                            alt={candidateDiscoveredSession.appName}
+                            style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '8px',
+                              background: 'var(--accent-tint)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              color: 'var(--accent-primary)',
+                            }}
+                          >
+                            <Icons.Music size={18} />
+                          </div>
+                        )}
+                        <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
+                          <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {candidateDiscoveredSession.appName}
+                          </div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {candidateDiscoveredSession.title ? candidateDiscoveredSession.title : candidateDiscoveredSession.packageName}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={() => handleConfirmAddCustomPlayer(candidateDiscoveredSession)}
+                          className="btn-jelly"
+                          style={{
+                            height: '36px',
+                            minHeight: '36px',
+                            padding: '0 14px',
+                            borderRadius: '10px',
+                            background: 'var(--accent-primary)',
+                            color: '#ffffff',
+                            fontSize: '15px',
+                            fontWeight: 600,
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {t.customPlayer.confirmAdd}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1515,8 +1845,11 @@ export default function App() {
                       <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
                         {t.mediaTab.defaultPlayerTitle}
                       </div>
-                      <div style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '2px', marginBottom: '10px' }}>
+                      <div style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '3px', marginBottom: 0 }}>
                         {t.mediaTab.defaultPlayerDesc}
+                      </div>
+                      <div style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '3px', marginBottom: '14px' }}>
+                        {t.mediaTab.customAppSubtitle}
                       </div>
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                         <div style={{ flex: 1 }}>
@@ -1525,6 +1858,16 @@ export default function App() {
                             placeholder={t.mediaTab.selectPlayerPlaceholder}
                             onChange={handleSelectPlayer}
                             options={playerOptions}
+                            onCustomSlotClick={() => {
+                              setSelectedDiscoveredPkg(null);
+                              setShowCustomPlayerPickerModal(true);
+                              refreshNativeState();
+                            }}
+                            onLongPressOption={(opt) => {
+                              if (opt.isConfiguredCustom) {
+                                setShowDeleteCustomPlayerModal(true);
+                              }
+                            }}
                           />
                         </div>
                         <button
@@ -1936,7 +2279,7 @@ export default function App() {
         </nav>
       )}
 
-      {/* “关于 Fahrmony” 全局提权模态弹窗 (遵循 MyOmnis_design.md 第 4 节包含块隔离原则) */}
+      {/* “关于 Fahrmony” 全局模态弹窗 (顶层渲染与包含块隔离) */}
       {showAboutModal && (
         <div
           style={{
@@ -2005,7 +2348,7 @@ export default function App() {
                       Fahrmony
                     </div>
                     <div style={{ fontSize: '15px', color: 'var(--accent-primary)', fontWeight: 600, marginTop: '2px' }}>
-                      v1.1.5
+                      v1.2.0
                     </div>
                   </div>
 
@@ -2043,6 +2386,16 @@ export default function App() {
                   </div>
                   {/* 仅“更新日志”标题与下方双按钮之间的内容区域具有滚动能力 */}
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.2.0</div>
+                      <div style={{ marginTop: '4px' }}>
+                        • 新增: 自定义音源槽位，自动检测后接收推荐或手动添加<br />
+                        • 优化: 车机断连后停止通知和对已转接 IM 消息的清除机制<br />
+                        • 优化: 针对任意机型的统一手机端界面效果<br />
+                        • 优化: 手机端概览卡片点击播放/切歌纯后台下发，不再误弹出播放器前台界面<br />
+                        • 修复: 部分播放器冷启动连接时，歌曲已加载但未自动播放的问题
+                      </div>
+                    </div>
                     <div>
                       <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.1.5</div>
                       <div style={{ marginTop: '4px' }}>
@@ -2175,6 +2528,259 @@ export default function App() {
               </svg>
             )}
             {renderToastContent(updateToast.message, lang)}
+          </div>
+        </div>
+      )}
+      {/* 途径 1: 自定义音源主动选择弹窗 */}
+      {showCustomPlayerPickerModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 9999,
+            boxSizing: 'border-box',
+          }}
+          onClick={() => setShowCustomPlayerPickerModal(false)}
+        >
+          <div
+            className="surface-card"
+            style={{
+              maxWidth: '380px',
+              width: '100%',
+              borderRadius: '24px',
+              padding: '24px',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.45)',
+              animation: 'modalPop 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+              boxSizing: 'border-box',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 弹窗头部 */}
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                {t.customPlayer.detectTitle}
+              </div>
+              <div style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                {t.customPlayer.detectHint}
+              </div>
+            </div>
+
+            {/* 列表区域 (高度弹性自适应包裹，上下各 18px 严格绝对对称留白) */}
+            <div style={{ height: 'auto', maxHeight: '260px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', margin: '18px 0 18px 0', paddingRight: '2px' }}>
+              {discoveredSessions.length > 0 ? (
+                discoveredSessions.map((item) => {
+                  const isSelected = selectedDiscoveredPkg === item.packageName;
+                  return (
+                    <div
+                      key={item.packageName}
+                      onClick={() => setSelectedDiscoveredPkg(item.packageName)}
+                      className="btn-jelly"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '12px 14px',
+                        borderRadius: '12px',
+                        background: isSelected ? 'var(--accent-tint)' : 'var(--bg-surface-elevated)',
+                        border: isSelected ? '1.5px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
+                        cursor: 'pointer',
+                        transition: 'all 120ms ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                        {item.iconBase64 ? (
+                          <img
+                            src={item.iconBase64}
+                            alt={item.appName}
+                            style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '8px',
+                              background: 'var(--bg-surface)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--accent-primary)',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Icons.Music size={18} />
+                          </div>
+                        )}
+                        <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
+                          <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.appName}
+                          </div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>
+                            {item.packageName}
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          border: isSelected ? '6px solid var(--accent-primary)' : '1.5px solid var(--border-subtle)',
+                          background: isSelected ? '#ffffff' : 'transparent',
+                          boxSizing: 'border-box',
+                          flexShrink: 0,
+                        }}
+                      />
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ padding: '36px 16px', minHeight: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '15px', boxSizing: 'border-box' }}>
+                  <div style={{ marginBottom: '10px', color: 'var(--accent-primary)', display: 'flex', justifyContent: 'center' }}>
+                    <Icons.Music size={30} />
+                  </div>
+                  {t.customPlayer.noDetected}
+                </div>
+              )}
+            </div>
+
+            {/* 底部按键 */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowCustomPlayerPickerModal(false)}
+                className="btn-jelly"
+                style={{
+                  flex: 1,
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {t.customPlayer.cancel}
+              </button>
+              <button
+                type="button"
+                disabled={!selectedDiscoveredPkg}
+                onClick={() => {
+                  const target = discoveredSessions.find((s) => s.packageName === selectedDiscoveredPkg);
+                  if (target) {
+                    handleConfirmAddCustomPlayer(target);
+                  }
+                }}
+                className="btn-jelly"
+                style={{
+                  flex: 1,
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'var(--accent-primary)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  cursor: selectedDiscoveredPkg ? 'pointer' : 'not-allowed',
+                  opacity: selectedDiscoveredPkg ? 1 : 0.45,
+                }}
+              >
+                {t.customPlayer.confirmAdd}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 移除自定义音源确认弹窗 */}
+      {showDeleteCustomPlayerModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 9999,
+            boxSizing: 'border-box',
+          }}
+          onClick={() => setShowDeleteCustomPlayerModal(false)}
+        >
+          <div
+            className="surface-card"
+            style={{
+              maxWidth: '340px',
+              width: '100%',
+              borderRadius: '24px',
+              padding: '24px',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.45)',
+              animation: 'modalPop 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+              boxSizing: 'border-box',
+              textAlign: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {t.customPlayer.removeTitle}
+            </div>
+            <div style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-line', marginBottom: '20px' }}>
+              {t.customPlayer.removeDesc.replace('{name}', customPlayer?.name || '')}
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowDeleteCustomPlayerModal(false)}
+                className="btn-jelly"
+                style={{
+                  flex: 1,
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {t.customPlayer.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRemoveCustomPlayer}
+                className="btn-jelly"
+                style={{
+                  flex: 1,
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'var(--status-danger, #E60026)',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {t.customPlayer.removeConfirm}
+              </button>
+            </div>
           </div>
         </div>
       )}

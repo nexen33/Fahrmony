@@ -9,11 +9,13 @@
 ![React](https://img.shields.io/badge/React-v19-cyan)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
+&nbsp;&nbsp;
+![Version](https://img.shields.io/badge/Version-v1.2.0-orange)
 
 > A local-first interoperability bridge tailored for Android Auto, enabling car displays to naturally display and partially control your favorite Chinese streaming audio and messaging notifications while driving abroad.
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.1.5/Fahrmony_v1.1.5.apk">
+  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.2.0/Fahrmony_v1.2.0.apk">
     <img src="https://img.shields.io/badge/Download_Latest_Fahrmony_APK-blue?style=forthebadge" height="60">
   </a>
 </p>  
@@ -46,13 +48,14 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 ## Features
 
 - **Standard Head-Unit Media Controls**: Seamless Play, Pause, Next, Previous, and Seek operations directly on your dashboard.
+- **Custom Audio Sources & Smart Recommendations**: Beyond pre-configured players, automatically detects audio apps actively playing in the background, extracts their name and icon, and allows seamless addition via smart recommendation banners or manual selection into custom slots.
 - **Session Discovery & Smart Arbitration**: Automatically detects active playback across the system and anchors focus when switching apps to prevent card jumping.
-- **Cold Start & Warm Reconnect Resumption**: Finely polished for media app and Android Auto cold starts and warm reconnects. Upon connecting to Android Auto, the system automatically detects and resumes playback state without requiring manual clicks on the phone or car screen in most driving scenarios; features built-in self-healing retry logic for sluggish background starts.
+- **Cold Start & Warm Reconnect Resumption**: Finely polished for media app and Android Auto cold starts and warm reconnects. Upon connecting to Android Auto, the system automatically detects and resumes playback state without requiring manual clicks on the phone or car screen in most driving scenarios; features built-in active verification and self-healing retry logic for sluggish background starts.
 - **Adaptive Ambient Artwork & Original Covers**: Generates high-contrast gradient backdrops by default to completely eliminate invisible black buttons on dark album art; optionally enable the "Audio App Original Playing Card" toggle in the phone's Media settings to display authentic original album covers directly on your car screen.
 - **Queue Passthrough & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; probes and supports standard repeat modes as well as vendor custom actions.
-- **Driving Safety Notification Assistant**: Deconstructs direct and group messages, filters out group chat spam, and generates automotive-standard cards with voice readout and "Mark as Read" actions.
+- **Driving Safety Notification Assistant & Disconnection Cleanup**: Deconstructs direct and group messages, filters out group chat spam, and generates automotive-standard cards with voice readout and "Mark as Read" actions; automatically halts message forwarding and destroys residual bridge notifications upon car disconnection to eliminate phone-side duplicate alerts.
 - **Anti-Jitter & Audio Leak Prevention**: Instantly claims transient audio focus and pauses all players upon car disconnection to eliminate speaker audio leakage; enforces an anti-jitter state lock during track switching to prevent UI flashing.
-- **Minimalist Handset Frontend & Native-Like Interactions**: A lightweight fluid console on the handset displaying real-time media source detection status and notification relay records; browser scrollbars are completely hidden, delivering silky 120fps native-like stretch and overscroll bounce; supports adaptive light/dark theming with "Follow System" mode, 4-language support, and permission setup guides.
+- **Unified Fluid Interface & Pure Background Controls**: A lightweight fluid console on the handset dynamically adapted to various screen resolutions; browser scrollbars are completely hidden, delivering silky 120fps native-like stretch and overscroll bounce; supports adaptive light/dark theming with "Follow System" mode, 4-language support, and permission setup guides.
 - **Silent Update Detection**: Built-in lightweight update sensing checks the official GitHub Release once daily in the background with randomized jitter; double-tapping the app logo inside the "About" dialog also triggers an immediate update check to ensure you stay up to date.
 
 ## Compatibility
@@ -64,13 +67,14 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 | **Playback Controls** | **Full** | Issues play/pause commands with a debounce lock | Requires original app to handle standard media intents |
 | **Track Skip** | **Full** | Issues next/previous commands with state lock | Certain radio or podcast streams do not implement previous track |
 | **Seek** | **Supported** | Relays seek timestamps in milliseconds and syncs UI progress | Disabled for live streams or non-seekable streams |
-| **Track Metadata** | **Full** | Extracts title, artist, and album with local caching | Displays app name temporarily if metadata delivery is delayed |
-| **Cover Artwork** | **Adaptive** | Generates high-contrast gradient art to preserve button visibility | Avoids loading remote image bitmaps directly to prevent black buttons |
+| **Track Metadata** | **Full** | Extracts title, artist, and album with multi-tier fallback parsing | Displays app name temporarily if metadata delivery is delayed |
+| **Custom Audio Source** | **Full** | Auto-detects active background apps for recommendations or active in-app selection | Requires target app to register MediaSession or post media notification |
+| **Cover Artwork** | **Adaptive** | Generates high-contrast gradient art to preserve button visibility | Avoids loading remote image bitmaps directly by default; optional raw card support |
 | **Playback Queue** | **Passthrough** | Displays track lists on car display when provided by source app | Automatically hidden if the source app does not expose a queue |
 | **Repeat Modes** | **Adaptive** | Prioritizes standard flags; probes vendor actions as fallback | Depends on source app exposing standard or custom controls |
 | **Shuffle** | **Limited** | Functional only when source app exposes cycle actions | Most streaming apps do not expose standalone shuffle commands |
 | **Cold Start** | **Full** | Wakes dormant target app in background and resumes playback | Requires handset permission for background autostart |
-| **Notification Display** | **Full** | Parses messages and generates standardized car cards | Requires granted Notification Access permission |
+| **Notification Display** | **Full** | Parses messages and generates standardized car cards | Requires granted Notification Access; auto-cleans residual alerts upon disconnect |
 | **Voice Readout** | **System-driven** | Handled by vehicle voice assistant following automotive specs | Voice synthesis quality depends on system speech settings |
 | **Direct Reply** | **Unsupported** | Offers "Mark as Read" dismissal. **Replying back to source app is unsupported** | Messaging apps do not provide public third-party message-sending APIs |
 
@@ -106,6 +110,7 @@ All permissions declared in the system manifest and their actual technical purpo
 | :--- | :--- | :--- |
 | **Network Access** | UI Container Environment | Standard configuration for hybrid WebView container. **Fahrmony contains zero backend servers, zero networking code, zero analytics, and never transmits data externally.** |
 | **Notification Access** | Core Media & Message Bridge | Essential permission. Used to discover media tokens from status bar notifications and capture messages for voice readouts. Processed purely in volatile RAM. |
+| **Query All Packages** | Custom Player & App Discovery | Used on Android 11+ to query installed audio/video app names and icons for accurate identification and smart recommendations in custom slots. |
 | **Foreground Service** | Background Daemon Stability | Maintains service persistence when the phone screen is locked or another app is in use. |
 | **Foreground Service Media Playback** | Automotive Audio Control | Declares compliant media service type to Android OS to ensure high-priority audio responsiveness. |
 | **Foreground Service Data Sync** | Inter-Process Sync | Facilitates safe and reliable state synchronization between handset UI and `:car` background service. |
@@ -124,7 +129,15 @@ For driver safety and technical compliance. Typing on a dashboard while driving 
 Certain source player covers are extremely dark, causing the in-car system to automatically tint playback control buttons into invisible black. Transmitting high-resolution bitmaps can also introduce latency. Adaptive gradients ensure buttons remain readable and track changes smooth.
 
 #### How can I display the original album artwork on the car screen?
-Navigate to the "Media" tab in Fahrmony on your phone and enable the **"Audio App Original Playing Card"** toggle. Once enabled, the car screen will directly display the active audio app's native playing card and original album art (note: very dark covers may affect button contrast due to the car system's dynamic color matching). If you prefer buttons to remain permanently high-contrast and vivid, keep it disabled.
+Navigate to the "Media" tab in Fahrmony on your phone and enable the "**Audio App Original Playing Card**" toggle. Once enabled, the car screen will directly display the active audio app's native playing card and original album art (note: very dark covers may affect button contrast due to the car system's dynamic color matching). If you prefer buttons to remain permanently high-contrast and vivid, keep it disabled.
+
+#### How do I add and manage custom audio sources?
+Beyond pre-configured media players, Fahrmony provides a dedicated "Custom Audio Source Slot" supporting any audio, video, or podcast app complying with Android MediaSession standards. Two addition paths are supported:
+1. **Active Selection**: In either the **Media Tab** or **Overview Tab**, open the player dropdown menu and tap "**+ Custom Source...**" at the bottom, then select any active background media player discovered by the system;
+2. **Smart Perception Recommendation**: When an unconfigured third-party audio app is playing in the background, opening Fahrmony's Overview tab will automatically show a discovery recommendation banner below the player card. Tapping the button adds and binds it as the active source with a single tap.
+
+**How to Delete a Custom Audio Source**:
+In either the **Media Tab** or **Overview Tab**, open the player dropdown menu, **long-press** the added custom player option, and confirm in the popup dialog to clear the slot.
 
 #### Does audio output from the car or the phone speaker?
 Audio automatically routes through the vehicle speakers when connected. Upon disconnection, Fahrmony's built-in leakage prevention pauses playback instantly, preventing sudden loud speaker output in public.
@@ -174,7 +187,7 @@ Audio automatically routes through the vehicle speakers when connected. Upon dis
 If you encounter an issue during daily driving, please file a report on GitHub Issues using the template below (**Note: Never submit personal private chat contents**):
 
 ```text
-- Fahrmony Version: v1.1.5
+- Fahrmony Version: v1.2.0
 - Android OS Version: e.g., Android 14
 - Phone Model: e.g., Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto Version: e.g., 11.8
@@ -201,17 +214,29 @@ adb forward tcp:5277 tcp:5277
 .\desktop-head-unit.exe
 ```
 
-#### 2. Capturing Probe Logs in Real Time
+#### 2. Capturing Real-Time Debug & Probe Logs
 
-**Command Prompt (CMD):**
-```cmd
-adb logcat -c && adb logcat -v time -s FahrmonyProbe:I
-```
+Select the corresponding log tag depending on the scenario you need to diagnose:
 
-**PowerShell:**
-```powershell
-adb logcat -c; adb logcat -v time -s FahrmonyProbe:I
-```
+- **General Automotive Bridge & Full Probe (FahrmonyProbe)**: Recommended for diagnosing vehicle connection lifecycle, overall media session routing, and notification translation.
+  - **Command Prompt (CMD)**:
+    ```cmd
+    adb logcat -c && adb logcat -v time -s FahrmonyProbe:I
+    ```
+  - **PowerShell**:
+    ```powershell
+    adb logcat -c; adb logcat -v time -s FahrmonyProbe:I
+    ```
+
+- **Custom Audio Source & Background Playback Dedicated Logs (Fahrmony_CUSTOM)**: Recommended for diagnosing custom audio source session discovery, notification token binding, multi-tier metadata arbitration, playback command dispatch, and frontend state synchronization.
+  - **Command Prompt (CMD)**:
+    ```cmd
+    adb logcat -c && adb logcat -v time -s Fahrmony_CUSTOM
+    ```
+  - **PowerShell**:
+    ```powershell
+    adb logcat -c; adb logcat -v time -s Fahrmony_CUSTOM
+    ```
 
 Developers may optionally attach relevant log excerpts to their issue submission.
 
@@ -225,21 +250,21 @@ Developers may optionally attach relevant log excerpts to their issue submission
 ## Architecture
 
 ```text
-┌─ Source Applications (Audio Streaming & Messaging Apps)
-│  └─ MediaSession Token / System Notifications
+┌─ Third-Party Apps (Music, Podcasts & IM Applications)
+│  └─ MediaSession Token / System Notification Broadcast
 ▼
-┌─ Fahrmony Isolated Automotive Process (:car)
-│  ├─ Session Discovery, Smart Arbitration & Auto Wakeup
-│  ├─ Message Sanitization, Group Filtering & Translation
-│  ├─ Automotive Media Service (MediaBrowserServiceCompat)
-│  └─ Persistent Foreground Daemon Service
+┌─ Fahrmony Dedicated Automotive System Process (:car)
+│  ├─ MediaSession Perception, Smart Arbitration & Active Cold-Start Resume
+│  ├─ Message Payload Cleaning, Group Filtering, Normalized Translation & Disconnect Auto-Cleanup
+│  ├─ MediaBrowserServiceCompat Implementation
+│  └─ Persistent Foreground Daemon
 ▼
-┌─ Fahrmony Mobile Handset Frontend (Main process)
-│  └─ Status Monitoring, App Configuration & Preferences
+┌─ Fahrmony Handset Frontend (Main Process)
+│  └─ Link Monitoring, Source Perception, Custom Player Management & i18n
 ▼
-┌─ Vehicle Head Unit (Android Auto Display)
-│  ├─ Split-Screen & Full-Screen Media Controls
-│  └─ Google Assistant Voice Announcement
+┌─ In-Vehicle Screen (Android Auto)
+│  ├─ Media Playback Dashboard & Split-Screen Cards
+│  └─ In-Car Voice Assistant Safe Notification Readout Announcement
 ```
 
 ## Tech Stack
@@ -274,7 +299,7 @@ Released under the **Creative Commons Attribution-NonCommercial 4.0 Internationa
 
 ---
 
-## Preview v1.1.5
+## Preview v1.2.0
 
 <p align="center">
   <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/03007905-3bbb-43da-8f7e-d7d0d9532fb3" />

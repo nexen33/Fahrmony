@@ -120,9 +120,11 @@ html, body, #root {
   font-family: var(--font-sans);
   background-color: var(--bg-main) !important;
   color: var(--text-primary);
-  min-height: 100%;
+  width: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden !important;
 }
 
 /* 全局深浅色平滑渐变切换 (300ms Material 3 标准非线性水墨过渡，杜绝生硬跳变) */
@@ -146,10 +148,13 @@ h1, h2, h3, p, span, svg {
 body {
   font-size: 17px; /* 全局字号基准调大 3px (14px -> 17px) */
   line-height: 1.5;
-  overflow-x: hidden;
+  -webkit-text-size-adjust: 100% !important;
+  -moz-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+  text-size-adjust: 100% !important;
 }
 
-/* Apple Fluid Motion & MyOmnis Jelly Effect */
+/* Fluid Motion & Jelly Effect */
 .pressable {
   transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), opacity 120ms ease;
   cursor: pointer;
@@ -217,7 +222,7 @@ body {
   }
 }
 
-/* 弹窗弹性缩放进场 (MyOmnis 规范) */
+/* 弹窗弹性缩放进场 */
 @keyframes modalPop {
   0% {
     opacity: 0;
@@ -254,10 +259,13 @@ body {
 }
 
 /* 类原生 App 滚动规范：保留原生丝滑手势物理滚动，彻底隐藏浏览器外观物理滚动条 */
+*::-webkit-scrollbar,
 ::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
 }
 
 * {

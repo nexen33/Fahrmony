@@ -4,6 +4,8 @@ export interface SelectOption {
   value: string;
   label: string;
   icon?: React.ReactNode;
+  isCustomSlot?: boolean;
+  isConfiguredCustom?: boolean;
 }
 
 interface CustomSelectProps {
@@ -12,6 +14,8 @@ interface CustomSelectProps {
   options: SelectOption[];
   placeholder?: string;
   compact?: boolean;
+  onCustomSlotClick?: () => void;
+  onLongPressOption?: (option: SelectOption) => void;
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -20,9 +24,13 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   options,
   placeholder,
   compact = false,
+  onCustomSlotClick,
+  onLongPressOption,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const isLongPressTriggeredRef = useRef<boolean>(false);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -38,8 +46,49 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const handleSelect = (val: string) => {
-    onChange(val);
+  const clearLongPress = () => {
+    if (longPressTimerRef.current !== null) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleTouchStart = (opt: SelectOption) => {
+    isLongPressTriggeredRef.current = false;
+    if (opt.isConfiguredCustom && onLongPressOption) {
+      longPressTimerRef.current = window.setTimeout(() => {
+        isLongPressTriggeredRef.current = true;
+        if (typeof window !== 'undefined' && window.navigator?.vibrate) {
+          try {
+            window.navigator.vibrate(30);
+          } catch {
+            // ignore
+          }
+        }
+        setIsOpen(false);
+        onLongPressOption(opt);
+      }, 550);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    clearLongPress();
+  };
+
+  const handleSelect = (opt: SelectOption) => {
+    if (isLongPressTriggeredRef.current) {
+      isLongPressTriggeredRef.current = false;
+      return;
+    }
+    clearLongPress();
+
+    if (opt.isCustomSlot && !opt.isConfiguredCustom && onCustomSlotClick) {
+      setIsOpen(false);
+      onCustomSlotClick();
+      return;
+    }
+
+    onChange(opt.value);
     setIsOpen(false);
     if (typeof window !== 'undefined' && window.navigator?.vibrate) {
       try {
@@ -132,7 +181,13 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
             return (
               <div
                 key={opt.value}
-                onClick={() => handleSelect(opt.value)}
+                onClick={() => handleSelect(opt)}
+                onTouchStart={() => handleTouchStart(opt)}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
+                onMouseDown={() => handleTouchStart(opt)}
+                onMouseUp={handleTouchEnd}
+                onMouseLeave={handleTouchEnd}
                 className="btn-jelly"
                 style={{
                   display: 'flex',
@@ -144,10 +199,12 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                   fontSize: '16px',
                   cursor: 'pointer',
                   background: isSelected ? 'var(--accent-tint)' : 'transparent',
-                  color: isSelected ? 'var(--accent-primary)' : 'var(--text-primary)',
+                  color: isSelected ? 'var(--accent-primary)' : opt.isCustomSlot && !opt.isConfiguredCustom ? 'var(--text-secondary)' : 'var(--text-primary)',
                   fontWeight: isSelected ? 600 : 400,
                   transition: 'background-color 100ms ease',
                   whiteSpace: 'nowrap',
+                  borderTop: opt.isCustomSlot ? '1px dashed var(--border-subtle)' : 'none',
+                  marginTop: opt.isCustomSlot ? '4px' : '0',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}>

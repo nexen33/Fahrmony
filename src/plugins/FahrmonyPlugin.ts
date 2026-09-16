@@ -68,6 +68,18 @@ export interface AppBridgeConfig {
   filterGroupChats?: boolean;
   hidePreviewContent?: boolean;
   rawPlayerCard?: boolean;
+  customPlayerPackage?: string;
+  customPlayerName?: string;
+  customPlayerIcon?: string;
+}
+
+export interface DiscoveredMediaSessionItem {
+  packageName: string;
+  appName: string;
+  iconBase64: string;
+  title: string;
+  artist: string;
+  isPlaying: boolean;
 }
 
 export interface UpdateCheckResult {
@@ -85,6 +97,7 @@ export interface FahrmonyPluginInterface {
   openPermissionSettings(options: { type: 'notification_listener' | 'battery_optimization' | 'restricted_settings' | 'app_details' | 'app_notification' }): Promise<{ success: boolean }>;
   getBridgeStatus(): Promise<BridgeStatusResult>;
   getActiveMediaSessions(): Promise<{ sessions: MediaSessionItem[] }>;
+  getDiscoveredMediaSessions(): Promise<{ discoveredSessions: DiscoveredMediaSessionItem[] }>;
   sendMediaCommand(options: { packageName?: string; action: 'play' | 'pause' | 'skip_next' | 'skip_previous' }): Promise<{ success: boolean }>;
   getCapturedLogs(): Promise<{ logs: BridgeLogEntry[] }>;
   clearLogs(): Promise<{ success: boolean }>;
@@ -158,6 +171,9 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
         },
       ],
     }),
+    getDiscoveredMediaSessions: async () => ({
+      discoveredSessions: [],
+    }),
     sendMediaCommand: async (options: { packageName?: string; action: 'play' | 'pause' | 'skip_next' | 'skip_previous' }) => {
       console.log('[Web Mock] Send media command:', options);
       return { success: true };
@@ -178,7 +194,7 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
           type: 'IM_NOTIFICATION',
           tag: '飞书',
           title: '项目组通知',
-          content: '合拍 Android Auto 桥接版本 v1.1.5 测试通过',
+          content: '合拍 Android Auto 桥接版本 v1.2.0 测试通过',
         }
       ],
     }),
@@ -197,8 +213,8 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
     },
     checkUpdate: async () => ({
       hasUpdate: false,
-      currentVersion: 'v1.1.5',
-      latestVersion: 'v1.1.5',
+      currentVersion: 'v1.2.0',
+      latestVersion: 'v1.2.0',
       downloadUrl: 'https://github.com/nexen33/Fahrmony/releases/latest',
       releaseUrl: 'https://github.com/nexen33/Fahrmony/releases/latest',
       changelog: '当前已是最新版本',

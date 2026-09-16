@@ -7,7 +7,7 @@ interface SplashViewProps {
 }
 
 /**
- * 全屏纯色开屏视图 (参考 MyOmnis_react 设计范式)
+ * 全屏纯色开屏视图
  * 1. 挂载于 document.body 顶层 Portal，突破 maxWidth 480px 与相对容器约束；
  * 2. 纯色背景严格适配深浅模式 (#0a0c10 / #f8fafc)；
  * 3. Outfit 字体品牌字样水平居中、垂直 45% 靠上，轻快非线性从左至右淡入；

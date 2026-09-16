@@ -87,6 +87,22 @@ export interface Translations {
     sourcesTitle: string;
     sourceApp: string;
     selectPlayerPlaceholder: string;
+    customAppSubtitle: string;
+  };
+  customPlayer: {
+    slotTitle: string;
+    emptySlot: string;
+    detectTitle: string;
+    detectHint: string;
+    noDetected: string;
+    confirmAdd: string;
+    cancel: string;
+    removeTitle: string;
+    removeDesc: string;
+    removeConfirm: string;
+    discoveredBannerTitle: string;
+    discoveredBannerAdd: string;
+    customTag: string;
   };
   settings: {
     title: string;
@@ -209,10 +225,26 @@ export const translations: Record<LanguageKey, Translations> = {
       defaultPlayerTitle: '默认音频 App',
       defaultPlayerDesc: '车载切歌与快速启动时优先使用的音频App',
       rawCardTitle: '音频 App 原始播放卡片',
-      rawCardDesc: '关闭后将显示原始播放卡片，按键颜色会受封面影响',
+      rawCardDesc: '开启后将显示原始播放卡片，按键颜色会受封面影响',
       sourcesTitle: '活跃播放源',
       sourceApp: '来源应用',
       selectPlayerPlaceholder: '请选择播放器',
+      customAppSubtitle: '自定义添加的音频 App 可能仅支持基础播控',
+    },
+    customPlayer: {
+      slotTitle: '自定义音源',
+      emptySlot: '添加自定义音源',
+      detectTitle: '选择已检测到的音频 App',
+      detectHint: '如果这里没有显示你想要的App，\n请开启并播放你需要的音频App，便于检测',
+      noDetected: '未检测到正在播放的其他音频 App',
+      confirmAdd: '确认添加',
+      cancel: '取消',
+      removeTitle: '移除自定义音源',
+      removeDesc: '确定要移除已添加的自定义音频 App\n「{name}」吗？',
+      removeConfirm: '确认移除',
+      discoveredBannerTitle: '检测到后台有未列出音源: ',
+      discoveredBannerAdd: '添加',
+      customTag: '自定义',
     },
     settings: {
       title: '系统权限与设置',
@@ -333,10 +365,26 @@ export const translations: Record<LanguageKey, Translations> = {
       defaultPlayerTitle: 'Default Audio App',
       defaultPlayerDesc: 'Preferred audio app for in-car controls and quick launch',
       rawCardTitle: 'Audio App Original Playing Card',
-      rawCardDesc: 'Disabling mirror card shows original playing card; button colors may be affected by cover art',
+      rawCardDesc: 'Enabling shows original playing card; button colors may be affected by cover art',
       sourcesTitle: 'Active Media Sessions',
       sourceApp: 'Application',
       selectPlayerPlaceholder: 'Select a player',
+      customAppSubtitle: 'Custom audio apps may only support basic playback controls',
+    },
+    customPlayer: {
+      slotTitle: 'Custom Audio',
+      emptySlot: 'Add Custom Player',
+      detectTitle: 'Select Detected Audio App',
+      detectHint: 'If your app is not listed here,\nplease start playing audio in it for detection',
+      noDetected: 'No active third-party audio apps detected',
+      confirmAdd: 'Add Player',
+      cancel: 'Cancel',
+      removeTitle: 'Remove Custom Audio',
+      removeDesc: 'Are you sure you want to remove custom audio app\n"{name}"?',
+      removeConfirm: 'Remove',
+      discoveredBannerTitle: 'Detected unlisted audio playing: ',
+      discoveredBannerAdd: 'Add',
+      customTag: 'Custom',
     },
     settings: {
       title: 'Settings & Permissions',
@@ -457,10 +505,26 @@ export const translations: Record<LanguageKey, Translations> = {
       defaultPlayerTitle: 'Standard-Audio-App',
       defaultPlayerDesc: 'Bevorzugte Audio-App für Fahrzeugsteuerung und Schnellstart',
       rawCardTitle: 'Original-Wiedergabekarte der Audio-App',
-      rawCardDesc: 'Nach dem Deaktivieren wird die Originalkarte angezeigt; Tastenfarben können vom Cover beeinflusst werden',
+      rawCardDesc: 'Bei Aktivierung wird die Originalkarte angezeigt; Tastenfarben können vom Cover beeinflusst werden',
       sourcesTitle: 'Aktive Medien-Sessions',
       sourceApp: 'Quell-Anwendung',
       selectPlayerPlaceholder: 'Player auswählen',
+      customAppSubtitle: 'Benutzerdefinierte Apps unterstützen evtl. nur Basis-Steuerung',
+    },
+    customPlayer: {
+      slotTitle: 'Eigener Player',
+      emptySlot: 'Player hinzufügen',
+      detectTitle: 'Erkannte Audio-App wählen',
+      detectHint: 'Falls Ihre App nicht angezeigt wird,\nbitte Wiedergabe in der App starten',
+      noDetected: 'Keine aktiven Drittanbieter-Audio-Apps erkannt',
+      confirmAdd: 'Hinzufügen',
+      cancel: 'Abbrechen',
+      removeTitle: 'Eigenen Player entfernen',
+      removeDesc: 'Möchten Sie die Audio-App\n"{name}" wirklich entfernen?',
+      removeConfirm: 'Entfernen',
+      discoveredBannerTitle: 'Nicht gelistete Audio-App erkannt: ',
+      discoveredBannerAdd: 'Hinzufügen',
+      customTag: 'Eigen',
     },
     settings: {
       title: 'Einstellungen & Berechtigungen',
@@ -581,10 +645,26 @@ export const translations: Record<LanguageKey, Translations> = {
       defaultPlayerTitle: 'デフォルトオーディオApp',
       defaultPlayerDesc: '車載操作およびクイック起動で優先するオーディオApp',
       rawCardTitle: 'オーディオAppのオリジナル再生カード',
-      rawCardDesc: 'オフにするとオリジナルの再生カードを表示します（ボタンの色がカバーの影響を受ける場合があります）',
+      rawCardDesc: '有効にするとオリジナルの再生カードを表示します（ボタンの色がカバーの影響を受ける場合があります）',
       sourcesTitle: 'アクティブな再生ソース',
       sourceApp: '再生元アプリ',
       selectPlayerPlaceholder: '音楽アプリを選択',
+      customAppSubtitle: 'カスタム追加のアプリは基本再生制御のみ対応する場合があります',
+    },
+    customPlayer: {
+      slotTitle: 'カスタム音源',
+      emptySlot: '音源を追加',
+      detectTitle: '検出された音楽アプリを選択',
+      detectHint: '希望のアプリが表示されない場合は、\n該当アプリで音声を再生してください',
+      noDetected: '再生中の外部音楽アプリが検出されませんでした',
+      confirmAdd: '追加する',
+      cancel: 'キャンセル',
+      removeTitle: 'カスタム音源の解除',
+      removeDesc: 'カスタム音楽アプリ\n「{name}」を解除しますか？',
+      removeConfirm: '解除する',
+      discoveredBannerTitle: 'バックグラウンドで未登録音源を検出: ',
+      discoveredBannerAdd: '追加',
+      customTag: 'カスタム',
     },
     settings: {
       title: '権限と設定',
