@@ -1,6 +1,7 @@
 package com.fahrmony.app.nativebridge
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -53,6 +54,7 @@ class FahrmonyPlugin : Plugin() {
                     put("hasActiveSession", false)
                 }
             }
+            android.util.Log.i("Fahrmony_CUSTOM", "[JS_NOTIFY] mediaSessionChanged: pkg=${info?.packageName}, title='${info?.title}', isPlaying=${info?.isPlaying}")
             notifyListeners("mediaSessionChanged", data)
         }
 
@@ -190,6 +192,17 @@ class FahrmonyPlugin : Plugin() {
         call.resolve(JSObject().put("sessions", array))
     }
 
+    private fun isPackageMatch(pkgA: String?, pkgB: String?): Boolean {
+        if (pkgA.isNullOrBlank() || pkgB.isNullOrBlank()) return false
+        if (pkgA.equals(pkgB, ignoreCase = true)) return true
+        // 酷狗音乐双包名 (kugou.service / com.kugou.android / com.kugou.android.lite) 归一化兜底匹配
+        val kugouAliases = setOf("kugou.service", "com.kugou.android", "com.kugou.android.lite")
+        if (pkgA in kugouAliases && pkgB in kugouAliases) {
+            return true
+        }
+        return false
+    }
+
     @PluginMethod
     fun sendMediaCommand(call: PluginCall) {
         val action = call.getString("action") ?: ""
@@ -197,26 +210,27 @@ class FahrmonyPlugin : Plugin() {
         val packageName = call.getString("packageName")
 
         if (action.equals("play", ignoreCase = true)) {
-            val am = context.getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
-            val isAudioActive = am?.isMusicActive == true
+            val targetPkg = if (!packageName.isNullOrBlank()) packageName else FahrmonyConfig.getDefaultPlayer(context)
             val sessions = FahrmonyIpcBridge.getCachedSessions()
-            val isAlreadyPlaying = sessions.firstOrNull()?.isPlaying ?: false
+            val hasSessionForTarget = sessions.any { isPackageMatch(it.packageName, targetPkg) }
 
-            // 仅当系统没有任何音乐在播放且无活跃播放会话时，才拉起应用，杜绝已在播放时误弹
-            if (!isAlreadyPlaying && !isAudioActive) {
-                val targetPkg = if (!packageName.isNullOrBlank()) packageName else FahrmonyConfig.getDefaultPlayer(context)
-                if (targetPkg.isNotBlank()) {
-                    val launchIntent = context.packageManager.getLaunchIntentForPackage(targetPkg)
-                    if (launchIntent != null) {
-                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-                        try {
-                            if (activity != null) {
-                                activity.startActivity(launchIntent)
-                            } else {
-                                context.startActivity(launchIntent)
-                            }
-                        } catch (ignored: Exception) {}
-                    }
+            // 智能会话守卫：仅当目标播放器在底层彻底不存在会话时 (冷启动或被系统彻底查杀)，才需要 startActivity 拉起应用
+            // 若会话已就绪 (即便当前处于暂停态)，绝不触发 startActivity，纯后台下发播控指令
+            if (!hasSessionForTarget && targetPkg.isNotBlank()) {
+                var launchIntent = context.packageManager.getLaunchIntentForPackage(targetPkg)
+                // 酷狗服务包名 (kugou.service) 若无启动入口，兜底使用主界面包名尝试拉起
+                if (launchIntent == null && isPackageMatch(targetPkg, "com.kugou.android")) {
+                    launchIntent = context.packageManager.getLaunchIntentForPackage("com.kugou.android")
+                }
+                if (launchIntent != null) {
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                    try {
+                        if (activity != null) {
+                            activity.startActivity(launchIntent)
+                        } else {
+                            context.startActivity(launchIntent)
+                        }
+                    } catch (ignored: Exception) {}
                 }
             }
         }
@@ -227,6 +241,10 @@ class FahrmonyPlugin : Plugin() {
 
     @PluginMethod
     fun getCapturedLogs(call: PluginCall) {
+        // 双保险守卫：若车机当前未处于连接状态，直接清空主进程旧日志缓存并返回空列表
+        if (!FahrmonyIpcBridge.isCarConnected()) {
+            FahrmonyLogBuffer.clear()
+        }
         val list = FahrmonyLogBuffer.getLogs()
         val array = JSArray()
         list.forEach { log ->
@@ -280,7 +298,24 @@ class FahrmonyPlugin : Plugin() {
             return
         }
         val pm = context.packageManager
-        val intent = pm.getLaunchIntentForPackage(packageName)
+        var intent = pm.getLaunchIntentForPackage(packageName)
+        if (intent == null) {
+            try {
+                val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
+                    addCategory(Intent.CATEGORY_LAUNCHER)
+                    setPackage(packageName)
+                }
+                val resolveInfos = pm.queryIntentActivities(mainIntent, 0)
+                if (!resolveInfos.isNullOrEmpty()) {
+                    val act = resolveInfos[0].activityInfo
+                    intent = Intent(Intent.ACTION_MAIN).apply {
+                        addCategory(Intent.CATEGORY_LAUNCHER)
+                        component = ComponentName(act.packageName, act.name)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                }
+            } catch (ignored: Exception) {}
+        }
         if (intent != null) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
@@ -300,5 +335,23 @@ class FahrmonyPlugin : Plugin() {
             }
             call.resolve(res)
         }
+    }
+
+    @PluginMethod
+    fun getDiscoveredMediaSessions(call: PluginCall) {
+        val list = FahrmonyMediaManager.getDiscoveredMediaSessions(context)
+        val array = org.json.JSONArray()
+        for (item in list) {
+            val obj = JSObject().apply {
+                put("packageName", item.packageName)
+                put("appName", item.appName)
+                put("iconBase64", item.iconBase64)
+                put("title", item.title)
+                put("artist", item.artist)
+                put("isPlaying", item.isPlaying)
+            }
+            array.put(obj)
+        }
+        call.resolve(JSObject().put("discoveredSessions", array))
     }
 }

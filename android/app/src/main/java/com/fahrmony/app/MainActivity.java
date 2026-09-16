@@ -9,6 +9,8 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.View;
+import android.webkit.WebView;
 import com.fahrmony.app.nativebridge.FahrmonyIpcBridge;
 import com.fahrmony.app.nativebridge.FahrmonyMediaManager;
 import com.fahrmony.app.nativebridge.FahrmonyPlugin;
@@ -16,6 +18,19 @@ import com.fahrmony.app.nativebridge.FahrmonyUpdateManager;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        Configuration config = newBase.getResources().getConfiguration();
+        if (config.fontScale != 1.0f) {
+            Configuration newConfig = new Configuration(config);
+            newConfig.fontScale = 1.0f;
+            Context context = newBase.createConfigurationContext(newConfig);
+            super.attachBaseContext(context);
+            return;
+        }
+        super.attachBaseContext(newBase);
+    }
 
     private void handleChainLaunch(Intent intent) {
         if (intent == null) return;
@@ -50,8 +65,12 @@ public class MainActivity extends BridgeActivity {
         getWindow().setBackgroundDrawable(new ColorDrawable(bgColor));
 
         if (getBridge() != null && getBridge().getWebView() != null) {
-            getBridge().getWebView().setBackgroundColor(bgColor);
-            getBridge().getWebView().invalidate();
+            WebView webView = getBridge().getWebView();
+            webView.setBackgroundColor(bgColor);
+            webView.getSettings().setTextZoom(83);
+            webView.setVerticalScrollBarEnabled(false);
+            webView.setHorizontalScrollBarEnabled(false);
+            webView.invalidate();
         }
     }
 
@@ -87,6 +106,12 @@ public class MainActivity extends BridgeActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleChainLaunch(intent);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        applyPersistedTheme();
     }
 
     @Override

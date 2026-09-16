@@ -35,6 +35,27 @@ class FahrmonyNotificationListener : NotificationListenerService() {
 
         var isConnected = false
             private set
+
+        /**
+         * 自动扫描并消除由 Fahrmony 发出的所有 IM 车载转接通知残留
+         * 严格基于渠道隔离，绝不影响常驻前台保活服务通知 (ID: 1001)
+         */
+        fun clearBridgeNotifications(context: Context) {
+            try {
+                val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+                val activeNotifications = nm.activeNotifications ?: return
+                for (sbn in activeNotifications) {
+                    val isBridge = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        sbn.notification.channelId == CHANNEL_ID
+                    } else {
+                        sbn.id in 10000..18000
+                    }
+                    if (isBridge && sbn.id != FahrmonyForegroundService.NOTIFICATION_ID) {
+                        nm.cancel(sbn.id)
+                    }
+                }
+            } catch (ignored: Exception) {}
+        }
     }
 
     override fun onListenerConnected() {
@@ -42,7 +63,8 @@ class FahrmonyNotificationListener : NotificationListenerService() {
         isConnected = true
         createNotificationChannel()
         FahrmonyLogBuffer.addLog("SYSTEM", "NotificationListener", "服务已连接", "成功绑定 Android 系统通知监听权")
-        // 通知监听器就绪后，直接初始化并唤醒 MediaManager 会话抓取
+        // 通知监听器就绪后，初始化车机连接探针与 MediaManager 会话抓取
+        FahrmonyCarConnectionTracker.init(applicationContext)
         FahrmonyMediaManager.init(applicationContext)
         FahrmonyMediaManager.refresh(applicationContext)
     }
@@ -81,15 +103,27 @@ class FahrmonyNotificationListener : NotificationListenerService() {
             }
         } catch (ignored: Exception) {}
 
-        if (mediaToken != null && packageName in FahrmonyMediaManager.KNOWN_PACKAGES.keys) {
+        val isSupportedMedia = FahrmonyMediaManager.isSupportedPackage(applicationContext, packageName)
+        val isCandidateMedia = !packageName.startsWith("com.shopee.") && 
+                packageName !in FahrmonyMediaManager.SMART_MEDIA_BLACKLIST && 
+                packageName != applicationContext.packageName
+
+        if (isSupportedMedia || (mediaToken != null && isCandidateMedia)) {
+            android.util.Log.i("Fahrmony_CUSTOM", "[NOTIF_POSTED] pkg: $packageName, isSupported: $isSupportedMedia, hasMediaToken: ${mediaToken != null}")
+        }
+
+        if (mediaToken != null && (isSupportedMedia || isCandidateMedia)) {
             FahrmonyMediaManager.attachToken(applicationContext, packageName, mediaToken, sbn.notification?.extras, notificationArtwork)
-        } else if (packageName in FahrmonyMediaManager.KNOWN_PACKAGES.keys) {
+        } else if (isSupportedMedia) {
             FahrmonyMediaManager.updateNotificationMeta(packageName, sbn.notification?.extras, notificationArtwork)
             FahrmonyMediaManager.refresh(applicationContext)
         }
 
         val appName = TARGET_PACKAGES[packageName] ?: return
         
+        // 门禁：仅在车机处于活跃投屏/连接状态时处理并转译 IM 消息，离车自动静默杜绝手机端重复弹窗
+        if (!FahrmonyCarConnectionTracker.isCarConnected(applicationContext)) return
+
         // 校验用户是否在设置中启用了该应用的通知播报
         if (!FahrmonyConfig.isAppEnabled(applicationContext, packageName)) return
 

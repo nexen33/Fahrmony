@@ -17,7 +17,7 @@ object FahrmonyLogBuffer {
     private val buffer = ConcurrentLinkedDeque<LogEntry>()
     var onLogAdded: ((LogEntry) -> Unit)? = null
 
-    // ponytail: 环形队列存储最新 100 条日志，超过自动出队，无需数据库复杂开销
+    // 环形队列存储最新 100 条日志，超过自动出队，无需数据库复杂开销
     fun addLog(type: String, tag: String, title: String, content: String, rawExtras: String? = null) {
         val entry = LogEntry(
             id = "${System.currentTimeMillis()}-${(1000..9999).random()}",

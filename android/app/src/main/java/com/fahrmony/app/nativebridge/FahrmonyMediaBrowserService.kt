@@ -158,6 +158,9 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
         FahrmonyIpcBridge.notifyCarConnectedChanged(false)
         // 车机断连拔线，立即向底层播放器下发双脉冲暂停指令，杜绝冷启动首次断连时音频通道重建造成的手机外放漏音
         FahrmonyMediaManager.onCarDisconnected()
+        // 自动消除车机转接残留的 IM 通知，并清空通讯记录，保持手机通知栏与界面清爽
+        FahrmonyNotificationListener.clearBridgeNotifications(applicationContext)
+        FahrmonyLogBuffer.clear()
         // 返回 true 允许车机断开后未来重连时回调 onRebind，避免仅首次绑定才触发连接
         return true
     }
@@ -242,6 +245,26 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
                     MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
                 )
             )
+        }
+
+        val customPkg = FahrmonyConfig.getCustomPlayerPackage(this@FahrmonyMediaBrowserService)
+        if (customPkg.isNotBlank()) {
+            val customName = FahrmonyConfig.getCustomPlayerName(this@FahrmonyMediaBrowserService).ifBlank { "自定义音频" }
+            if (!addedNames.contains(customName)) {
+                addedNames.add(customName)
+                val isCurrent = (activeInfo?.packageName == customPkg)
+                val sourceDesc = MediaDescriptionCompat.Builder()
+                    .setMediaId("source_switch:$customPkg")
+                    .setTitle(customName)
+                    .setSubtitle(if (isCurrent) FahrmonyCarI18n.getActiveSourceSubtitle(this@FahrmonyMediaBrowserService) else FahrmonyCarI18n.getSwitchSourceSubtitle(this@FahrmonyMediaBrowserService))
+                    .build()
+                items.add(
+                    MediaBrowserCompat.MediaItem(
+                        sourceDesc,
+                        MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                    )
+                )
+            }
         }
 
         result.sendResult(items)

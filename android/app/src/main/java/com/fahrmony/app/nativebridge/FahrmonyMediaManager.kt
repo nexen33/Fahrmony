@@ -41,6 +41,15 @@ data class ActiveMediaSessionInfo(
     val artworkData: String? = null
 )
 
+data class DiscoveredMediaSessionInfo(
+    val packageName: String,
+    val appName: String,
+    val iconBase64: String,
+    val title: String,
+    val artist: String,
+    val isPlaying: Boolean
+)
+
 object FahrmonyMediaManager {
     val KNOWN_PACKAGES = linkedMapOf(
         "com.tencent.qqmusic" to "QQ音乐",
@@ -53,6 +62,193 @@ object FahrmonyMediaManager {
         "com.ximalaya.ting.android" to "喜马拉雅",
         "app.podcast.cosmos" to "小宇宙",
     )
+
+    // 智能黑名单：屏蔽中英文主流非音乐/即时通讯/社交协作/地图导航/电商生活/金融/工具与系统核心应用
+    // 注：抖音/TikTok、Bilibili、微博 (Weibo) 明确放行，不在此黑名单中
+    val SMART_MEDIA_BLACKLIST = hashSetOf(
+        // 即时通讯与社交协作
+        "com.tencent.mm",
+        "com.tencent.mobileqq", "com.tencent.tim", "com.tencent.qqlite", "com.tencent.minihd.qq",
+        "com.ss.android.lark", "com.ss.android.lark.kami",
+        "com.alibaba.android.rimet",
+        "com.whatsapp", "com.whatsapp.w4b",
+        "org.telegram.messenger", "org.thunderdog.challegram",
+        "org.thoughtcrime.securesms",
+        "jp.naver.line.android",
+        "com.facebook.orca", "com.facebook.mlite",
+        "com.discord",
+        "com.Slack",
+        "com.microsoft.teams",
+        "com.skype.raider",
+        "com.xingin.xhs",
+        "com.zhihu.android",
+        "com.baidu.tieba",
+        "com.facebook.katana",
+        "com.instagram.android",
+        "com.instagram.barcelona",
+        "com.twitter.android",
+        "com.snapchat.android",
+        "com.reddit.frontpage",
+        // 地图导航与出行
+        "com.autonavi.minimap",
+        "com.baidu.BaiduMap",
+        "com.tencent.map",
+        "com.google.android.apps.maps",
+        "com.waze",
+        // 电商购物与生活服务
+        "com.taobao.taobao", "com.taobao.litetao",
+        "com.jingdong.app.mall",
+        "com.xunmeng.pinduoduo",
+        "com.sankuai.meituan", "com.sankuai.meituan.takeoutnew",
+        "me.ele",
+        "com.dianping.v1",
+        "com.taobao.idlefish",
+        "com.amazon.mShop.android.shopping",
+        "com.ebay.mobile",
+        "com.alibaba.aliexpresshd",
+        // 支付金融与银行
+        "com.eg.android.AlipayGphone",
+        "com.unionpay",
+        "com.paypal.android.p2pmobile",
+        "com.google.android.apps.walletnfcrel",
+        // 办公工具与浏览器
+        "cn.wps.moffice_eng",
+        "com.baidu.netdisk",
+        "notion.id",
+        "com.quark.browser",
+        "com.UCMobile",
+        "com.android.chrome",
+        "com.microsoft.emmx",
+        "org.mozilla.firefox",
+        // 系统核心与宿主
+        "android",
+        "com.android.systemui",
+        "com.android.phone",
+        "com.android.server.telecom",
+        "com.android.settings",
+        "com.google.android.gms",
+        "com.android.vending",
+        "com.fahrmony.app"
+    )
+
+    // 常见音频/视频/播客应用智能兜底映射表 (覆盖 30+ 常见音源)
+    val COMMON_AUDIO_APP_NAMES = mapOf(
+        // 视频与有声内容
+        "tv.danmaku.bili" to "哔哩哔哩",
+        "com.bilibili.app.in" to "哔哩哔哩(国际版)",
+        "com.bilibili.comic" to "哔哩哔哩漫画",
+        "com.ss.android.ugc.aweme" to "抖音",
+        "com.ss.android.ugc.aweme.lite" to "抖音极速版",
+        "com.zhiliaoapp.musically" to "TikTok",
+        "com.sina.weibo" to "微博",
+        "com.sina.weibog3" to "微博轻享版",
+        "com.weico.international" to "微博国际版",
+        // 小众与第三方本地/网络播放器
+        "cn.toside.music.mobile" to "洛雪音乐",
+        "com.kugou.android.lite" to "酷狗概念版",
+        "com.maxmpz.audioplayer" to "Poweramp",
+        "com.maxmpz.audioplayer.unlock" to "Poweramp",
+        "com.foobar2000.foobar2000" to "foobar2000",
+        "com.salt.music" to "椒盐音乐",
+        "remix.myplayer" to "倒带音乐",
+        "com.tencent.blackpearl" to "MOO音乐",
+        "cmccwm.mobilemusic" to "咪咕音乐",
+        "com.netease.cloudmusic.lite" to "网易云极速版",
+        // 国际主流流媒体与播客
+        "com.apple.android.music" to "Apple Music",
+        "com.spotify.music" to "Spotify",
+        "com.spotify.lite" to "Spotify Lite",
+        "com.google.android.apps.youtube.music" to "YouTube Music",
+        "com.soundcloud.android" to "SoundCloud",
+        "com.aspiro.tidal" to "TIDAL",
+        "deezer.android.app" to "Deezer",
+        "com.audible.application" to "Audible",
+        "fm.castbox.audiobook.radio.podcast" to "Castbox",
+        "com.biphares.pocketcasts" to "Pocket Casts",
+        "tunein.player" to "TuneIn Radio",
+        "com.pandora.android" to "Pandora",
+        "com.amazon.mp3" to "Amazon Music"
+    )
+
+    fun isSupportedPackage(context: Context?, packageName: String): Boolean {
+        if (packageName in KNOWN_PACKAGES.keys) return true
+        val ctx = context ?: appContext
+        if (ctx != null) {
+            val customPkg = FahrmonyConfig.getCustomPlayerPackage(ctx)
+            if (customPkg.isNotBlank() && packageName == customPkg) return true
+        }
+        return false
+    }
+
+    fun getAppNameForPackage(context: Context?, packageName: String): String {
+        val known = KNOWN_PACKAGES[packageName]
+        if (known != null) return known
+        val ctx = context ?: appContext
+        if (ctx != null) {
+            val customPkg = FahrmonyConfig.getCustomPlayerPackage(ctx)
+            if (customPkg.isNotBlank() && packageName == customPkg) {
+                val customName = FahrmonyConfig.getCustomPlayerName(ctx)
+                if (customName.isNotBlank()) return customName
+            }
+            try {
+                val pm = ctx.packageManager
+                val appInfo = pm.getApplicationInfo(packageName, 0)
+                val label = pm.getApplicationLabel(appInfo).toString()
+                if (label.isNotBlank() && label != packageName) {
+                    return label
+                }
+            } catch (ignored: Exception) {}
+        }
+        val commonName = COMMON_AUDIO_APP_NAMES[packageName]
+        if (!commonName.isNullOrBlank()) return commonName
+        return packageName
+    }
+
+    fun getAppIconBase64(context: Context, packageName: String): String {
+        try {
+            val pm = context.packageManager
+            var drawable = try {
+                pm.getApplicationIcon(packageName)
+            } catch (e: Exception) {
+                null
+            }
+            if (drawable == null) {
+                try {
+                    val intent = pm.getLaunchIntentForPackage(packageName)
+                    if (intent != null) {
+                        val actInfo = intent.resolveActivityInfo(pm, 0)
+                        if (actInfo != null) {
+                            drawable = actInfo.loadIcon(pm)
+                        }
+                    }
+                } catch (ignored: Exception) {}
+            }
+            if (drawable == null) return ""
+
+            val bmp = if (drawable is android.graphics.drawable.BitmapDrawable && drawable.bitmap != null && !drawable.bitmap.isRecycled) {
+                drawable.bitmap
+            } else {
+                val w = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 96
+                val h = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 96
+                val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(bitmap)
+                drawable.setBounds(0, 0, canvas.width, canvas.height)
+                drawable.draw(canvas)
+                bitmap
+            }
+            val scaled = if (bmp.width > 128 || bmp.height > 128) {
+                Bitmap.createScaledBitmap(bmp, 128, 128, true)
+            } else {
+                bmp
+            }
+            val baos = java.io.ByteArrayOutputStream()
+            scaled.compress(Bitmap.CompressFormat.PNG, 100, baos)
+            val bytes = baos.toByteArray()
+            return "data:image/png;base64," + android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        } catch (e: Exception) {
+            return ""
+        }
+    }
 
     const val ACTION_CAR_REPEAT = "com.fahrmony.app.ACTION_CAR_REPEAT"
 
@@ -238,6 +434,17 @@ object FahrmonyMediaManager {
         val artworkBmp: Bitmap? = null
     )
 
+    fun isPackageMatch(pkgA: String?, pkgB: String?): Boolean {
+        if (pkgA.isNullOrBlank() || pkgB.isNullOrBlank()) return false
+        if (pkgA.equals(pkgB, ignoreCase = true)) return true
+        // 酷狗音乐双包名 (kugou.service / com.kugou.android / com.kugou.android.lite) 归一化兜底匹配
+        val kugouAliases = setOf("kugou.service", "com.kugou.android", "com.kugou.android.lite")
+        if (pkgA in kugouAliases && pkgB in kugouAliases) {
+            return true
+        }
+        return false
+    }
+
     private val fallbackMetaMap = ConcurrentHashMap<String, FallbackMeta>()
 
     private var isNoisyReceiverRegistered = false
@@ -333,8 +540,8 @@ object FahrmonyMediaManager {
     fun attachToken(context: Context, packageName: String, token: android.media.session.MediaSession.Token, extras: android.os.Bundle?, notificationArtwork: Bitmap? = null) {
         // 绝不纳管自身会话，彻底根除自环死锁与手机端按键失效
         if (packageName == context.packageName) return
-        // 严格白名单过滤：只纳管 8 个受支持的音乐/播客媒体源，彻底屏蔽淘宝等无关应用
-        if (packageName !in KNOWN_PACKAGES.keys) return
+        // 校验是否属于已知受支持的官方媒体应用或用户自定义添加的播放器
+        if (!isSupportedPackage(context, packageName)) return
         try {
             appContext = context.applicationContext
             // 提取通知中的备用元数据 (包含真实状态栏 Icon 解码出的 Bitmap)
@@ -352,6 +559,7 @@ object FahrmonyMediaManager {
                         finalArt
                     )
                 }
+                android.util.Log.i("Fahrmony_CUSTOM", "[TOKEN_ATTACH] pkg: $packageName, title: '$nTitle', artist: '$nArtist'")
             }
 
             val compatToken = MediaSessionCompat.Token.fromToken(token) ?: return
@@ -417,14 +625,48 @@ object FahrmonyMediaManager {
             val finalAlbum = nSubText.ifBlank { prev?.album ?: "" }
             val finalArt = artwork ?: prev?.artworkBmp
             fallbackMetaMap[packageName] = FallbackMeta(finalTitle, finalArtist, finalAlbum, finalArt)
+            android.util.Log.i("Fahrmony_CUSTOM", "[NOTIFY_META] pkg: $packageName, title: '$finalTitle', artist: '$finalArtist'")
             notifyInfo()
         }
     }
+
+    private val customPlayerStickyCache = java.util.concurrent.ConcurrentHashMap<String, CachedValidTrack>()
 
     fun onDefaultPlayerChanged(newPackage: String) {
         stickyActivePackage = newPackage
         val match = allControllersCompat.firstOrNull { it.packageName == newPackage }
         activeControllerCompat = match
+        notifyInfo(immediate = true)
+    }
+
+    /**
+     * 自定义音源配置变更时即刻执行系统探针扫描，完成跨进程 Binder 热握手，杜绝初次按键被握手消耗
+     */
+    fun onCustomPlayerConfigChanged(context: Context, customPkg: String, customName: String? = null) {
+        if (customPkg.isBlank()) {
+            customPlayerStickyCache.clear()
+            return
+        }
+        appContext = context.applicationContext
+        try {
+            val sessionManager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
+            val componentName = ComponentName(context, FahrmonyNotificationListener::class.java)
+            val activeSessions = sessionManager?.getActiveSessions(componentName)
+            if (!activeSessions.isNullOrEmpty()) {
+                updateControllers(context, activeSessions)
+            }
+        } catch (ignored: Exception) {}
+
+        stickyActivePackage = customPkg
+        val match = allControllersCompat.firstOrNull { it.packageName == customPkg }
+        if (match != null) {
+            activeControllerCompat = match
+            val info = extractSessionInfo(match)
+            if (info.title.isNotBlank()) {
+                customPlayerStickyCache[customPkg] = CachedValidTrack(info.title, info.artist, info.album, match.metadata)
+            }
+        }
+        android.util.Log.i("Fahrmony_CUSTOM", "[CONFIG_CHANGED] pkg: $customPkg, name: $customName, matchFound: ${match != null}")
         notifyInfo(immediate = true)
     }
 
@@ -508,6 +750,7 @@ object FahrmonyMediaManager {
                                      (lastWakeUpTimestamp > 0L && System.currentTimeMillis() - lastWakeUpTimestamp < 8000L)
                 val isAbnormalState = (newState == PlaybackStateCompat.STATE_ERROR ||
                                        newState == PlaybackStateCompat.STATE_STOPPED ||
+                                       newState == PlaybackStateCompat.STATE_NONE ||
                                        (newState == PlaybackStateCompat.STATE_PAUSED && userRequestedPauseUntil == 0L))
                 val am = appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
                 if (isTarget && isWithinWindow && isAbnormalState && am?.isMusicActive != true) {
@@ -605,8 +848,8 @@ object FahrmonyMediaManager {
             for (c in controllers) {
                 // 绝不纳管自身会话，杜绝自环死锁
                 if (c.packageName == context.packageName) continue
-                // 严格白名单过滤：只纳管 8 个受支持的音乐/播客媒体源，彻底屏蔽淘宝等无关应用
-                if (c.packageName !in KNOWN_PACKAGES.keys) continue
+                // 校验是否属于已知受支持的官方媒体应用或用户自定义添加的播放器
+                if (!isSupportedPackage(context, c.packageName)) continue
                 val token = c.sessionToken ?: continue
                 val compatToken = MediaSessionCompat.Token.fromToken(token) ?: continue
                 val existing = allControllersCompat.firstOrNull { it.packageName == c.packageName }
@@ -673,7 +916,7 @@ object FahrmonyMediaManager {
         // 3. 再次保持 stickyActivePackage 锁定控制器 (即暂停时若非默认播放器触发，防止误漂移)
         // 4. 再次选取白名单主流 App (QQ音乐、网易云等)
         // 5. 最后回退到首个活跃 Controller
-        val playing = allControllersCompat.firstOrNull { it.packageName in KNOWN_PACKAGES.keys && it.playbackState?.state == PlaybackStateCompat.STATE_PLAYING }
+        val playing = allControllersCompat.firstOrNull { isSupportedPackage(appContext, it.packageName) && it.playbackState?.state == PlaybackStateCompat.STATE_PLAYING }
         if (playing != null) {
             stickyActivePackage = playing.packageName
             lastActiveTimestamp = System.currentTimeMillis()
@@ -702,7 +945,7 @@ object FahrmonyMediaManager {
             }
         }
 
-        val matchedKnown = allControllersCompat.firstOrNull { it.packageName in KNOWN_PACKAGES.keys }
+        val matchedKnown = allControllersCompat.firstOrNull { isSupportedPackage(appContext, it.packageName) }
         if (matchedKnown != null) {
             stickyActivePackage = matchedKnown.packageName
             activeControllerCompat = matchedKnown
@@ -710,7 +953,7 @@ object FahrmonyMediaManager {
             return
         }
 
-        val fallback = allControllersCompat.firstOrNull { it.packageName in KNOWN_PACKAGES.keys }
+        val fallback = allControllersCompat.firstOrNull { isSupportedPackage(appContext, it.packageName) }
         if (fallback != null) {
             stickyActivePackage = fallback.packageName
             activeControllerCompat = fallback
@@ -731,7 +974,7 @@ object FahrmonyMediaManager {
             pendingAutoPlayPackage = null
             return
         }
-        if (controller.packageName == targetPkg) {
+        if (isPackageMatch(controller.packageName, targetPkg)) {
             val metadata = controller.metadata
             val rawTitle = metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE) ?: ""
             val fallback = fallbackMetaMap[controller.packageName]
@@ -758,11 +1001,41 @@ object FahrmonyMediaManager {
                         "目标真实曲目就绪，已下发play指令: $rawTitle",
                         "应用: ${controller.packageName}"
                     )
+                    // 启动冷启动起播主动核检轮询链 (针对网易云等刚上线未就绪播放引擎的应用)
+                    scheduleAutoPlayVerification(controller, 1)
                 } catch (e: Exception) {
                     FahrmonyLogBuffer.addLog("AUTO_PLAY", "事件驱动起播异常", "${e.message}", controller.packageName)
                 }
             }
         }
+    }
+
+    private fun scheduleAutoPlayVerification(controller: MediaControllerCompat, attempt: Int) {
+        val delay = if (attempt == 1) 500L else 1000L
+        mainHandler.postDelayed({
+            val isPlaying = controller.playbackState?.state == PlaybackStateCompat.STATE_PLAYING
+            val am = appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            val isAudioActive = am?.isMusicActive == true
+            if (!isPlaying && !isAudioActive && autoPlayTargetPackage == controller.packageName) {
+                FahrmonyLogBuffer.addLog(
+                    "AUTO_PLAY",
+                    "起播确认重试",
+                    "第 $attempt 次核检未发声 (rawState=${controller.playbackState?.state})，补发二次指令与硬件按键脉冲",
+                    controller.packageName
+                )
+                try {
+                    controller.transportControls?.play()
+                } catch (ignored: Exception) {}
+                try {
+                    am?.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY))
+                    am?.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY))
+                } catch (ignored: Exception) {}
+
+                if (attempt < 2) {
+                    scheduleAutoPlayVerification(controller, attempt + 1)
+                }
+            }
+        }, delay)
     }
 
     private val debounceRunnable = Runnable {
@@ -906,7 +1179,7 @@ object FahrmonyMediaManager {
         val defaultNowPlaying = appContext?.let { FahrmonyCarI18n.getNowPlayingDefault(it) } ?: "正在播放"
         val hasRealTrack = rawTitle.isNotBlank() || (!fallback?.title.isNullOrBlank()) || (cached != null)
         val title = rawTitle.ifBlank { fallback?.title ?: (cached?.title ?: defaultNowPlaying) }
-        val rawOrCachedArtist = rawArtist.ifBlank { fallback?.artist ?: (cached?.artist ?: (KNOWN_PACKAGES[controller.packageName] ?: "")) }
+        val rawOrCachedArtist = rawArtist.ifBlank { fallback?.artist ?: (cached?.artist ?: (getAppNameForPackage(appContext, controller.packageName))) }
         val artist = if (!invalidTrackNotice.isNullOrBlank()) invalidTrackNotice!! else rawOrCachedArtist
         val album = rawAlbum.ifBlank { fallback?.album ?: (cached?.album ?: "") }
         val trackKey = "${controller.packageName}|$title|$artist|$album"
@@ -1090,35 +1363,109 @@ object FahrmonyMediaManager {
     }
 
     private fun extractSessionInfo(controller: MediaControllerCompat): ActiveMediaSessionInfo {
+        val pkg = controller.packageName
+        val isKnownWhiteList = (pkg in KNOWN_PACKAGES.keys)
+
         val metadata = controller.metadata
         val state = controller.playbackState
 
-        val fallback = fallbackMetaMap[controller.packageName]
         val rawTitle = metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE) ?: ""
         val rawArtist = metadata?.getString(MediaMetadataCompat.METADATA_KEY_ARTIST) ?: ""
         val rawAlbum = metadata?.getString(MediaMetadataCompat.METADATA_KEY_ALBUM) ?: ""
-
-        val title = rawTitle.ifBlank { fallback?.title ?: "" }
-        val artist = rawArtist.ifBlank { fallback?.artist ?: "" }
-        val album = rawAlbum.ifBlank { fallback?.album ?: "" }
         val duration = metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0L
         val position = state?.position ?: 0L
-        val isPlaying = state?.state == PlaybackStateCompat.STATE_PLAYING
 
-        val appName = KNOWN_PACKAGES[controller.packageName] ?: controller.packageName
-        val artworkData = extractArtwork(controller, title, artist, album)
+        if (isKnownWhiteList) {
+            // ========== 轨道 1: 8 大官方已适配白名单 App (原汁原味成熟逻辑，零干扰零回归) ==========
+            val fallback = fallbackMetaMap[pkg]
+            val title = rawTitle.ifBlank { fallback?.title ?: "" }
+            val artist = rawArtist.ifBlank { fallback?.artist ?: "" }
+            val album = rawAlbum.ifBlank { fallback?.album ?: "" }
+            val isPlaying = state?.state == PlaybackStateCompat.STATE_PLAYING
+            val appName = getAppNameForPackage(appContext, pkg)
+            val artworkData = extractArtwork(controller, title, artist, album)
 
-        return ActiveMediaSessionInfo(
-            packageName = controller.packageName,
-            appName = appName,
-            title = title,
-            artist = artist,
-            album = album,
-            isPlaying = isPlaying,
-            duration = duration,
-            position = position,
-            artworkData = artworkData
-        )
+            return ActiveMediaSessionInfo(
+                packageName = pkg,
+                appName = appName,
+                title = title,
+                artist = artist,
+                album = album,
+                isPlaying = isPlaying,
+                duration = duration,
+                position = position,
+                artworkData = artworkData
+            )
+        } else {
+            // ========== 轨道 2: 自定义音源专属增强通道 (粘性元数据锁存 + 通知栏深度抽取 + 音频焦点智能保活) ==========
+            val sticky = customPlayerStickyCache[pkg]
+            val fallback = fallbackMetaMap[pkg]
+
+            // 提取标题：优先原生元数据 -> 实时通知栏抽取 -> description 标题 -> 队列标题 -> 专属粘性缓存
+            val descTitle = controller.metadata?.description?.title?.toString() ?: ""
+            val queueTitle = controller.queueTitle?.toString() ?: ""
+            val title = if (rawTitle.isNotBlank()) {
+                rawTitle
+            } else if (!fallback?.title.isNullOrBlank()) {
+                fallback!!.title
+            } else if (descTitle.isNotBlank()) {
+                descTitle
+            } else if (queueTitle.isNotBlank()) {
+                queueTitle
+            } else {
+                sticky?.title ?: ""
+            }
+
+            val descSubtitle = controller.metadata?.description?.subtitle?.toString() ?: ""
+            val artist = if (rawArtist.isNotBlank()) {
+                rawArtist
+            } else if (!fallback?.artist.isNullOrBlank()) {
+                fallback!!.artist
+            } else if (descSubtitle.isNotBlank()) {
+                descSubtitle
+            } else {
+                sticky?.artist ?: ""
+            }
+
+            val album = if (rawAlbum.isNotBlank()) {
+                rawAlbum
+            } else if (!fallback?.album.isNullOrBlank()) {
+                fallback!!.album
+            } else {
+                sticky?.album ?: ""
+            }
+
+            if (title.isNotBlank()) {
+                customPlayerStickyCache[pkg] = CachedValidTrack(title, artist, album, metadata)
+            }
+
+            // 播放态判定：标准 STATE_PLAYING 或 (音频焦点处于输出中 + 存在有效曲目名且未处于显式暂停态)
+            val rawPlaying = state?.state == PlaybackStateCompat.STATE_PLAYING
+            val am = appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            val isAudioActive = am?.isMusicActive == true
+            val isExplicitPaused = (state?.state == PlaybackStateCompat.STATE_PAUSED || state?.state == PlaybackStateCompat.STATE_STOPPED)
+            val isPlaying = rawPlaying || (isAudioActive && title.isNotBlank() && !isExplicitPaused)
+
+            android.util.Log.i(
+                "Fahrmony_CUSTOM",
+                "[EXTRACT] pkg: $pkg, rawTitle: '$rawTitle', fallbackTitle: '${fallback?.title}', stickyTitle: '${sticky?.title}' => finalTitle: '$title', rawState: ${state?.state}, isPlaying: $isPlaying"
+            )
+
+            val appName = getAppNameForPackage(appContext, pkg)
+            val artworkData = extractArtwork(controller, title, artist, album)
+
+            return ActiveMediaSessionInfo(
+                packageName = pkg,
+                appName = appName,
+                title = title,
+                artist = artist,
+                album = album,
+                isPlaying = isPlaying,
+                duration = duration,
+                position = position,
+                artworkData = artworkData
+            )
+        }
     }
 
     private fun sanitizeMetadata(metadata: MediaMetadataCompat, trackKey: String, isRealTrack: Boolean = true): MediaMetadataCompat {
@@ -1228,11 +1575,21 @@ object FahrmonyMediaManager {
     }
 
     fun getAllActiveSessions(context: Context): List<ActiveMediaSessionInfo> {
-        // 读取内存快照，杜绝高频调用时的同步阻塞 IPC 与重复推送
+        // 1. 主动扫描系统当前活跃 MediaSession，确保已配置的自定义非标应用会话秒级补全纳管
+        try {
+            val msm = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
+            val cn = ComponentName(context, FahrmonyNotificationListener::class.java)
+            val activeSessions = msm?.getActiveSessions(cn)
+            if (!activeSessions.isNullOrEmpty()) {
+                updateControllers(context, activeSessions)
+            }
+        } catch (ignored: Exception) {}
+
+        // 2. 读取纳管控制器列表，按包名去重
         val map = LinkedHashMap<String, ActiveMediaSessionInfo>()
         for (c in allControllersCompat) {
-            // 严格白名单过滤：只收录已支持的 8 个播放源应用，屏蔽淘宝等非音乐/无关应用
-            if (c.packageName !in KNOWN_PACKAGES.keys) continue
+            // 校验是否属于已知受支持应用或自定义播放器
+            if (!isSupportedPackage(context, c.packageName)) continue
             val info = extractSessionInfo(c)
             val existing = map[info.packageName]
             if (existing == null || (!existing.isPlaying && info.isPlaying)) {
@@ -1240,6 +1597,84 @@ object FahrmonyMediaManager {
             }
         }
         return map.values.toList()
+    }
+
+    /**
+     * 动态嗅探正在播放或处于活跃状态的候选音源 (排查黑名单与 8 大内置白名单)
+     */
+    fun getDiscoveredMediaSessions(context: Context): List<DiscoveredMediaSessionInfo> {
+        val result = mutableListOf<DiscoveredMediaSessionInfo>()
+        val seenPackages = hashSetOf<String>()
+
+        // 1. 检查已有的 MediaSessionCompat 控制器快照
+        for (c in allControllersCompat) {
+            val pkg = c.packageName
+            if (pkg == context.packageName) continue
+            if (pkg in KNOWN_PACKAGES.keys) continue
+            if (pkg.startsWith("com.shopee.")) continue
+            if (pkg in SMART_MEDIA_BLACKLIST) continue
+            if (seenPackages.contains(pkg)) continue
+
+            val info = extractSessionInfo(c)
+            val isPlaying = info.isPlaying
+            val hasTitle = info.title.isNotBlank()
+            if (isPlaying || hasTitle) {
+                val appName = getAppNameForPackage(context, pkg)
+                val iconBase64 = getAppIconBase64(context, pkg)
+                result.add(
+                    DiscoveredMediaSessionInfo(
+                        packageName = pkg,
+                        appName = appName,
+                        iconBase64 = iconBase64,
+                        title = info.title,
+                        artist = info.artist,
+                        isPlaying = isPlaying
+                    )
+                )
+                seenPackages.add(pkg)
+            }
+        }
+
+        // 2. 主动从系统 MediaSessionManager 补充可能未被监听器捕获的会话
+        try {
+            val msm = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
+            val cn = ComponentName(context, FahrmonyNotificationListener::class.java)
+            val activeSessions = msm?.getActiveSessions(cn)
+            if (!activeSessions.isNullOrEmpty()) {
+                for (session in activeSessions) {
+                    val pkg = session.packageName
+                    if (pkg == context.packageName) continue
+                    if (pkg in KNOWN_PACKAGES.keys) continue
+                    if (pkg.startsWith("com.shopee.")) continue
+                    if (pkg in SMART_MEDIA_BLACKLIST) continue
+                    if (seenPackages.contains(pkg)) continue
+
+                    val state = session.playbackState
+                    val isPlaying = state?.state == PlaybackStateCompat.STATE_PLAYING
+                    val meta = session.metadata
+                    val title = meta?.getString(android.media.MediaMetadata.METADATA_KEY_TITLE) ?: ""
+                    val artist = meta?.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST) ?: ""
+
+                    if (isPlaying || title.isNotBlank()) {
+                        val appName = getAppNameForPackage(context, pkg)
+                        val iconBase64 = getAppIconBase64(context, pkg)
+                        result.add(
+                            DiscoveredMediaSessionInfo(
+                                packageName = pkg,
+                                appName = appName,
+                                iconBase64 = iconBase64,
+                                title = title,
+                                artist = artist,
+                                isPlaying = isPlaying
+                            )
+                        )
+                        seenPackages.add(pkg)
+                    }
+                }
+            }
+        } catch (ignored: Exception) {}
+
+        return result
     }
 
     // 指令直达目标 App 的 TransportControls (具备跨进程 DeadObjectException 异常自愈隔离)
@@ -1251,22 +1686,39 @@ object FahrmonyMediaManager {
         }
 
         // 精准寻址：若显式指定了目标包名，优先在已纳管控制器中查找该目标
-        val targetCtrl = if (!targetPackage.isNullOrBlank()) {
+        var targetCtrl = if (!targetPackage.isNullOrBlank()) {
             allControllersCompat.firstOrNull { it.packageName == targetPackage }
         } else null
 
-        // 若指定了目标包名但该应用尚无就绪控制器：
-        // 若为 play，交由定向起播流程；若为其他指令，坚决严禁污染控制其他无关后台 App
+        // 若指定了目标包名但内存池中未找到，主动从系统 MediaSessionManager 动态寻址尝试二次纳管
+        if (!targetPackage.isNullOrBlank() && targetCtrl == null) {
+            try {
+                val ctx = appContext ?: return false
+                val msm = ctx.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
+                val cn = ComponentName(ctx, FahrmonyNotificationListener::class.java)
+                val activeSessions = msm?.getActiveSessions(cn)
+                if (!activeSessions.isNullOrEmpty()) {
+                    updateControllers(ctx, activeSessions)
+                    targetCtrl = allControllersCompat.firstOrNull { it.packageName == targetPackage }
+                }
+            } catch (ignored: Exception) {}
+        }
+
+        // 若指定了目标包名但该应用确实无就绪控制器：
+        // 若为 play，交由定向起播流程；若为其他指令，坚决严禁回退到 activeControllerCompat 导致串台污染
         if (!targetPackage.isNullOrBlank() && targetCtrl == null) {
             if (action.equals("play", ignoreCase = true)) {
                 appContext?.let { play(it, targetPackage) }
                 return true
             }
+            FahrmonyLogBuffer.addLog("MEDIA_CONTROL", "定向指令拦截", "目标应用 $targetPackage 无就绪会话，拒绝串台降级", targetPackage)
             return false
         }
 
-        val controller = targetCtrl ?: activeControllerCompat ?: return false
+        val controller = targetCtrl ?: (if (targetPackage.isNullOrBlank()) activeControllerCompat else null) ?: return false
         val controls = controller.transportControls ?: return false
+
+        android.util.Log.i("Fahrmony_CUSTOM", "[CMD_DISPATCH] action: $action, targetPkg: $targetPackage, resolvedCtrl: ${controller.packageName}")
 
         try {
             when (action.lowercase()) {
@@ -1402,7 +1854,7 @@ object FahrmonyMediaManager {
         val finalTarget = if (!targetPackage.isNullOrBlank()) targetPackage else defaultPkg
 
         val targetCtrl = if (finalTarget.isNotBlank()) {
-            allControllersCompat.firstOrNull { it.packageName == finalTarget }
+            allControllersCompat.firstOrNull { isPackageMatch(it.packageName, finalTarget) }
         } else null
 
         // 1. 若目标播放器已有控制器就绪，无条件以目标播放器为准起播
@@ -1464,7 +1916,10 @@ object FahrmonyMediaManager {
             // 逻辑 A: Fahrmony 已在前台，直接通过 startActivity 唤起目标播放器并播放
             FahrmonyLogBuffer.addLog("WAKE", "前台直拉播放器", "Fahrmony处于前台，直接拉起目标应用", packageName)
             try {
-                val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+                var launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+                if (launchIntent == null && isPackageMatch(packageName, "com.kugou.android")) {
+                    launchIntent = context.packageManager.getLaunchIntentForPackage("com.kugou.android")
+                }
                 if (launchIntent != null) {
                     launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
                     context.startActivity(launchIntent)
@@ -1491,7 +1946,7 @@ object FahrmonyMediaManager {
         mainHandler.postDelayed({
             try {
                 val elapsed = System.currentTimeMillis() - lastWakeUpTimestamp
-                val hasController = allControllersCompat.any { it.packageName == packageName }
+                val hasController = allControllersCompat.any { isPackageMatch(it.packageName, packageName) }
                 val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
                 val isAudioActive = am?.isMusicActive == true
                 val isControllerPlaying = activeControllerCompat?.playbackState?.state == PlaybackStateCompat.STATE_PLAYING
@@ -1515,7 +1970,7 @@ object FahrmonyMediaManager {
         if (packageName.isBlank()) return
         stickyActivePackage = packageName
         optimisticSyncState(PlaybackStateCompat.STATE_PLAYING)
-        val target = allControllersCompat.firstOrNull { it.packageName == packageName }
+        val target = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, packageName) }
         if (target != null) {
             activeControllerCompat = target
             notifyInfo(immediate = true)
@@ -1529,7 +1984,7 @@ object FahrmonyMediaManager {
         mainHandler.postDelayed({
             val elapsed = System.currentTimeMillis() - lastWakeUpTimestamp
             val currentControllers = allControllersCompat.map { it.packageName }.joinToString(",")
-            val newTarget = allControllersCompat.firstOrNull { it.packageName == packageName }
+            val newTarget = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, packageName) }
 
             FahrmonyLogBuffer.addLog(
                 "PROBE_800MS",

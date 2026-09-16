@@ -94,6 +94,11 @@ object FahrmonyIpcBridge {
                             if (newDefault.isNotBlank()) {
                                 FahrmonyMediaManager.onDefaultPlayerChanged(newDefault)
                             }
+                            val customPkg = json.optString("customPlayerPackage", "")
+                            val customName = json.optString("customPlayerName", "")
+                            if (json.has("customPlayerPackage")) {
+                                FahrmonyMediaManager.onCustomPlayerConfigChanged(context, customPkg, customName)
+                            }
                         } catch (ignored: Exception) {}
                     }
                     FahrmonyMediaManager.refresh(context)
@@ -194,6 +199,10 @@ object FahrmonyIpcBridge {
                         val newConn = bundle.getBoolean("isCarConnected", false)
                         val changed = (isCarConnectedCache != newConn)
                         isCarConnectedCache = newConn
+                        if (!newConn) {
+                            // 车机未连接或断连，同步清空主进程内的日志镜像缓存
+                            FahrmonyLogBuffer.clear()
+                        }
                         if (changed) {
                             onCarConnectedCallback?.invoke(newConn)
                         }

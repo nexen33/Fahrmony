@@ -28,6 +28,9 @@ object FahrmonyConfig {
     private const val KEY_FILTER_GROUP = "filterGroupChats"
     private const val KEY_HIDE_PREVIEW = "hidePreviewContent"
     private const val KEY_RAW_PLAYER_CARD = "rawPlayerCard"
+    private const val KEY_CUSTOM_PLAYER_PKG = "customPlayerPackage"
+    private const val KEY_CUSTOM_PLAYER_NAME = "customPlayerName"
+    private const val KEY_CUSTOM_PLAYER_ICON = "customPlayerIcon"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -52,6 +55,9 @@ object FahrmonyConfig {
         if (json.has(KEY_FILTER_GROUP)) editor.putBoolean(KEY_FILTER_GROUP, json.optBoolean(KEY_FILTER_GROUP, false))
         if (json.has(KEY_HIDE_PREVIEW)) editor.putBoolean(KEY_HIDE_PREVIEW, json.optBoolean(KEY_HIDE_PREVIEW, false))
         if (json.has(KEY_RAW_PLAYER_CARD)) editor.putBoolean(KEY_RAW_PLAYER_CARD, json.optBoolean(KEY_RAW_PLAYER_CARD, false))
+        if (json.has(KEY_CUSTOM_PLAYER_PKG)) editor.putString(KEY_CUSTOM_PLAYER_PKG, json.optString(KEY_CUSTOM_PLAYER_PKG, ""))
+        if (json.has(KEY_CUSTOM_PLAYER_NAME)) editor.putString(KEY_CUSTOM_PLAYER_NAME, json.optString(KEY_CUSTOM_PLAYER_NAME, ""))
+        if (json.has(KEY_CUSTOM_PLAYER_ICON)) editor.putString(KEY_CUSTOM_PLAYER_ICON, json.optString(KEY_CUSTOM_PLAYER_ICON, ""))
         editor.apply()
     }
 
@@ -75,6 +81,9 @@ object FahrmonyConfig {
             put(KEY_FILTER_GROUP, sp.getBoolean(KEY_FILTER_GROUP, false))
             put(KEY_HIDE_PREVIEW, sp.getBoolean(KEY_HIDE_PREVIEW, false))
             put(KEY_RAW_PLAYER_CARD, sp.getBoolean(KEY_RAW_PLAYER_CARD, false))
+            put(KEY_CUSTOM_PLAYER_PKG, sp.getString(KEY_CUSTOM_PLAYER_PKG, "") ?: "")
+            put(KEY_CUSTOM_PLAYER_NAME, sp.getString(KEY_CUSTOM_PLAYER_NAME, "") ?: "")
+            put(KEY_CUSTOM_PLAYER_ICON, sp.getString(KEY_CUSTOM_PLAYER_ICON, "") ?: "")
         }
     }
 
@@ -111,6 +120,18 @@ object FahrmonyConfig {
 
     fun getDefaultPlayer(context: Context): String {
         return getPrefs(context).getString(KEY_DEFAULT_PLAYER, "") ?: ""
+    }
+
+    fun getCustomPlayerPackage(context: Context): String {
+        return getPrefs(context).getString(KEY_CUSTOM_PLAYER_PKG, "") ?: ""
+    }
+
+    fun getCustomPlayerName(context: Context): String {
+        return getPrefs(context).getString(KEY_CUSTOM_PLAYER_NAME, "") ?: ""
+    }
+
+    fun getCustomPlayerIcon(context: Context): String {
+        return getPrefs(context).getString(KEY_CUSTOM_PLAYER_ICON, "") ?: ""
     }
 
     fun getLanguage(context: Context): String {

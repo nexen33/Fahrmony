@@ -229,9 +229,9 @@ object FahrmonyUpdateManager {
     private fun getCurrentVersionName(context: Context): String {
         return try {
             val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            pInfo.versionName ?: "v1.1.5"
+            pInfo.versionName ?: "v1.2.0"
         } catch (e: Exception) {
-            "v1.1.5"
+            "v1.2.0"
         }
     }
 
