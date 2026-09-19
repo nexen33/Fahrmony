@@ -18,18 +18,31 @@
   <img align="left" width="320" alt="Fahrmony v1.2.5 宣传海报" src="https://github.com/user-attachments/assets/4e6f7c51-a817-4c39-b9c9-7a933e575857" />
 </a>
 
+<!-- 主下载大按钮 (高精 for-the-badge 风格 + Android Logo) -->
 <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.2.5/Fahrmony_v1.2.5.apk">
-  <img src="https://img.shields.io/badge/点击下载_Fahrmony_最新安装包-blue?style=forthebadge" height="50" alt="下载安装包" />
+  <img src="https://img.shields.io/badge/点击下载-Fahrmony_v1.2.5_最新版_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="54" alt="下载安装包" />
+</a>
+
+<br/>
+
+<!-- 次级说明按钮 (GitHub Releases) -->
+<a href="https://github.com/nexen33/Fahrmony/releases/tag/v1.2.5">
+  <img src="https://img.shields.io/badge/Releases-版本更新日志与历史包-22c55e?style=for-the-badge&logo=github&logoColor=white" height="32" alt="更新日志" />
 </a>
 
 <br/><br/>
 
-<img src="https://img.shields.io/badge/Platform-Android%20Auto%20%7C%20Android-green" alt="Platform" /><br/>
-<img src="https://img.shields.io/badge/Capacitor-v8-blue" alt="Capacitor" /><br/>
-<img src="https://img.shields.io/badge/React-v19-cyan" alt="React" /><br/>
-<img src="https://img.shields.io/badge/Kotlin-Native-purple" alt="Kotlin" /><br/>
-<img src="https://img.shields.io/badge/License-CC%20BY--NC%204.0-red" alt="License" /><br/>
-<img src="https://img.shields.io/badge/Version-v1.2.5-orange" alt="Version" />
+<!-- 6行高质感徽标 (for-the-badge 风格，带官方技术栈 Logo，高度提升填满右侧) -->
+<img src="https://img.shields.io/badge/Platform-Android_Auto_%7C_Android-green?style=for-the-badge&logo=androidauto&logoColor=white" height="28" alt="Platform" /><br/>
+<img src="https://img.shields.io/badge/Framework-Capacitor_v8-blue?style=for-the-badge&logo=capacitor&logoColor=white" height="28" alt="Capacitor" /><br/>
+<img src="https://img.shields.io/badge/Frontend-React_v19-22d3ee?style=for-the-badge&logo=react&logoColor=white" height="28" alt="React" /><br/>
+<img src="https://img.shields.io/badge/Language-Kotlin_Native-a855f7?style=for-the-badge&logo=kotlin&logoColor=white" height="28" alt="Kotlin" /><br/>
+<img src="https://img.shields.io/badge/License-CC_BY--NC_4.0-ef4444?style=for-the-badge" height="28" alt="License" /><br/>
+<img src="https://img.shields.io/badge/Version-v1.2.5_Latest-f97316?style=for-the-badge&logo=git&logoColor=white" height="28" alt="Version" />
+
+<br/>
+
+> 💡 **3步快速上车**：安装 APK ➜ 开启未知来源 ➜ 插线连接车机
 
 <br clear="all" />
 <br/>
