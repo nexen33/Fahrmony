@@ -20,6 +20,10 @@
   </a>
 </p>  
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/b180c40e-8882-4031-a3c1-ff8e75494811" alt="v1.2.5 更新内容" />
+</p>
+
 ## 什么是 Fahrmony？
 
 **Fahrmony** 取名自德语驾驶（**Fahren**）与英文和鸣（**Harmony**），中文译为“**合拍**”。
