@@ -20,9 +20,16 @@
   </a>
 </p>  
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/b180c40e-8882-4031-a3c1-ff8e75494811" alt="v1.2.5 更新内容" />
-</p>
+<table align="center">
+  <tr>
+    <td valign="top">
+      <img alt="v1.2.5 更新内容" src="https://github.com/user-attachments/assets/b180c40e-8882-4031-a3c1-ff8e75494811" />
+    </td>
+    <td valign="top">
+      <img alt="Image" src="https://github.com/user-attachments/assets/e61327b1-0609-4c4c-9021-e875cb02d3c1" />
+    </td>
+  </tr>
+</table>
 
 ## 什么是 Fahrmony？
 
