@@ -130,6 +130,8 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
                 override fun onCustomAction(action: String?, extras: Bundle?) {
                     if (action == FahrmonyMediaManager.ACTION_CAR_REPEAT) {
                         FahrmonyMediaManager.toggleRepeatMode()
+                    } else if (action == FahrmonyMediaManager.ACTION_TOGGLE_LYRICS) {
+                        FahrmonyMediaManager.toggleLyricsMode(applicationContext)
                     }
                 }
 
@@ -288,6 +290,16 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
                 mediaSession.setQueue(null)
             }
             checkAndNotifyChildrenChanged()
+        }
+    }
+
+    /**
+     * 专属歌词切行极速推流通道 (零副作用、零视图闪烁)
+     * 仅且仅同步文本元数据，绝不重设 Queue 或触发 notifyChildrenChanged 媒体树重构
+     */
+    fun syncLyricMetadata(metadata: MediaMetadataCompat) {
+        if (::mediaSession.isInitialized) {
+            mediaSession.setMetadata(metadata)
         }
     }
 

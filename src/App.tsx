@@ -319,6 +319,16 @@ const BASE_SUPPORTED_PLAYER_PACKAGES = [
   'app.podcast.cosmos',
 ];
 
+const isPackageMatch = (pkgA?: string | null, pkgB?: string | null): boolean => {
+  if (!pkgA || !pkgB) return false;
+  if (pkgA.toLowerCase() === pkgB.toLowerCase()) return true;
+  const kugouAliases = ['kugou.service', 'com.kugou.android', 'com.kugou.android.lite'];
+  if (kugouAliases.includes(pkgA) && kugouAliases.includes(pkgB)) {
+    return true;
+  }
+  return false;
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'overview' | 'notifications' | 'media' | 'guide'>('overview');
   type ThemeMode = 'system' | 'dark' | 'light';
@@ -419,15 +429,19 @@ export default function App() {
     filterGroupChats: false,
     hidePreviewContent: false,
     rawPlayerCard: false,
+    lyricsEnabled: false,
+    lyricsMode: 0,
+    networkLyricsEnabled: false,
+    lyricsOffsetMs: 0,
   });
   const appConfigRef = useRef<AppBridgeConfig>(appConfig);
   appConfigRef.current = appConfig;
 
   const selectedPlayerPkg = appConfig.defaultPlayerPackage || '';
-  // 概览页大卡片精准映射当前选择播放器的实际后台实况：有对应后台会话则如实展示，无则进入干净的未播放等待态
+  // 概览页大卡片精准映射当前选择播放器的实际后台实况：有对应后台会话则如实展示，无则进入干净的未播放等待态 (支持同源包名别名归一化)
   const displayedSession = useMemo(() => {
     if (!selectedPlayerPkg) return null;
-    return mediaSessions.find((s) => s.packageName === selectedPlayerPkg) || null;
+    return mediaSessions.find((s) => isPackageMatch(s.packageName, selectedPlayerPkg)) || null;
   }, [mediaSessions, selectedPlayerPkg]);
 
   // 严格白名单与自定义音源过滤后的活跃播放源列表 (彻底屏蔽淘宝等无关会话)
@@ -773,9 +787,9 @@ export default function App() {
       if (activeCustomPkg) {
         currentValidPackages.push(activeCustomPkg);
       }
-      const rawSessions = (media.sessions || []).filter((s) => currentValidPackages.includes(s.packageName));
+      const rawSessions = (media.sessions || []).filter((s) => currentValidPackages.some((p) => isPackageMatch(p, s.packageName)));
       const deduplicated = rawSessions.reduce((acc, curr) => {
-        const idx = acc.findIndex((s) => s.packageName === curr.packageName);
+        const idx = acc.findIndex((s) => isPackageMatch(s.packageName, curr.packageName));
         if (idx === -1) {
           acc.push(curr);
         } else if (!acc[idx].isPlaying && curr.isPlaying) {
@@ -807,7 +821,7 @@ export default function App() {
       if (event && event.packageName) {
         // 白名单与自定义音源守卫：非受支持的媒体源 (如淘宝等) 坚决不推入活跃会话列表
         const activeCustom = customPlayerRef.current?.pkg;
-        const isSupported = BASE_SUPPORTED_PLAYER_PACKAGES.includes(event.packageName) || (activeCustom && activeCustom === event.packageName);
+        const isSupported = BASE_SUPPORTED_PLAYER_PACKAGES.some((p) => isPackageMatch(p, event.packageName)) || (activeCustom && isPackageMatch(activeCustom, event.packageName));
         if (!isSupported) return;
         setMediaSessions((prev) => {
           const updated: MediaSessionItem = {
@@ -821,7 +835,7 @@ export default function App() {
             position: event.position || 0,
             artworkData: event.artworkData ?? null,
           };
-          const idx = prev.findIndex((s) => s.packageName === updated.packageName);
+          const idx = prev.findIndex((s) => isPackageMatch(s.packageName, updated.packageName));
           if (idx === -1) {
             return [updated, ...prev];
           }
@@ -853,6 +867,16 @@ export default function App() {
       carConnHandle = handle;
     });
 
+    // 监听底层车机端配置变更 (如车机端点击 🎤 切换歌词)，实时同步手机端开关
+    let configHandle: any = null;
+    FahrmonyPlugin.addListener('configChanged', (event) => {
+      if (event && event.config) {
+        setAppConfig((prev: AppBridgeConfig) => ({ ...prev, ...event.config }));
+      }
+    }).then((handle) => {
+      configHandle = handle;
+    });
+
     // 仅保留 20 秒极低频轻量心跳（确保后台通知授权/连接状态校准），杜绝主线程与 Binder 泛洪
     const heartbeatTimer = setInterval(() => {
       FahrmonyPlugin.checkPermissions().then(setPermissions).catch(() => { });
@@ -872,6 +896,9 @@ export default function App() {
       }
       if (carConnHandle?.remove) {
         carConnHandle.remove();
+      }
+      if (configHandle?.remove) {
+        configHandle.remove();
       }
       clearInterval(heartbeatTimer);
       document.removeEventListener('visibilitychange', handleVisibility);
@@ -893,7 +920,7 @@ export default function App() {
     if (isMediaCommandInFlightRef.current) return;
     isMediaCommandInFlightRef.current = true;
     try {
-      const targetPkg = selectedPlayerPkg || displayedSession?.packageName || undefined;
+      const targetPkg = displayedSession?.packageName || selectedPlayerPkg || undefined;
       await FahrmonyPlugin.sendMediaCommand({ action, packageName: targetPkg });
       setTimeout(refreshNativeState, 200);
     } catch (e) {
@@ -913,7 +940,7 @@ export default function App() {
 
   // 启动播放器 (带未查找到该App的胶囊弹窗提示)
   const handleLaunchPlayer = async (pkg?: string) => {
-    const target = pkg || appConfig.defaultPlayerPackage;
+    const target = pkg || displayedSession?.packageName || appConfig.defaultPlayerPackage;
     if (!target) return;
     try {
       const res = await FahrmonyPlugin.launchApp({ packageName: target });
@@ -1356,13 +1383,18 @@ export default function App() {
                 <div className="surface-card" style={{ padding: '16px 16px', textAlign: 'center', marginBottom: 0 }}>
                   {/* 顶栏：标题 + 自定义下拉切换播放器 */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', gap: '8px' }}>
-                    <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center' }}>
                       {(() => {
                         const hasTrack = Boolean(displayedSession && displayedSession.title && displayedSession.title.trim().length > 0);
                         if (displayedSession?.isPlaying) return t.nowPlaying.title;
                         if (hasTrack) return t.nowPlaying.paused;
                         return t.nowPlaying.notPlayingTitle;
                       })()}
+                      {Boolean((appConfig.lyricsMode ?? (appConfig.lyricsEnabled ? 1 : 0)) > 0 && displayedSession?.hasLyrics) && (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.9, marginLeft: '4px', display: 'inline-block' }}>
+                          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                        </svg>
+                      )}
                     </span>
                     <div style={{ flexShrink: 0 }}>
                       <CustomSelect
@@ -1464,7 +1496,7 @@ export default function App() {
                   <div style={{ marginBottom: '17px' }}>
                     {(() => {
                       const hasTrack = Boolean(displayedSession && displayedSession.title && displayedSession.title.trim().length > 0);
-                      const targetPlayerName = playerOptions.find((p) => p.value === selectedPlayerPkg)?.label || t.appName;
+                      const targetPlayerName = playerOptions.find((p) => isPackageMatch(p.value, selectedPlayerPkg))?.label || t.appName;
                       const emptyHeader = selectedPlayerPkg ? `${targetPlayerName} · ${t.nowPlaying.emptyTitle}` : t.nowPlaying.emptyTitle;
                       return (
                         <>
@@ -1927,6 +1959,89 @@ export default function App() {
                         onChange={(checked) => updateConfig({ rawPlayerCard: checked })}
                       />
                     </div>
+
+                    {/* 车载实时歌词 Toggle (带深浅色自适应 BETA 胶囊徽章) */}
+                    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ paddingRight: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {t.mediaTab.lyricsTitle}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              padding: '2px 7px',
+                              borderRadius: '7px',
+                              background: 'var(--accent-tint)',
+                              color: 'var(--accent-primary)',
+                              fontWeight: 700,
+                              letterSpacing: '0.04em',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {t.mediaTab.lyricsBadge}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '14px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                          {t.mediaTab.lyricsDesc}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-jelly"
+                        onClick={() => {
+                          const currentMode = appConfig.lyricsMode ?? (appConfig.lyricsEnabled ? 1 : 0);
+                          const nextMode = (currentMode + 1) % 3;
+                          updateConfig({
+                            lyricsMode: nextMode,
+                            lyricsEnabled: nextMode > 0,
+                            networkLyricsEnabled: nextMode > 0,
+                          });
+                        }}
+                        style={{
+                          minWidth: '60px',
+                          flexShrink: 0,
+                          height: '36px',
+                          padding: '0 14px',
+                          borderRadius: '10px',
+                          fontSize: '15px',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          textAlign: 'center',
+                          whiteSpace: 'nowrap',
+                          boxSizing: 'border-box',
+                          background: 'var(--bg-surface-elevated)',
+                          color: (() => {
+                            const mode = appConfig.lyricsMode ?? (appConfig.lyricsEnabled ? 1 : 0);
+                            if (mode === 1 || mode === 2) return '#10B981';
+                            return 'var(--text-tertiary)';
+                          })(),
+                          backgroundImage: (() => {
+                            const mode = appConfig.lyricsMode ?? (appConfig.lyricsEnabled ? 1 : 0);
+                            if (mode === 1) {
+                              return 'radial-gradient(ellipse 60% 2.5px at 50% 0%, rgba(16, 185, 129, 0.42) 0%, rgba(16, 185, 129, 0) 100%)';
+                            }
+                            if (mode === 2) {
+                              return 'radial-gradient(ellipse 60% 2.5px at 50% 0%, rgba(16, 185, 129, 0.52) 0%, rgba(16, 185, 129, 0) 100%), radial-gradient(ellipse 60% 2.5px at 50% 100%, rgba(16, 185, 129, 0.52) 0%, rgba(16, 185, 129, 0) 100%)';
+                            }
+                            return 'none';
+                          })(),
+                          boxShadow: 'none',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        }}
+                      >
+                        {(() => {
+                          const mode = appConfig.lyricsMode ?? (appConfig.lyricsEnabled ? 1 : 0);
+                          if (mode === 1) return t.mediaTab.lyricsModeSingle;
+                          if (mode === 2) return t.mediaTab.lyricsModeDual;
+                          return t.mediaTab.lyricsModeOff;
+                        })()}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -2348,7 +2463,7 @@ export default function App() {
                       Fahrmony
                     </div>
                     <div style={{ fontSize: '15px', color: 'var(--accent-primary)', fontWeight: 600, marginTop: '2px' }}>
-                      v1.2.0
+                      v1.2.5
                     </div>
                   </div>
 
@@ -2386,6 +2501,16 @@ export default function App() {
                   </div>
                   {/* 仅“更新日志”标题与下方双按钮之间的内容区域具有滚动能力 */}
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.2.5</div>
+                      <div style={{ marginTop: '4px' }}>
+                        • 新增: 车载实时歌词显示，支持双端单行、双行与关闭三段式切换<br />
+                        • 优化: 深度适配 QQ音乐、网易云音乐，其他音源通过双资源通道兜底<br />
+                        • 优化: 歌词时间轴平滑滚动，根除切行视图闪烁与切歌卡顿<br />
+                        • 优化: 融入常用字繁简自动转换与高频解析内存压制<br />
+                        • 修复: 酷狗音乐手机端显示播放状态识别与会话映射
+                      </div>
+                    </div>
                     <div>
                       <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.2.0</div>
                       <div style={{ marginTop: '4px' }}>

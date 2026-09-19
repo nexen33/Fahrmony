@@ -40,6 +40,12 @@ public class MainActivity extends BridgeActivity {
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 try {
                     Intent targetIntent = getPackageManager().getLaunchIntentForPackage(chainPkg);
+                    if (targetIntent == null && FahrmonyMediaManager.INSTANCE.isPackageMatch(chainPkg, "com.kugou.android")) {
+                        targetIntent = getPackageManager().getLaunchIntentForPackage("com.kugou.android");
+                        if (targetIntent == null) {
+                            targetIntent = getPackageManager().getLaunchIntentForPackage("com.kugou.android.lite");
+                        }
+                    }
                     if (targetIntent != null) {
                         targetIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
                         startActivity(targetIntent);

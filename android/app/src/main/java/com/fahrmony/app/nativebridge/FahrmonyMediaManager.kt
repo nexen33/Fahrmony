@@ -25,6 +25,10 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.KeyEvent
+import com.fahrmony.app.nativebridge.lyrics.UnifiedLyricsProvider
+import com.fahrmony.app.nativebridge.lyrics.sync.LyricSyncEngine
+import com.fahrmony.app.nativebridge.lyrics.sync.LyricSyncListener
+import com.fahrmony.app.nativebridge.lyrics.model.LyricResult
 import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
@@ -38,7 +42,8 @@ data class ActiveMediaSessionInfo(
     val isPlaying: Boolean,
     val duration: Long,
     val position: Long,
-    val artworkData: String? = null
+    val artworkData: String? = null,
+    val hasLyrics: Boolean = false
 )
 
 data class DiscoveredMediaSessionInfo(
@@ -251,6 +256,8 @@ object FahrmonyMediaManager {
     }
 
     const val ACTION_CAR_REPEAT = "com.fahrmony.app.ACTION_CAR_REPEAT"
+    const val ACTION_TOGGLE_LYRICS = "com.fahrmony.app.ACTION_TOGGLE_LYRICS"
+    private val lyricSyncEngine = LyricSyncEngine()
 
     sealed class RepeatProbeResult {
         object Unsupported : RepeatProbeResult()
@@ -322,6 +329,7 @@ object FahrmonyMediaManager {
     private var lastCarConnectedTimestamp = 0L
     private var lastSyncedTrackKey: String? = null
     private var defaultArtworkBitmap: Bitmap? = null
+    private var currentTrackArtworkBitmap: Bitmap? = null
     // 毫秒级冷启动耗时可观测性探针
     private var lastWakeUpTimestamp = 0L
     private var lastWakeUpPackage: String? = null
@@ -480,6 +488,34 @@ object FahrmonyMediaManager {
     fun init(context: Context) {
         appContext = context.applicationContext
         registerNoisyReceiver(context)
+
+        lyricSyncEngine.setOffsetMs(FahrmonyConfig.getLyricsOffsetMs(context))
+        lyricSyncEngine.setEnabled(FahrmonyConfig.isLyricsEnabled(context))
+        lyricSyncEngine.setListener(object : LyricSyncListener {
+            override fun onLyricLineChanged(
+                currentLine: String,
+                nextLine: String?,
+                entryIndex: Int,
+                totalEntries: Int
+            ) {
+                pushLyricMetadata(currentLine, nextLine)
+            }
+
+            override fun onLyricsStateReset() {
+                val service = browserServiceRef?.get() ?: return
+                val controller = activeControllerCompat ?: return
+                val meta = controller.metadata ?: lastValidTrackMap[controller.packageName]?.metadata
+                if (meta != null) {
+                    val rawTitle = meta.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
+                        ?: lastValidTrackMap[controller.packageName]?.title ?: ""
+                    val rawArtist = meta.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
+                        ?: lastValidTrackMap[controller.packageName]?.artist ?: ""
+                    val trackKey = "${controller.packageName}|$rawTitle|$rawArtist"
+                    service.syncMetadata(sanitizeMetadata(meta, trackKey, isRealTrack = true))
+                }
+            }
+        })
+
         val sessionManager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
             ?: return
 
@@ -516,6 +552,8 @@ object FahrmonyMediaManager {
         if (!isInitialized) {
             init(context)
         }
+        lyricSyncEngine.setOffsetMs(FahrmonyConfig.getLyricsOffsetMs(context))
+        lyricSyncEngine.setEnabled(FahrmonyConfig.isLyricsEnabled(context))
         val sessionManager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
             ?: return
         val componentName = ComponentName(context, FahrmonyNotificationListener::class.java)
@@ -634,7 +672,7 @@ object FahrmonyMediaManager {
 
     fun onDefaultPlayerChanged(newPackage: String) {
         stickyActivePackage = newPackage
-        val match = allControllersCompat.firstOrNull { it.packageName == newPackage }
+        val match = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, newPackage) }
         activeControllerCompat = match
         notifyInfo(immediate = true)
     }
@@ -684,6 +722,9 @@ object FahrmonyMediaManager {
     private fun registerSingleControllerCallback(controller: MediaControllerCompat) {
         val callback = object : MediaControllerCompat.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
+                if (activeControllerCompat == controller) {
+                    lyricSyncEngine.updatePlaybackState(state)
+                }
                 val newState = state?.state ?: PlaybackStateCompat.STATE_NONE
                 if (newState == PlaybackStateCompat.STATE_PAUSED) {
                     userRequestedPauseUntil = 0L
@@ -798,7 +839,14 @@ object FahrmonyMediaManager {
             }
 
             override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
+                logLyricsProbe(controller.packageName, metadata)
                 checkPendingAutoPlay(controller)
+                if (activeControllerCompat == controller) {
+                    val rawTitle = metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE) ?: ""
+                    val rawArtist = metadata?.getString(MediaMetadataCompat.METADATA_KEY_ARTIST) ?: ""
+                    val trackKey = "${controller.packageName}|$rawTitle|$rawArtist"
+                    appContext?.let { checkAndUpdateLyrics(it, controller, trackKey, metadata) }
+                }
                 notifyInfo(immediate = true)
             }
 
@@ -818,6 +866,36 @@ object FahrmonyMediaManager {
         }
         controller.registerCallback(callback, mainHandler)
         callbackMap[controller] = callback
+        // 初始注册首帧触发一次探针 Dump，避免必须等待切歌
+        controller.metadata?.let { logLyricsProbe(controller.packageName, it) }
+    }
+
+    fun logLyricsProbe(pkg: String, metadata: MediaMetadataCompat?) {
+        if (metadata == null) return
+        try {
+            val keys = metadata.keySet() ?: emptySet<String>()
+            val dump = keys.joinToString("; ") { key ->
+                val v = try {
+                    metadata.getString(key) ?: metadata.getLong(key).toString()
+                } catch (e: Exception) {
+                    try {
+                        if (metadata.getBitmap(key) != null) "[Bitmap]" else "[Object]"
+                    } catch (e2: Exception) {
+                        "[Unknown]"
+                    }
+                }
+                val preview = if (v.length > 80) v.take(80) + "..." else v
+                "$key=[$preview]"
+            }
+            FahrmonyLogBuffer.addLog(
+                type = "LYRICS_PROBE",
+                tag = pkg,
+                title = "Metadata KeySet (${keys.size} keys)",
+                content = dump
+            )
+        } catch (e: Exception) {
+            FahrmonyLogBuffer.addLog("LYRICS_PROBE", pkg, "Probe Error", e.message ?: "error")
+        }
     }
 
     private fun showInvalidTrackWarning(context: Context?, trackTitle: String, packageName: String) {
@@ -882,7 +960,7 @@ object FahrmonyMediaManager {
             }
 
             if (lastWakeUpPackage != null && lastWakeUpTimestamp > 0L) {
-                val hasTarget = controllers.any { it.packageName == lastWakeUpPackage }
+                val hasTarget = controllers.any { isPackageMatch(it.packageName, lastWakeUpPackage) }
                 if (hasTarget) {
                     val elapsed = System.currentTimeMillis() - lastWakeUpTimestamp
                     FahrmonyLogBuffer.addLog(
@@ -927,7 +1005,7 @@ object FahrmonyMediaManager {
 
         val defaultPkg = appContext?.let { FahrmonyConfig.getDefaultPlayer(it) }
         if (!defaultPkg.isNullOrBlank()) {
-            val defaultCtrl = allControllersCompat.firstOrNull { it.packageName == defaultPkg }
+            val defaultCtrl = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, defaultPkg) }
             if (defaultCtrl != null) {
                 stickyActivePackage = defaultPkg
                 activeControllerCompat = defaultCtrl
@@ -937,7 +1015,7 @@ object FahrmonyMediaManager {
         }
 
         if (stickyActivePackage != null) {
-            val sticky = allControllersCompat.firstOrNull { it.packageName == stickyActivePackage }
+            val sticky = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, stickyActivePackage) }
             if (sticky != null) {
                 activeControllerCompat = sticky
                 notifyInfo()
@@ -1099,6 +1177,21 @@ object FahrmonyMediaManager {
             stateBuilder.addCustomAction(customAction)
         }
 
+        val optCtx = appContext ?: service.applicationContext
+        val lyricsMode = FahrmonyConfig.getLyricsMode(optCtx)
+        val lyricsActionTitle = FahrmonyCarI18n.getLyricsActionTitle(optCtx, lyricsMode)
+        val lyricsActionIcon = when (lyricsMode) {
+            1 -> com.fahrmony.app.R.drawable.ic_car_lyrics_single
+            2 -> com.fahrmony.app.R.drawable.ic_car_lyrics_dual
+            else -> com.fahrmony.app.R.drawable.ic_car_lyrics_off
+        }
+        val lyricsCustomAction = PlaybackStateCompat.CustomAction.Builder(
+            ACTION_TOGGLE_LYRICS,
+            lyricsActionTitle,
+            lyricsActionIcon
+        ).build()
+        stateBuilder.addCustomAction(lyricsCustomAction)
+
         service.syncPlaybackState(stateBuilder.build())
     }
 
@@ -1147,6 +1240,7 @@ object FahrmonyMediaManager {
             if (lastSyncedTrackKey != trackKey) {
                 lastSyncedTrackKey = trackKey
                 val defaultBmp = getIdleArtwork()
+                currentTrackArtworkBitmap = defaultBmp
                 val appTitle = appContext?.let { FahrmonyCarI18n.getAppTitle(it) } ?: "Fahrmony 合拍"
                 val waitingSub = appContext?.let { FahrmonyCarI18n.getWaitingSubtitle(it) } ?: "等待音乐播放中"
                 val metaBuilder = MediaMetadataCompat.Builder()
@@ -1182,10 +1276,17 @@ object FahrmonyMediaManager {
         val rawOrCachedArtist = rawArtist.ifBlank { fallback?.artist ?: (cached?.artist ?: (getAppNameForPackage(appContext, controller.packageName))) }
         val artist = if (!invalidTrackNotice.isNullOrBlank()) invalidTrackNotice!! else rawOrCachedArtist
         val album = rawAlbum.ifBlank { fallback?.album ?: (cached?.album ?: "") }
-        val trackKey = "${controller.packageName}|$title|$artist|$album"
+        val trackKey = "${controller.packageName}|$title|$artist"
 
         if (trackKey != lastSyncedTrackKey) {
             lastSyncedTrackKey = trackKey
+            val trackBmp = if (hasRealTrack) {
+                appContext?.let { getArtworkForTrack(it, trackKey, isRealTrack = true) } ?: getIdleArtwork()
+            } else {
+                getIdleArtwork()
+            }
+            currentTrackArtworkBitmap = trackBmp
+
             FahrmonyLogBuffer.addLog(
                 "PROBE_MIRROR",
                 "推流元数据变更",
@@ -1194,22 +1295,20 @@ object FahrmonyMediaManager {
             )
             val effectiveMeta = if (rawTitle.isNotBlank()) metadata else (cached?.metadata ?: metadata)
             if (effectiveMeta != null && hasRealTrack) {
-                service.syncMetadata(sanitizeMetadata(effectiveMeta, trackKey, isRealTrack = true))
+                service.syncMetadata(sanitizeMetadata(effectiveMeta, trackKey, isRealTrack = true, customBitmap = trackBmp))
             } else {
-                val defaultBmp = if (hasRealTrack) {
-                    appContext?.let { getArtworkForTrack(it, trackKey, isRealTrack = true) } ?: getIdleArtwork()
-                } else {
-                    getIdleArtwork()
-                }
                 val metaBuilder = MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
                     .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
                     .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, album)
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, defaultBmp)
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, defaultBmp)
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, defaultBmp)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, trackBmp)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, trackBmp)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, trackBmp)
                 service.syncMetadata(metaBuilder.build())
             }
+
+            // 触发歌词查询与同步引擎更新
+            checkAndUpdateLyrics(context, controller, trackKey, effectiveMeta ?: metadata)
         }
 
         // 2. 同步播放状态 (确保包含标准双向操控 actions 与暂停防回弹锁)
@@ -1263,6 +1362,20 @@ object FahrmonyMediaManager {
             stateBuilder.addCustomAction(customAction)
         }
 
+        val lyricsMode = FahrmonyConfig.getLyricsMode(context)
+        val lyricsActionTitle = FahrmonyCarI18n.getLyricsActionTitle(context, lyricsMode)
+        val lyricsActionIcon = when (lyricsMode) {
+            1 -> com.fahrmony.app.R.drawable.ic_car_lyrics_single
+            2 -> com.fahrmony.app.R.drawable.ic_car_lyrics_dual
+            else -> com.fahrmony.app.R.drawable.ic_car_lyrics_off
+        }
+        val lyricsCustomAction = PlaybackStateCompat.CustomAction.Builder(
+            ACTION_TOGGLE_LYRICS,
+            lyricsActionTitle,
+            lyricsActionIcon
+        ).build()
+        stateBuilder.addCustomAction(lyricsCustomAction)
+
         FahrmonyLogBuffer.addLog(
             "PROBE_MIRROR",
             "推流播放状态",
@@ -1275,6 +1388,8 @@ object FahrmonyMediaManager {
         } else {
             service.syncRepeatMode(PlaybackStateCompat.REPEAT_MODE_NONE)
         }
+
+        lyricSyncEngine.updatePlaybackState(controller.playbackState)
     }
 
     // 封面 Base64 内存缓存 (以 trackKey 为索引，杜绝高频刷新与播放走针时的重复压缩 GC 开销)
@@ -1394,7 +1509,8 @@ object FahrmonyMediaManager {
                 isPlaying = isPlaying,
                 duration = duration,
                 position = position,
-                artworkData = artworkData
+                artworkData = artworkData,
+                hasLyrics = lyricSyncEngine.hasValidLyrics()
             )
         } else {
             // ========== 轨道 2: 自定义音源专属增强通道 (粘性元数据锁存 + 通知栏深度抽取 + 音频焦点智能保活) ==========
@@ -1463,13 +1579,14 @@ object FahrmonyMediaManager {
                 isPlaying = isPlaying,
                 duration = duration,
                 position = position,
-                artworkData = artworkData
+                artworkData = artworkData,
+                hasLyrics = lyricSyncEngine.hasValidLyrics()
             )
         }
     }
 
-    private fun sanitizeMetadata(metadata: MediaMetadataCompat, trackKey: String, isRealTrack: Boolean = true): MediaMetadataCompat {
-        val defaultBmp = if (isRealTrack) {
+    private fun sanitizeMetadata(metadata: MediaMetadataCompat, trackKey: String, isRealTrack: Boolean = true, customBitmap: Bitmap? = null): MediaMetadataCompat {
+        val defaultBmp = customBitmap ?: currentTrackArtworkBitmap ?: if (isRealTrack) {
             appContext?.let { getArtworkForTrack(it, trackKey, isRealTrack = true) } ?: getIdleArtwork()
         } else {
             getIdleArtwork()
@@ -1572,6 +1689,105 @@ object FahrmonyMediaManager {
             }
             is RepeatProbeResult.Unsupported -> false
         }
+    }
+
+    private fun checkAndUpdateLyrics(
+        context: Context,
+        controller: MediaControllerCompat,
+        trackKey: String,
+        metadata: MediaMetadataCompat?
+    ) {
+        if (!FahrmonyConfig.isLyricsEnabled(context)) {
+            lyricSyncEngine.reset(notifyListener = false)
+            return
+        }
+        val allowNetwork = FahrmonyConfig.isNetworkLyricsEnabled(context)
+        UnifiedLyricsProvider.getLyrics(context, controller.packageName, metadata, allowNetwork) { result ->
+            val current = activeControllerCompat
+            if (current != null && isPackageMatch(current.packageName, controller.packageName)) {
+                lyricSyncEngine.updateLyrics(trackKey, result)
+                lyricSyncEngine.updatePlaybackState(current.playbackState)
+            }
+        }
+    }
+
+    private fun pushLyricMetadata(currentLine: String, nextLine: String?) {
+        val service = browserServiceRef?.get() ?: return
+        val context = appContext ?: service.applicationContext
+        val mode = FahrmonyConfig.getLyricsMode(context)
+        if (mode == 0) {
+            return
+        }
+        val controller = activeControllerCompat ?: return
+        val metadata = controller.metadata
+        val rawTitle = metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
+            ?: lastValidTrackMap[controller.packageName]?.title ?: ""
+        val rawArtist = metadata?.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
+            ?: lastValidTrackMap[controller.packageName]?.artist ?: ""
+        val trackKey = "${controller.packageName}|$rawTitle|$rawArtist"
+
+        val songInfo = if (rawArtist.isNotBlank() && !rawTitle.contains(rawArtist)) "$rawTitle · $rawArtist" else rawTitle.ifBlank { "..." }
+        val displayTitle = if (currentLine.isNotBlank()) currentLine else rawTitle.ifBlank { "..." }
+        val displayArtist = if (mode == 1) {
+            // 单行模式：Line 2 恒定显示歌曲名 · 歌手名，永不丢失曲目信息
+            songInfo
+        } else {
+            // 双行模式：Line 2 显示下一句歌词，无下句时回退为歌曲信息
+            if (!nextLine.isNullOrBlank()) nextLine else songInfo
+        }
+        val displayAlbum = songInfo
+        val defaultBmp = currentTrackArtworkBitmap ?: getArtworkForTrack(context, trackKey, isRealTrack = true)
+        val duration = metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0L
+
+        val metaBuilder = MediaMetadataCompat.Builder()
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, displayTitle)
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, displayArtist)
+            .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, displayAlbum)
+            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, defaultBmp)
+            .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, defaultBmp)
+            .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, defaultBmp)
+
+        if (duration > 0L) {
+            metaBuilder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+        }
+
+        service.syncLyricMetadata(metaBuilder.build())
+    }
+
+    fun toggleLyricsMode(context: Context): Int {
+        val currentMode = FahrmonyConfig.getLyricsMode(context)
+        val nextMode = (currentMode + 1) % 3
+        FahrmonyConfig.setLyricsMode(context, nextMode)
+        if (nextMode > 0) {
+            val json = org.json.JSONObject().apply {
+                put("networkLyricsEnabled", true)
+            }
+            FahrmonyConfig.updateConfig(context, json)
+        }
+        lyricSyncEngine.setEnabled(nextMode > 0)
+        if (nextMode > 0) {
+            val controller = activeControllerCompat
+            if (controller != null) {
+                val meta = controller.metadata ?: lastValidTrackMap[controller.packageName]?.metadata
+                val rawTitle = meta?.getString(MediaMetadataCompat.METADATA_KEY_TITLE) ?: ""
+                val rawArtist = meta?.getString(MediaMetadataCompat.METADATA_KEY_ARTIST) ?: ""
+                val trackKey = "${controller.packageName}|$rawTitle|$rawArtist"
+                checkAndUpdateLyrics(context, controller, trackKey, meta)
+            }
+        } else {
+            lyricSyncEngine.reset(notifyListener = true)
+        }
+        pushMirrorState()
+        // 广播至主进程，驱动手机端媒体 Tab 同步
+        val fullConfig = FahrmonyConfig.getConfig(context)
+        FahrmonyIpcBridge.notifyClientConfigChanged(fullConfig.toString())
+        val modeText = when (nextMode) {
+            1 -> "单行"
+            2 -> "双行"
+            else -> "关闭"
+        }
+        FahrmonyLogBuffer.addLog("LYRICS", "车载歌词模式切换", modeText, "车机CustomAction切换")
+        return nextMode
     }
 
     fun getAllActiveSessions(context: Context): List<ActiveMediaSessionInfo> {
@@ -1687,7 +1903,7 @@ object FahrmonyMediaManager {
 
         // 精准寻址：若显式指定了目标包名，优先在已纳管控制器中查找该目标
         var targetCtrl = if (!targetPackage.isNullOrBlank()) {
-            allControllersCompat.firstOrNull { it.packageName == targetPackage }
+            allControllersCompat.firstOrNull { isPackageMatch(it.packageName, targetPackage) }
         } else null
 
         // 若指定了目标包名但内存池中未找到，主动从系统 MediaSessionManager 动态寻址尝试二次纳管
@@ -1699,7 +1915,7 @@ object FahrmonyMediaManager {
                 val activeSessions = msm?.getActiveSessions(cn)
                 if (!activeSessions.isNullOrEmpty()) {
                     updateControllers(ctx, activeSessions)
-                    targetCtrl = allControllersCompat.firstOrNull { it.packageName == targetPackage }
+                    targetCtrl = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, targetPackage) }
                 }
             } catch (ignored: Exception) {}
         }
@@ -2006,6 +2222,7 @@ object FahrmonyMediaManager {
     fun onCarConnected(context: Context) {
         // 重置元数据缓存键，确保无论是初次连接还是断开重连，都强制向车机推送完整的封面大图与曲目信息
         lastSyncedTrackKey = null
+        currentTrackArtworkBitmap = null
         val now = System.currentTimeMillis()
         if (now - lastCarConnectedTimestamp < 1500L) {
             return

@@ -110,6 +110,23 @@ class FahrmonyNotificationListener : NotificationListenerService() {
 
         if (isSupportedMedia || (mediaToken != null && isCandidateMedia)) {
             android.util.Log.i("Fahrmony_CUSTOM", "[NOTIF_POSTED] pkg: $packageName, isSupported: $isSupportedMedia, hasMediaToken: ${mediaToken != null}")
+            val nExtras = sbn.notification?.extras
+            if (nExtras != null) {
+                try {
+                    val notifKeys = nExtras.keySet() ?: emptySet<String>()
+                    val notifDump = notifKeys.joinToString("; ") { k ->
+                        val v = nExtras.get(k)?.toString() ?: "null"
+                        val preview = if (v.length > 80) v.take(80) + "..." else v
+                        "$k=[$preview]"
+                    }
+                    FahrmonyLogBuffer.addLog(
+                        type = "NOTIF_EXTRA_PROBE",
+                        tag = packageName,
+                        title = "Notification Extras (${notifKeys.size} keys)",
+                        content = notifDump
+                    )
+                } catch (ignored: Exception) {}
+            }
         }
 
         if (mediaToken != null && (isSupportedMedia || isCandidateMedia)) {

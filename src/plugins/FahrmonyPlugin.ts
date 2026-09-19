@@ -25,6 +25,7 @@ export interface MediaSessionItem {
   position: number;
   artworkBase64?: string;
   artworkData?: string | null;
+  hasLyrics?: boolean;
 }
 
 export interface MediaSessionChangedEvent {
@@ -38,6 +39,7 @@ export interface MediaSessionChangedEvent {
   duration?: number;
   position?: number;
   artworkData?: string | null;
+  hasLyrics?: boolean;
 }
 
 export interface BridgeLogEntry {
@@ -71,6 +73,10 @@ export interface AppBridgeConfig {
   customPlayerPackage?: string;
   customPlayerName?: string;
   customPlayerIcon?: string;
+  lyricsEnabled?: boolean;
+  lyricsMode?: number;
+  networkLyricsEnabled?: boolean;
+  lyricsOffsetMs?: number;
 }
 
 export interface DiscoveredMediaSessionItem {
@@ -112,6 +118,10 @@ export interface FahrmonyPluginInterface {
   addListener(
     eventName: 'carConnectionChanged',
     listenerFunc: (data: { connected: boolean }) => void
+  ): Promise<PluginListenerHandle> & PluginListenerHandle;
+  addListener(
+    eventName: 'configChanged',
+    listenerFunc: (data: { config: AppBridgeConfig }) => void
   ): Promise<PluginListenerHandle> & PluginListenerHandle;
 }
 
@@ -194,7 +204,7 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
           type: 'IM_NOTIFICATION',
           tag: '飞书',
           title: '项目组通知',
-          content: '合拍 Android Auto 桥接版本 v1.2.0 测试通过',
+          content: '合拍 Android Auto 桥接版本 v1.2.5 测试通过',
         }
       ],
     }),
@@ -213,8 +223,8 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
     },
     checkUpdate: async () => ({
       hasUpdate: false,
-      currentVersion: 'v1.2.0',
-      latestVersion: 'v1.2.0',
+      currentVersion: 'v1.2.5',
+      latestVersion: 'v1.2.5',
       downloadUrl: 'https://github.com/nexen33/Fahrmony/releases/latest',
       releaseUrl: 'https://github.com/nexen33/Fahrmony/releases/latest',
       changelog: '当前已是最新版本',

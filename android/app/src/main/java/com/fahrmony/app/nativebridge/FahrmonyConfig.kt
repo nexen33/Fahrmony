@@ -31,6 +31,10 @@ object FahrmonyConfig {
     private const val KEY_CUSTOM_PLAYER_PKG = "customPlayerPackage"
     private const val KEY_CUSTOM_PLAYER_NAME = "customPlayerName"
     private const val KEY_CUSTOM_PLAYER_ICON = "customPlayerIcon"
+    private const val KEY_LYRICS_ENABLED = "lyricsEnabled"
+    private const val KEY_LYRICS_MODE = "lyricsMode"
+    private const val KEY_NETWORK_LYRICS_ENABLED = "networkLyricsEnabled"
+    private const val KEY_LYRICS_OFFSET_MS = "lyricsOffsetMs"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -58,11 +62,23 @@ object FahrmonyConfig {
         if (json.has(KEY_CUSTOM_PLAYER_PKG)) editor.putString(KEY_CUSTOM_PLAYER_PKG, json.optString(KEY_CUSTOM_PLAYER_PKG, ""))
         if (json.has(KEY_CUSTOM_PLAYER_NAME)) editor.putString(KEY_CUSTOM_PLAYER_NAME, json.optString(KEY_CUSTOM_PLAYER_NAME, ""))
         if (json.has(KEY_CUSTOM_PLAYER_ICON)) editor.putString(KEY_CUSTOM_PLAYER_ICON, json.optString(KEY_CUSTOM_PLAYER_ICON, ""))
+        if (json.has(KEY_LYRICS_MODE)) {
+            val mode = json.optInt(KEY_LYRICS_MODE, 0).coerceIn(0, 2)
+            editor.putInt(KEY_LYRICS_MODE, mode)
+            editor.putBoolean(KEY_LYRICS_ENABLED, mode > 0)
+        } else if (json.has(KEY_LYRICS_ENABLED)) {
+            val enabled = json.optBoolean(KEY_LYRICS_ENABLED, false)
+            editor.putBoolean(KEY_LYRICS_ENABLED, enabled)
+            editor.putInt(KEY_LYRICS_MODE, if (enabled) 1 else 0)
+        }
+        if (json.has(KEY_NETWORK_LYRICS_ENABLED)) editor.putBoolean(KEY_NETWORK_LYRICS_ENABLED, json.optBoolean(KEY_NETWORK_LYRICS_ENABLED, false))
+        if (json.has(KEY_LYRICS_OFFSET_MS)) editor.putLong(KEY_LYRICS_OFFSET_MS, json.optLong(KEY_LYRICS_OFFSET_MS, 0L))
         editor.apply()
     }
 
     fun getConfig(context: Context): JSONObject {
         val sp = getPrefs(context)
+        val lyricsMode = sp.getInt(KEY_LYRICS_MODE, if (sp.getBoolean(KEY_LYRICS_ENABLED, false)) 1 else 0)
         return JSONObject().apply {
             put(KEY_WECHAT, sp.getBoolean(KEY_WECHAT, true))
             put(KEY_FEISHU, sp.getBoolean(KEY_FEISHU, false))
@@ -84,6 +100,10 @@ object FahrmonyConfig {
             put(KEY_CUSTOM_PLAYER_PKG, sp.getString(KEY_CUSTOM_PLAYER_PKG, "") ?: "")
             put(KEY_CUSTOM_PLAYER_NAME, sp.getString(KEY_CUSTOM_PLAYER_NAME, "") ?: "")
             put(KEY_CUSTOM_PLAYER_ICON, sp.getString(KEY_CUSTOM_PLAYER_ICON, "") ?: "")
+            put(KEY_LYRICS_MODE, lyricsMode)
+            put(KEY_LYRICS_ENABLED, lyricsMode > 0)
+            put(KEY_NETWORK_LYRICS_ENABLED, sp.getBoolean(KEY_NETWORK_LYRICS_ENABLED, false))
+            put(KEY_LYRICS_OFFSET_MS, sp.getLong(KEY_LYRICS_OFFSET_MS, 0L))
         }
     }
 
@@ -132,6 +152,31 @@ object FahrmonyConfig {
 
     fun getCustomPlayerIcon(context: Context): String {
         return getPrefs(context).getString(KEY_CUSTOM_PLAYER_ICON, "") ?: ""
+    }
+
+    fun getLyricsMode(context: Context): Int {
+        val sp = getPrefs(context)
+        return sp.getInt(KEY_LYRICS_MODE, if (sp.getBoolean(KEY_LYRICS_ENABLED, false)) 1 else 0)
+    }
+
+    fun setLyricsMode(context: Context, mode: Int) {
+        val safeMode = mode.coerceIn(0, 2)
+        getPrefs(context).edit()
+            .putInt(KEY_LYRICS_MODE, safeMode)
+            .putBoolean(KEY_LYRICS_ENABLED, safeMode > 0)
+            .apply()
+    }
+
+    fun isLyricsEnabled(context: Context): Boolean {
+        return getLyricsMode(context) > 0
+    }
+
+    fun isNetworkLyricsEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_NETWORK_LYRICS_ENABLED, false)
+    }
+
+    fun getLyricsOffsetMs(context: Context): Long {
+        return getPrefs(context).getLong(KEY_LYRICS_OFFSET_MS, 0L)
     }
 
     fun getLanguage(context: Context): String {
@@ -224,5 +269,33 @@ object FahrmonyCarI18n {
             else -> "已读"
         }
     }
-}
 
+    fun getLyricsActionTitle(context: Context, mode: Int): String {
+        return when (FahrmonyConfig.getLanguage(context)) {
+            "en-US" -> when (mode) {
+                1 -> "Lyrics: Single"
+                2 -> "Lyrics: Dual"
+                else -> "Lyrics: OFF"
+            }
+            "de-DE" -> when (mode) {
+                1 -> "Songtext: Einzeln"
+                2 -> "Songtext: Doppelt"
+                else -> "Songtext: AUS"
+            }
+            "ja-JP" -> when (mode) {
+                1 -> "歌詞: 1行"
+                2 -> "歌詞: 2行"
+                else -> "歌詞: オフ"
+            }
+            else -> when (mode) {
+                1 -> "歌词: 单行"
+                2 -> "歌词: 双行"
+                else -> "歌词: 关"
+            }
+        }
+    }
+
+    fun getLyricsActionTitle(context: Context, isEnabled: Boolean): String {
+        return getLyricsActionTitle(context, if (isEnabled) 1 else 0)
+    }
+}

@@ -1,0 +1,27 @@
+# Environment & Archive Isolation
+Archiev/
+.git_env/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.temp/
+
+# Android Studio / Gradle
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/.idea/
+*.iml
+
+# Logs & OS artifacts
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db

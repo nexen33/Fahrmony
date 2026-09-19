@@ -50,6 +50,7 @@ class FahrmonyPlugin : Plugin() {
                     put("duration", info.duration)
                     put("position", info.position)
                     put("artworkData", info.artworkData)
+                    put("hasLyrics", info.hasLyrics)
                 } else {
                     put("hasActiveSession", false)
                 }
@@ -64,6 +65,23 @@ class FahrmonyPlugin : Plugin() {
                 put("connected", connected)
             }
             notifyListeners("carConnectionChanged", data)
+        }
+
+        // 监听底层车机端配置变更 (如车机端点击 🎤 切换歌词)，实时派发前端事件实现双向同步
+        FahrmonyIpcBridge.onConfigChangedCallback = { configJsonStr ->
+            try {
+                val json = org.json.JSONObject(configJsonStr)
+                val configObj = JSObject()
+                val keys = json.keys()
+                while (keys.hasNext()) {
+                    val k = keys.next()
+                    configObj.put(k, json.get(k))
+                }
+                val data = JSObject().apply {
+                    put("config", configObj)
+                }
+                notifyListeners("configChanged", data)
+            } catch (ignored: Exception) {}
         }
     }
 
@@ -186,6 +204,7 @@ class FahrmonyPlugin : Plugin() {
                 put("duration", session.duration)
                 put("position", session.position)
                 put("artworkData", session.artworkData)
+                put("hasLyrics", session.hasLyrics)
             }
             array.put(obj)
         }
@@ -299,11 +318,16 @@ class FahrmonyPlugin : Plugin() {
         }
         val pm = context.packageManager
         var intent = pm.getLaunchIntentForPackage(packageName)
+        if (intent == null && FahrmonyMediaManager.isPackageMatch(packageName, "com.kugou.android")) {
+            intent = pm.getLaunchIntentForPackage("com.kugou.android")
+                ?: pm.getLaunchIntentForPackage("com.kugou.android.lite")
+        }
         if (intent == null) {
             try {
+                val lookupPkg = if (FahrmonyMediaManager.isPackageMatch(packageName, "com.kugou.android")) "com.kugou.android" else packageName
                 val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
                     addCategory(Intent.CATEGORY_LAUNCHER)
-                    setPackage(packageName)
+                    setPackage(lookupPkg)
                 }
                 val resolveInfos = pm.queryIntentActivities(mainIntent, 0)
                 if (!resolveInfos.isNullOrEmpty()) {

@@ -29,6 +29,7 @@ object FahrmonyIpcBridge {
     const val MSG_CLEAR_LOGS = 7
     const val MSG_UPDATE_CONFIG = 8
     const val MSG_REQUEST_REFRESH = 9
+    const val MSG_CONFIG_CHANGED = 10
 
     // ==========================================
     // 1. :car 服务端 (运行于 :car 独立进程)
@@ -134,11 +135,13 @@ object FahrmonyIpcBridge {
             for (s in sessions) {
                 sessionBundles.add(sessionToBundle(s))
             }
+            val configJson = FahrmonyConfig.getConfig(context).toString()
 
             val msg = Message.obtain(null, MSG_SYNC_STATE).apply {
                 data = Bundle().apply {
                     putParcelableArrayList("sessions", sessionBundles)
                     putBoolean("isCarConnected", FahrmonyMediaBrowserService.isCarConnected)
+                    putString("configJson", configJson)
                 }
             }
             client.send(msg)
@@ -158,6 +161,20 @@ object FahrmonyIpcBridge {
                     } else {
                         putBoolean("hasSession", false)
                     }
+                }
+            }
+            client.send(msg)
+        } catch (ignored: RemoteException) {
+            clientMessenger = null
+        }
+    }
+
+    fun notifyClientConfigChanged(configJson: String) {
+        val client = clientMessenger ?: return
+        try {
+            val msg = Message.obtain(null, MSG_CONFIG_CHANGED).apply {
+                data = Bundle().apply {
+                    putString("configJson", configJson)
                 }
             }
             client.send(msg)
@@ -189,6 +206,7 @@ object FahrmonyIpcBridge {
     private var isCarConnectedCache = false
     private var onSessionChangedCallback: ((ActiveMediaSessionInfo?) -> Unit)? = null
     var onCarConnectedCallback: ((Boolean) -> Unit)? = null
+    var onConfigChangedCallback: ((String) -> Unit)? = null
 
     private val clientMessengerInstance = Messenger(object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(msg: Message) {
@@ -213,6 +231,10 @@ object FahrmonyIpcBridge {
                         for (sb in sessionBundles) {
                             cachedSessions.add(bundleToSession(sb))
                         }
+                    }
+                    val configJson = bundle.getString("configJson")
+                    if (!configJson.isNullOrBlank()) {
+                        onConfigChangedCallback?.invoke(configJson)
                     }
                 }
                 MSG_SESSION_CHANGED -> {
@@ -239,6 +261,12 @@ object FahrmonyIpcBridge {
                     if (logBundle != null) {
                         val entry = bundleToLog(logBundle)
                         FahrmonyLogBuffer.addEntry(entry)
+                    }
+                }
+                MSG_CONFIG_CHANGED -> {
+                    val configJson = msg.data?.getString("configJson")
+                    if (!configJson.isNullOrEmpty()) {
+                        onConfigChangedCallback?.invoke(configJson)
                     }
                 }
                 else -> super.handleMessage(msg)
@@ -339,6 +367,7 @@ object FahrmonyIpcBridge {
             putLong("duration", info.duration)
             putLong("position", info.position)
             putString("artworkData", info.artworkData)
+            putBoolean("hasLyrics", info.hasLyrics)
         }
     }
 
@@ -352,7 +381,8 @@ object FahrmonyIpcBridge {
             isPlaying = bundle.getBoolean("isPlaying", false),
             duration = bundle.getLong("duration", 0L),
             position = bundle.getLong("position", 0L),
-            artworkData = bundle.getString("artworkData")
+            artworkData = bundle.getString("artworkData"),
+            hasLyrics = bundle.getBoolean("hasLyrics", false)
         )
     }
 

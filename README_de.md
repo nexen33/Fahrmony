@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.2.0-orange)
+![Version](https://img.shields.io/badge/Version-v1.2.5-orange)
 
 > Eine lokale Schnittstellenbrücke für Android Auto, mit der Fahrzeug-Displays bei Fahrten im Ausland gängige chinesische Audio-Streaming- und Messaging-Dienste nahtlos anzeigen und teilweise steuern können.
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.2.0/Fahrmony_v1.2.0.apk">
+  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.2.5/Fahrmony_v1.2.5.apk">
     <img src="https://img.shields.io/badge/Neuestes_Fahrmony_APK_herunterladen-blue?style=forthebadge" height="60">
   </a>
 </p>  
@@ -55,6 +55,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 - **Fahrgerechte Nachrichtenbenachrichtigung & Aufräumdienst**: Filtert Gruppenchats und ermöglicht das Vorlesen sowie die Bestätigung als gelesen per Tastendruck; beendet beim Trennen der Verbindung die Weiterleitung und löscht verbleibende Benachrichtigungskarten auf dem Smartphone zuverlässig.
 - **Schutz vor versehentlicher Tonwiedergabe**: Pausiert die Wiedergabe sofort beim Trennen des Kabels, damit das Handy nicht plötzlich laut weiterspielt.
 - **Einheitliches Fluid-Design & Reine Hintergrundsteuerung**: Moderne Benutzeroberfläche, dynamisch an alle Smartphone-Displaygrößen angepasst; Browser-Scrollbalken sind vollständig ausgeblendet und bieten seidenweiches 120-Hz-Overscroll-Verhalten wie eine native App; mit Hell-/Dunkelmodus und Modus „Systemstandard“, 4-Sprachen-Unterstützung sowie Berechtigungs-Leitfaden.
+- **Live-Songtexte im Fahrzeug & Mehrfachmodus**: Zeigt Songtexte in Echtzeit direkt auf der Wiedergabekarte im Fahrzeug an; Umschaltung zwischen „Einzeilig“, „Zweizeilig (mit Zeilenvorschau)“ und „Aus“ über die Medieneinstellungen oder Fahrzeugtasten; präzise adaptive Zeitsynchronisation, flüssiger Zeilenübergang und integrierte Schriftzeichenkonvertierung mit Speicheroptimierung.
 - **Dezente Update-Prüfung**: Ein leichtgewichtiger Erkennungsdienst prüft einmal täglich nachts im Hintergrund diskret auf neue GitHub-Releases; ein Doppeltipp auf das App-Logo im Info-Dialog startet zudem jederzeit eine manuelle Prüfung.
 
 ## Kompatibilitätsmatrix
@@ -67,6 +68,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 | **Vor- und Zurückspringen** | **Vollständig** | Standardbefehle mit zeitlicher Statusverriegelung | Manche Radio- oder Podcast-Streams bieten kein Zurückspringen |
 | **Spulen im Titel** | **Unterstützt** | Reicht die Zeitposition durch und aktualisiert die Fortschrittsanzeige | Bei Live-Übertragungen technisch nicht möglich |
 | **Titel- und Interpretenanzeige** | **Vollständig** | Liest Titel, Interpret und Album über mehrstufige Fallback-Analyse aus | Bei verzögerter Bereitstellung greift kurzzeitig der App-Name |
+| **Live-Songtexte** | **Grundlegend angepasst** | Für gängige Audioquellen hochgradig optimiert; andere Quellen abhängig von der Online-Verfügbarkeit | Erfordert Titel mit synchronisierten Zeitstempeln; bei Podcasts/Hörbüchern regulär keine Texte vorhanden |
 | **Benutzerdefinierte Audioquelle** | **Vollständig** | Automatische Erkennung aktiver Hintergrund-Apps oder manuelle Auswahl im Menü | Erfordert, dass die Ziel-App eine Standard-Mediensitzung oder Benachrichtigung sendet |
 | **Cover-Hintergrund** | **Adaptiv generiert** | Kontrastreiche Farbgestaltung verhindert unleserliche schwarze Tasten | Standardmäßig dynamischer Hintergrund; Original-Karten optional aktivierbar |
 | **Wiedergabeliste** | **Durchgereicht** | Zeigt die Titelliste an, sofern die Quell-App diese an das System meldet | Bleibt automatisch ausgeblendet, wenn keine Liste vorhanden ist |
@@ -107,7 +109,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 
 | Berechtigungsname | Funktionsbereich | Relevanz und technischer Hintergrund |
 | :--- | :--- | :--- |
-| **Internetzugriff** | Basiskomponente der Benutzeroberfläche | Standardbestandteil des Web-Containers der Einstellungsseite. **Fahrmony enthält keinerlei externe Server, keinen Netzwerk-Code und keine Analyse-Dienste. Es werden keine Daten übertragen.** |
+| **Internetzugriff** | Online-Songtextabruf & Benutzeroberfläche | **Transparente Erläuterung**: Dient bei Titeln ohne integrierte Texte dem bedarfsweisen Abruf von Songtexten aus öffentlichen Online-Quellen sowie der Update-Prüfung. **Fahrmony enthält keinerlei eigene Server, kein Tracking und überträgt niemals persönliche Daten.** |
 | **Benachrichtigungszugriff** | Medien- und Nachrichtenbrücke | Kernberechtigung. Ermöglicht das Erkennen aktiver Mediensitzungen und die Weitergabe von Textnachrichten an das Auto. Daten werden ausschließlich flüchtig im RAM verarbeitet. |
 | **App-Paketübersicht abfragen** | Eigene Audioquellen & Erkennung | Erforderlich ab Android 11, um installierte Audio- und Video-Apps namentlich zu erkennen und für benutzerdefinierte Slots vorzuschlagen. |
 | **Vordergrunddienst ausführen** | Hintergrundstabilität | Stellt sicher, dass die Verbindung bei ausgeschaltetem Handy-Display nicht abbricht. |
@@ -186,7 +188,7 @@ Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über di
 Wenn im Alltag ein Problem auftritt, können Sie gerne eine Fehlermeldung auf GitHub einreichen. Bitte nutzen Sie folgende Vorlage (**Hinweis: Bitte niemals vertrauliche private Nachrichteninhalte übermitteln**):
 
 ```text
-- Fahrmony-Version: v1.2.0
+- Fahrmony-Version: v1.2.5
 - Android-Version: z. B. Android 14
 - Smartphone-Modell: z. B. Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto-Version: z. B. 11.8
@@ -242,7 +244,7 @@ Entwickler können relevante Protokollauszüge optional an die Fehlermeldung anh
 ## Datenschutz
 
 1. **Vollständig lokal**: Alle Daten werden **ausschließlich im flüchtigen Arbeitsspeicher (RAM)** verarbeitet und niemals auf Speichergeräten abgelegt.
-2. **Keine proprietären Server & Null Datenerfassung**: Es existieren keine eigenen Backend-Server und es werden keinerlei personenbezogene Daten gesammelt; bei der Versionsprüfung erfolgt lediglich eine schreibgeschützte Abfrage der offiziellen GitHub Releases API – völlig ohne Geräte-IDs oder Nutzungsstatistiken.
+2. **Keine proprietären Server & Null Datenerfassung**: Es existieren keine eigenen Backend-Server und es werden keinerlei personenbezogene Daten gesammelt; Netzwerkanfragen beschränken sich auf den gezielten Abruf von Songtexten für aktive Titel aus öffentlichen Quellen und die reine Versionsprüfung über die offizielle GitHub-Releases-API ohne Übertragung von Geräte-IDs.
 3. **Keine Tracking-Dienste**: Es sind keinerlei Analyse-, Werbe- oder Telemetrie-Module integriert.
 4. **Jederzeit widerrufbar**: Berechtigungen können in den Smartphone-Einstellungen jederzeit deaktiviert werden.
 
@@ -254,17 +256,25 @@ Entwickler können relevante Protokollauszüge optional an die Fehlermeldung anh
 ▼
 ┌─ Fahrmony Isolierter Fahrzeug-Hintergrundprozess (:car)
 │  ├─ Sitzungserkennung, Prioritätssteuerung & Kaltstart-Wiederaufnahme
+│  ├─ Live-Songtext-Synchronisation (Millisekunden-Binärsuche, 0-GC & Adaptive Taktung)
 │  ├─ Nachrichtenfilterung, Gruppenchat-Bereinigung & Verbindungsende-Aufräumen
 │  ├─ MediaBrowserServiceCompat Fahrzeug-Audiodienst
 │  └─ Dauerhafter Vordergrunddienst (Daemon)
 ▼
 ┌─ Fahrmony Smartphone-Benutzeroberfläche (Hauptprozess)
-│  └─ Verbindungsüberwachung, Quellenerkennung, Eigene Audioquellen & Mehrsprachigkeit
+│  └─ Verbindungsüberwachung, Quellenerkennung, Songtext-Modus, Eigene Quellen & Mehrsprachigkeit
 ▼
 ┌─ Fahrzeug-Bordmonitor (Android Auto)
-│  ├─ Vollbild- und Split-Screen Mediensteuerung
+│  ├─ Vollbild- und Split-Screen Mediensteuerung (Optionale Live-Songtexte)
 │  └─ Sichere Sprachausgabe von Benachrichtigungen
 ```
+
+### Hinweis zur Open-Source-Architektur der Songtext-Provider
+
+In der Songtext-Architektur von Fahrmony setzen wir auf ein modular entkoppeltes Provider-Design:
+- **Kern-Synchronisationsengine**: Enthält die millisekundengenaue Fortschrittsberechnung (`LyricSyncEngine`), den LRC-Standardparser (`LrcParser`), die Bereinigung und Konvertierung (`LyricsCleanupManager`) sowie die 3-stufige Steuerung im Auto – vollständig quelloffen;
+- **Provider-Trennung & Stub-Vertrag (Stub Contract)**: Um die langfristige Stabilität und den eigenständigen Build (`Self-contained Build`) des Open-Source-Projekts sicherzustellen und Wartungsrisiken durch unangekündigte Änderungen dritter Web-APIs zu vermeiden, nutzt das Repository für externe Web-Scraper das bewährte **„Stub-Vertragsmuster“**, wodurch Netzwerkanfragen und Fahrzeug-Kernlogik sauber getrennt bleiben;
+- **Individuelle Erweiterbarkeit**: Entwickler können über die offene `LyricsProvider`-Schnittstelle bei Bedarf eigene Quellen implementieren und registrieren. Wir danken allen Fahrern und Entwicklern für ihr Verständnis und ihre Unterstützung!
 
 ## Technologie-Stack
 
@@ -298,10 +308,10 @@ Dieses Projekt ist unter der Lizenz **Creative Commons Namensnennung - Nicht-kom
 
 ---
 
-## Vorschau v1.2.0
+## Vorschau v1.2.5
 
 <p align="center">
-  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/03007905-3bbb-43da-8f7e-d7d0d9532fb3" />
+  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/b8692e9c-62e5-4f82-aff7-be1ba2e0ee34" />
 </p>
 
 <p align="center">

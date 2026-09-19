@@ -84,6 +84,12 @@ export interface Translations {
     defaultPlayerDesc: string;
     rawCardTitle: string;
     rawCardDesc: string;
+    lyricsTitle: string;
+    lyricsBadge: string;
+    lyricsDesc: string;
+    lyricsModeOff: string;
+    lyricsModeSingle: string;
+    lyricsModeDual: string;
     sourcesTitle: string;
     sourceApp: string;
     selectPlayerPlaceholder: string;
@@ -226,6 +232,12 @@ export const translations: Record<LanguageKey, Translations> = {
       defaultPlayerDesc: '车载切歌与快速启动时优先使用的音频App',
       rawCardTitle: '音频 App 原始播放卡片',
       rawCardDesc: '开启后将显示原始播放卡片，按键颜色会受封面影响',
+      lyricsTitle: '车载实时歌词',
+      lyricsBadge: 'BETA',
+      lyricsDesc: 'QQ/网易云高度适配，其他音源视歌词资源而定',
+      lyricsModeOff: '关闭',
+      lyricsModeSingle: '单行',
+      lyricsModeDual: '双行',
       sourcesTitle: '活跃播放源',
       sourceApp: '来源应用',
       selectPlayerPlaceholder: '请选择播放器',
@@ -366,6 +378,12 @@ export const translations: Record<LanguageKey, Translations> = {
       defaultPlayerDesc: 'Preferred audio app for in-car controls and quick launch',
       rawCardTitle: 'Audio App Original Playing Card',
       rawCardDesc: 'Enabling shows original playing card; button colors may be affected by cover art',
+      lyricsTitle: 'In-Car Live Lyrics',
+      lyricsBadge: 'BETA',
+      lyricsDesc: 'QQ & NetEase adapted, others depend on resources',
+      lyricsModeOff: 'Off',
+      lyricsModeSingle: 'Single',
+      lyricsModeDual: 'Dual',
       sourcesTitle: 'Active Media Sessions',
       sourceApp: 'Application',
       selectPlayerPlaceholder: 'Select a player',
@@ -506,6 +524,12 @@ export const translations: Record<LanguageKey, Translations> = {
       defaultPlayerDesc: 'Bevorzugte Audio-App für Fahrzeugsteuerung und Schnellstart',
       rawCardTitle: 'Original-Wiedergabekarte der Audio-App',
       rawCardDesc: 'Bei Aktivierung wird die Originalkarte angezeigt; Tastenfarben können vom Cover beeinflusst werden',
+      lyricsTitle: 'Live-Songtexte im Auto',
+      lyricsBadge: 'BETA',
+      lyricsDesc: 'QQ & NetEase angepasst, andere nach Ressourcen',
+      lyricsModeOff: 'Aus',
+      lyricsModeSingle: 'Einzeln',
+      lyricsModeDual: 'Doppelt',
       sourcesTitle: 'Aktive Medien-Sessions',
       sourceApp: 'Quell-Anwendung',
       selectPlayerPlaceholder: 'Player auswählen',
@@ -646,6 +670,12 @@ export const translations: Record<LanguageKey, Translations> = {
       defaultPlayerDesc: '車載操作およびクイック起動で優先するオーディオApp',
       rawCardTitle: 'オーディオAppのオリジナル再生カード',
       rawCardDesc: '有効にするとオリジナルの再生カードを表示します（ボタンの色がカバーの影響を受ける場合があります）',
+      lyricsTitle: '車載リアルタイム歌詞',
+      lyricsBadge: 'BETA',
+      lyricsDesc: 'QQ/NetEase高度対応、他は音源次第',
+      lyricsModeOff: 'オフ',
+      lyricsModeSingle: '1行',
+      lyricsModeDual: '2行',
       sourcesTitle: 'アクティブな再生ソース',
       sourceApp: '再生元アプリ',
       selectPlayerPlaceholder: '音楽アプリを選択',

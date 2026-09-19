@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.2.0-orange)
+![Version](https://img.shields.io/badge/Version-v1.2.5-orange)
 
 > A local-first interoperability bridge tailored for Android Auto, enabling car displays to naturally display and partially control your favorite Chinese streaming audio and messaging notifications while driving abroad.
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.2.0/Fahrmony_v1.2.0.apk">
+  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.2.5/Fahrmony_v1.2.5.apk">
     <img src="https://img.shields.io/badge/Download_Latest_Fahrmony_APK-blue?style=forthebadge" height="60">
   </a>
 </p>  
@@ -52,10 +52,11 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 - **Session Discovery & Smart Arbitration**: Automatically detects active playback across the system and anchors focus when switching apps to prevent card jumping.
 - **Cold Start & Warm Reconnect Resumption**: Finely polished for media app and Android Auto cold starts and warm reconnects. Upon connecting to Android Auto, the system automatically detects and resumes playback state without requiring manual clicks on the phone or car screen in most driving scenarios; features built-in active verification and self-healing retry logic for sluggish background starts.
 - **Adaptive Ambient Artwork & Original Covers**: Generates high-contrast gradient backdrops by default to completely eliminate invisible black buttons on dark album art; optionally enable the "Audio App Original Playing Card" toggle in the phone's Media settings to display authentic original album covers directly on your car screen.
-- **Queue Passthrough & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; probes and supports standard repeat modes as well as vendor custom actions.
+- **Playback Queue & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; probes and supports standard repeat modes as well as vendor custom actions.
 - **Driving Safety Notification Assistant & Disconnection Cleanup**: Deconstructs direct and group messages, filters out group chat spam, and generates automotive-standard cards with voice readout and "Mark as Read" actions; automatically halts message forwarding and destroys residual bridge notifications upon car disconnection to eliminate phone-side duplicate alerts.
 - **Anti-Jitter & Audio Leak Prevention**: Instantly claims transient audio focus and pauses all players upon car disconnection to eliminate speaker audio leakage; enforces an anti-jitter state lock during track switching to prevent UI flashing.
 - **Unified Fluid Interface & Pure Background Controls**: A lightweight fluid console on the handset dynamically adapted to various screen resolutions; browser scrollbars are completely hidden, delivering silky 120fps native-like stretch and overscroll bounce; supports adaptive light/dark theming with "Follow System" mode, 4-language support, and permission setup guides.
+- **In-Car Live Lyrics & Multi-Mode Switching**: Real-time scrolling lyrics on head-unit playing cards with instant toggling between "Single-line", "Dual-line (with next line preview)", and "Off" via phone Media tab or in-car controls; precision adaptive timeline synchronization, smooth line transitions, and built-in Traditional/Simplified Chinese auto-conversion with multi-tier memory throttling.
 - **Silent Update Detection**: Built-in lightweight update sensing checks the official GitHub Release once daily in the background with randomized jitter; double-tapping the app logo inside the "About" dialog also triggers an immediate update check to ensure you stay up to date.
 
 ## Compatibility
@@ -68,6 +69,7 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 | **Track Skip** | **Full** | Issues next/previous commands with state lock | Certain radio or podcast streams do not implement previous track |
 | **Seek** | **Supported** | Relays seek timestamps in milliseconds and syncs UI progress | Disabled for live streams or non-seekable streams |
 | **Track Metadata** | **Full** | Extracts title, artist, and album with multi-tier fallback parsing | Displays app name temporarily if metadata delivery is delayed |
+| **Live Lyrics Display** | **Basic Support** | Highly adapted for mainstream audio sources; other sources depend on online resource availability | Requires target track to contain valid timestamped lyrics; normal for podcasts/audiobooks to lack lyrics |
 | **Custom Audio Source** | **Full** | Auto-detects active background apps for recommendations or active in-app selection | Requires target app to register MediaSession or post media notification |
 | **Cover Artwork** | **Adaptive** | Generates high-contrast gradient art to preserve button visibility | Avoids loading remote image bitmaps directly by default; optional raw card support |
 | **Playback Queue** | **Passthrough** | Displays track lists on car display when provided by source app | Automatically hidden if the source app does not expose a queue |
@@ -108,7 +110,7 @@ All permissions declared in the system manifest and their actual technical purpo
 
 | Permission | Component | Technical Purpose & Disclosure |
 | :--- | :--- | :--- |
-| **Network Access** | UI Container Environment | Standard configuration for hybrid WebView container. **Fahrmony contains zero backend servers, zero networking code, zero analytics, and never transmits data externally.** |
+| **Network Access** | Online Lyrics Retrieval & UI Container | **Transparent Disclosure**: Used on-demand to fetch LRC lyric text from public online sources when playing tracks without embedded lyrics, and for lightweight update checking. **Fahrmony contains zero backend servers, zero analytics or telemetry, and never uploads personal data.** |
 | **Notification Access** | Core Media & Message Bridge | Essential permission. Used to discover media tokens from status bar notifications and capture messages for voice readouts. Processed purely in volatile RAM. |
 | **Query All Packages** | Custom Player & App Discovery | Used on Android 11+ to query installed audio/video app names and icons for accurate identification and smart recommendations in custom slots. |
 | **Foreground Service** | Background Daemon Stability | Maintains service persistence when the phone screen is locked or another app is in use. |
@@ -187,7 +189,7 @@ Audio automatically routes through the vehicle speakers when connected. Upon dis
 If you encounter an issue during daily driving, please file a report on GitHub Issues using the template below (**Note: Never submit personal private chat contents**):
 
 ```text
-- Fahrmony Version: v1.2.0
+- Fahrmony Version: v1.2.5
 - Android OS Version: e.g., Android 14
 - Phone Model: e.g., Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto Version: e.g., 11.8
@@ -243,7 +245,7 @@ Developers may optionally attach relevant log excerpts to their issue submission
 ## Privacy Policy
 
 1. **100% Local-First**: All notifications, text parsing, and media states are **processed purely in volatile memory (RAM)** and discarded immediately; nothing is written to disk storage.
-2. **No Proprietary Backend & Zero Data Harvesting**: No proprietary servers exist and no personal telemetry is collected; only a direct, read-only version query is sent to the official GitHub Releases API during update checks, with zero device identifiers or analytics attached.
+2. **No Proprietary Backend & Zero Data Harvesting**: No proprietary servers exist and no personal telemetry is collected; network requests are strictly limited to fetching lyric text on-demand for active tracks from public online sources and performing read-only version checks via the official GitHub Releases API without transmitting any device identifiers or analytics.
 3. **No Analytics or Trackers**: Completely free of advertising, behavior tracking, or crash analytics SDKs.
 4. **User Revocable**: Permissions can be revoked at any time through Android system settings.
 
@@ -255,17 +257,25 @@ Developers may optionally attach relevant log excerpts to their issue submission
 ▼
 ┌─ Fahrmony Dedicated Automotive System Process (:car)
 │  ├─ MediaSession Perception, Smart Arbitration & Active Cold-Start Resume
+│  ├─ Live Lyrics Sync Engine (Millisecond Binary Search, 0-GC Cleanup & Adaptive Scheduling)
 │  ├─ Message Payload Cleaning, Group Filtering, Normalized Translation & Disconnect Auto-Cleanup
 │  ├─ MediaBrowserServiceCompat Implementation
 │  └─ Persistent Foreground Daemon
 ▼
 ┌─ Fahrmony Handset Frontend (Main Process)
-│  └─ Link Monitoring, Source Perception, Custom Player Management & i18n
+│  └─ Link Monitoring, Source Perception, Lyrics Mode Management, Custom Player & i18n
 ▼
 ┌─ In-Vehicle Screen (Android Auto)
-│  ├─ Media Playback Dashboard & Split-Screen Cards
+│  ├─ Media Playback Dashboard & Split-Screen Cards (Optional Live Lyrics)
 │  └─ In-Car Voice Assistant Safe Notification Readout Announcement
 ```
+
+### Open-Source Architecture Note on Lyrics Providers
+
+In Fahrmony's automotive live lyrics architecture, we adopted a decoupled, pluggable Provider design:
+- **Core Scheduling & Sync Engine**: Includes millisecond progress estimation (`LyricSyncEngine`), LRC standard parser (`LrcParser`), Chinese character conversion and noise cleaning engine (`LyricsCleanupManager`), and automotive 3-state (Single/Dual/Off) streaming—all completely open-source;
+- **Provider Isolation & Stub Contract**: To ensure the long-term stability and self-contained build of the open-source repository, and to minimize maintenance and compliance risks caused by changes in third-party undocumented web APIs, an industry-standard **"Stub Contract"** pattern is used for external web scraper providers, cleanly separating network crawling from core automotive engineering;
+- **Custom Extensibility**: Developers can easily implement and register custom sources using the open `LyricsProvider` interface contract. We sincerely appreciate the understanding and support of our users and developer community!
 
 ## Tech Stack
 
@@ -299,10 +309,10 @@ Released under the **Creative Commons Attribution-NonCommercial 4.0 Internationa
 
 ---
 
-## Preview v1.2.0
+## Preview v1.2.5
 
 <p align="center">
-  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/03007905-3bbb-43da-8f7e-d7d0d9532fb3" />
+  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/b8692e9c-62e5-4f82-aff7-be1ba2e0ee34" />
 </p>
 
 <p align="center">
