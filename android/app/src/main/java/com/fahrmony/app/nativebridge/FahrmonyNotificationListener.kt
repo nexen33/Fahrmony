@@ -36,6 +36,8 @@ class FahrmonyNotificationListener : NotificationListenerService() {
         var isConnected = false
             private set
 
+        private val lastNotificationArtworkMap = java.util.concurrent.ConcurrentHashMap<String, Bitmap>()
+
         /**
          * 自动扫描并消除由 Fahrmony 发出的所有 IM 车载转接通知残留
          * 严格基于渠道隔离，绝不影响常驻前台保活服务通知 (ID: 1001)
@@ -98,7 +100,17 @@ class FahrmonyNotificationListener : NotificationListenerService() {
             if (icon != null) {
                 val drawable = icon.loadDrawable(applicationContext)
                 if (drawable != null) {
-                    notificationArtwork = drawableToBitmap(drawable)
+                    val decoded = drawableToBitmap(drawable)
+                    val prevBmp = lastNotificationArtworkMap[packageName]
+                    if (prevBmp != null && !prevBmp.isRecycled && decoded.width == prevBmp.width && decoded.height == prevBmp.height && decoded.sameAs(prevBmp)) {
+                        if (decoded != prevBmp && !decoded.isRecycled) {
+                            decoded.recycle()
+                        }
+                        notificationArtwork = prevBmp
+                    } else {
+                        lastNotificationArtworkMap[packageName] = decoded
+                        notificationArtwork = decoded
+                    }
                 }
             }
         } catch (ignored: Exception) {}
@@ -109,6 +121,14 @@ class FahrmonyNotificationListener : NotificationListenerService() {
                 packageName != applicationContext.packageName
 
         if (isSupportedMedia || (mediaToken != null && isCandidateMedia)) {
+            if (notificationArtwork != null) {
+                FahrmonyLogBuffer.addLog(
+                    "ARTWORK_IN",
+                    "通知栏封面捕获",
+                    "来源: StatusBarIcon, 尺寸: ${notificationArtwork.width}x${notificationArtwork.height}, genId: ${notificationArtwork.generationId}",
+                    packageName
+                )
+            }
             android.util.Log.i("Fahrmony_CUSTOM", "[NOTIF_POSTED] pkg: $packageName, isSupported: $isSupportedMedia, hasMediaToken: ${mediaToken != null}")
             val nExtras = sbn.notification?.extras
             if (nExtras != null) {

@@ -134,6 +134,11 @@ object FahrmonyConfig {
         return getPrefs(context).getBoolean(KEY_AUTO_PLAY, true)
     }
 
+    /**
+     * 音频 App 原始专辑封面开关 (Phase 8.0)
+     * 开启时车机端直出音源 App 原始封面 (<=240px)；
+     * 关闭时沿用 5 色高动态低饱和流光封面防黑键。
+     */
     fun isRawPlayerCardEnabled(context: Context): Boolean {
         return getPrefs(context).getBoolean(KEY_RAW_PLAYER_CARD, false)
     }
@@ -297,5 +302,14 @@ object FahrmonyCarI18n {
 
     fun getLyricsActionTitle(context: Context, isEnabled: Boolean): String {
         return getLyricsActionTitle(context, if (isEnabled) 1 else 0)
+    }
+
+    fun getArtworkModeActionTitle(context: Context, isRawArtwork: Boolean): String {
+        return when (FahrmonyConfig.getLanguage(context)) {
+            "en-US" -> if (isRawArtwork) "Art: Original" else "Art: Gradient"
+            "de-DE" -> if (isRawArtwork) "Cover: Original" else "Cover: Farbverlauf"
+            "ja-JP" -> if (isRawArtwork) "カバー: オリジナル" else "カバー: グラデーション"
+            else -> if (isRawArtwork) "封面: 原始" else "封面: 流光"
+        }
     }
 }

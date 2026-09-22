@@ -122,12 +122,7 @@ class LyricSyncEngine(private val mainHandler: Handler = Handler(Looper.getMainL
 
         if (!isPlaying) {
             stopTick()
-            // 暂停态保持当前行展示，不强制重置；若为停止或错误状态则执行复原
-            if (state?.state == PlaybackStateCompat.STATE_STOPPED || 
-                state?.state == PlaybackStateCompat.STATE_ERROR || 
-                state?.state == PlaybackStateCompat.STATE_NONE) {
-                reset(notifyListener = true)
-            }
+            // 暂停或缓冲瞬态保持当前行展示，绝不因切歌瞬态的 STATE_NONE/STATE_STOPPED 清空已加载歌词
         } else {
             evaluateAndSchedule()
         }
@@ -216,6 +211,15 @@ class LyricSyncEngine(private val mainHandler: Handler = Handler(Looper.getMainL
     }
 
     /**
+     * 强制重新分发当前歌词行（例如封面模式切换或元数据热刷新时立即重推，无需等待下一行时间戳到达）
+     */
+    fun retriggerCurrentLine() {
+        if (!isEnabled || activeEntries.isEmpty()) return
+        lastNotifiedIndex = -2
+        evaluateAndSchedule()
+    }
+
+    /**
      * 状态复原门禁
      */
     fun reset(notifyListener: Boolean = true) {
@@ -245,24 +249,36 @@ class LyricSyncEngine(private val mainHandler: Handler = Handler(Looper.getMainL
                 return maxOf(0L, basePos + offset)
             }
 
-            val updateTime = state.lastPositionUpdateTime
             val now = SystemClock.elapsedRealtime()
-            // 如果第三方播放器 (如酷我/波点) 切换曲目时未刷新 lastPositionUpdateTime，导致 updateTime 停留在几分钟/几小时前的上一曲时间，
-            // 采用当前曲目开始的时间戳 trackStartTimeRealtime 作为下限兜底，避免时间差暴增；
-            // 正常播放时 elapsedRealtime 随曲目正常推进 (可达整首歌 3~10 分钟)，绝不设人工秒数上限
-            val effectiveUpdateTime = if (updateTime > 0L) {
-                if (trackStartTimeRealtime > 0L && updateTime < trackStartTimeRealtime - 3000L) {
-                    trackStartTimeRealtime
-                } else {
-                    updateTime
-                }
+            // 切歌隔离：在新歌刚开始的短窗口期内 (1500ms 内)，若上报的进度仍大于 3 秒，判定为上一首曲目的残留进度，隔离清零
+            val effectiveBasePos = if (trackStartTimeRealtime > 0L && (now - trackStartTimeRealtime) < 1500L && basePos > 3000L) {
+                0L
             } else {
-                if (trackStartTimeRealtime > 0L) trackStartTimeRealtime else now
+                basePos
             }
 
-            val delta = if (now >= effectiveUpdateTime) (now - effectiveUpdateTime) else 0L
+            val updateTime = state.lastPositionUpdateTime
+            // 兼容绝对时间戳 (如 System.currentTimeMillis()) 与各种非标第三方时钟
+            val elapsed = if (updateTime > 1_000_000_000_000L) {
+                val wallNow = System.currentTimeMillis()
+                if (wallNow >= updateTime) (wallNow - updateTime) else 0L
+            } else {
+                val eff = when {
+                    updateTime in 1..now -> {
+                        if (trackStartTimeRealtime > 0L && updateTime < trackStartTimeRealtime - 3000L) {
+                            trackStartTimeRealtime
+                        } else {
+                            updateTime
+                        }
+                    }
+                    trackStartTimeRealtime in 1..now -> trackStartTimeRealtime
+                    else -> now
+                }
+                if (now >= eff) (now - eff) else 0L
+            }
+
             val speed = if (state.playbackSpeed > 0f) state.playbackSpeed else 1.0f
-            val currentPos = basePos + (delta * speed).toLong() + offset
+            val currentPos = effectiveBasePos + (elapsed * speed).toLong() + offset
             return maxOf(0L, currentPos)
         }
 

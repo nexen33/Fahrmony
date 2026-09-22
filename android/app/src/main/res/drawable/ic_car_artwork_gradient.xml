@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+    <!-- 外框矩形 + 内部方形实心填充且与边框保留间距 (流光卡片意象) -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M19,4H5C3.9,4 3,4.9 3,6v12c0,1.1 0.9,2 2,2h14c1.1,0 2,-0.9 2,-2V6C21,4.9 20.1,4 19,4zM19,18H5V6h14V18zM8,8h8v8H8V8z" />
+</vector>

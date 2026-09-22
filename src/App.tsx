@@ -1944,7 +1944,7 @@ export default function App() {
                       />
                     </div>
 
-                    {/* 音频 App 原始播放卡片 Toggle */}
+                    {/* 音频 App 原始专辑封面 Toggle */}
                     <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ paddingRight: '12px' }}>
                         <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -2463,7 +2463,7 @@ export default function App() {
                       Fahrmony
                     </div>
                     <div style={{ fontSize: '15px', color: 'var(--accent-primary)', fontWeight: 600, marginTop: '2px' }}>
-                      v1.2.5
+                      v1.2.7
                     </div>
                   </div>
 
@@ -2501,6 +2501,13 @@ export default function App() {
                   </div>
                   {/* 仅“更新日志”标题与下方双按钮之间的内容区域具有滚动能力 */}
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.2.7（当前）</div>
+                      <div style={{ marginTop: '4px' }}>
+                        • 新增: 开放可选在车机端显示音频 App 原始专辑封面<br />
+                        • 优化: 手机锁屏与息屏状态下的冷启动机制，对预置音源深度适配
+                      </div>
+                    </div>
                     <div>
                       <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.2.5</div>
                       <div style={{ marginTop: '4px' }}>

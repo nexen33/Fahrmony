@@ -12,6 +12,7 @@ import android.os.Looper;
 import android.view.View;
 import android.webkit.WebView;
 import com.fahrmony.app.nativebridge.FahrmonyIpcBridge;
+import com.fahrmony.app.nativebridge.FahrmonyLogBuffer;
 import com.fahrmony.app.nativebridge.FahrmonyMediaManager;
 import com.fahrmony.app.nativebridge.FahrmonyPlugin;
 import com.fahrmony.app.nativebridge.FahrmonyUpdateManager;
@@ -37,6 +38,7 @@ public class MainActivity extends BridgeActivity {
         String chainPkg = intent.getStringExtra("EXTRA_CHAIN_LAUNCH_PKG");
         if (chainPkg != null && !chainPkg.trim().isEmpty()) {
             intent.removeExtra("EXTRA_CHAIN_LAUNCH_PKG");
+            FahrmonyLogBuffer.INSTANCE.addLog("WAKE", "MainActivity链式处理", "收到链式启动目标: " + chainPkg, chainPkg, null);
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 try {
                     Intent targetIntent = getPackageManager().getLaunchIntentForPackage(chainPkg);
@@ -49,8 +51,11 @@ public class MainActivity extends BridgeActivity {
                     if (targetIntent != null) {
                         targetIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
                         startActivity(targetIntent);
+                        FahrmonyLogBuffer.INSTANCE.addLog("WAKE", "MainActivity链式拉起目标", "已调用startActivity拉起: " + chainPkg, chainPkg, null);
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    FahrmonyLogBuffer.INSTANCE.addLog("WAKE", "MainActivity链式拉起异常", "" + e.getMessage(), chainPkg, null);
+                }
             }, 300L);
         }
     }
@@ -93,8 +98,19 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    private void enableLockscreenFlags() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true);
+            setTurnScreenOn(true);
+        } else {
+            getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                    | android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        enableLockscreenFlags();
         applyPersistedTheme();
         registerPlugin(FahrmonyPlugin.class);
         super.onCreate(savedInstanceState);
@@ -110,6 +126,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        enableLockscreenFlags();
         setIntent(intent);
         handleChainLaunch(intent);
     }

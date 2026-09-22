@@ -132,6 +132,8 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
                         FahrmonyMediaManager.toggleRepeatMode()
                     } else if (action == FahrmonyMediaManager.ACTION_TOGGLE_LYRICS) {
                         FahrmonyMediaManager.toggleLyricsMode(applicationContext)
+                    } else if (action == FahrmonyMediaManager.ACTION_TOGGLE_ARTWORK_MODE) {
+                        FahrmonyMediaManager.toggleArtworkMode(applicationContext)
                     }
                 }
 

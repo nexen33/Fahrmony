@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.2.5-orange)
+![Version](https://img.shields.io/badge/Version-v1.2.7-orange)
 
 > Eine lokale Schnittstellenbrücke für Android Auto, mit der Fahrzeug-Displays bei Fahrten im Ausland gängige chinesische Audio-Streaming- und Messaging-Dienste nahtlos anzeigen und teilweise steuern können.
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.2.5/Fahrmony_v1.2.5.apk">
+  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.2.7/Fahrmony_v1.2.7.apk">
     <img src="https://img.shields.io/badge/Neuestes_Fahrmony_APK_herunterladen-blue?style=forthebadge" height="60">
   </a>
 </p>  
@@ -49,8 +49,8 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 - **Standard-Bedienelemente im Fahrzeug**: Wiedergabe, Pause, Vor- und Zurückspringen sowie präzises Spulen direkt am Bordbildschirm.
 - **Benutzerdefinierte Audioquellen & Intelligente Empfehlungen**: Neben voreingestellten Audio-Apps erkennt Fahrmony im Hintergrund spielende Audio-Apps automatisch, liest App-Namen sowie Symbole aus und ermöglicht das Hinzufügen über Empfehlungsbanner oder direkt in den Einstellungen als benutzerdefinierte Quelle.
 - **Sitzungserkennung und -fokus**: Erkennt aktive Audiositzungen und stabilisiert die Steuerung beim Wechsel zwischen mehreren Audio-Apps.
-- **Kaltstart und automatische Wiederverbindung**: Speziell optimiert für Kaltstart und Wiederverbindung von Apps und Android Auto. Bei Verbindung mit Android Auto wird der letzte Wiedergabestatus automatisch erkannt und fortgesetzt – in den allermeisten Alltagsszenarien ganz ohne manuelles Tippen auf dem Smartphone oder Autobildschirm. Inklusive aktiver Startverifikation und robuster Selbstheilungs-Wiederholungslogik für ruhende Hintergrund-Apps.
-- **Adaptiver Hintergrund & Original-Cover**: Dynamische Farbabstimmung verhindert standardmäßig, dass dunkle Cover-Bilder die Bedientasten unleserlich machen; optional lässt sich über die Option „Audio-App Original-Wiedergabekarte“ in den Smartphone-Medieneinstellungen direkt das echte Original-Cover im Auto anzeigen.
+- **Kaltstart und automatische Wiederverbindung**: Speziell optimiert für Kaltstart und Wiederverbindung von Apps und Android Auto. Kaltstarts wurden für voreingestellte Audioquellen tiefgehend angepasst. Bei Verbindung mit Android Auto wird der letzte Wiedergabestatus automatisch erkannt und fortgesetzt – in den allermeisten Alltagsszenarien ganz ohne manuelles Tippen auf dem Smartphone oder Autobildschirm. Inklusive aktiver Startverifikation und robuster Selbstheilungs-Wiederholungslogik für ruhende Hintergrund-Apps.
+- **Adaptiver Hintergrund & Original-Cover**: Dynamische Farbabstimmung verhindert standardmäßig, dass dunkle Cover-Bilder die Bedientasten unleserlich machen; die neue optionale Einstellung „Audio-App Original-Wiedergabekarte“ ermöglicht es, direkt das klare, hochauflösende Original-Cover im Auto anzuzeigen, um individuellen Vorlieben für visuelle Originaltreue oder kontrastreiche Tasten gerecht zu werden.
 - **Wiedergabelisten und Wiederholungsmodi**: Reicht vorhandene Titellisten durch und unterstützt gängige Schleifen- und Wiederholungsmodi.
 - **Fahrgerechte Nachrichtenbenachrichtigung & Aufräumdienst**: Filtert Gruppenchats und ermöglicht das Vorlesen sowie die Bestätigung als gelesen per Tastendruck; beendet beim Trennen der Verbindung die Weiterleitung und löscht verbleibende Benachrichtigungskarten auf dem Smartphone zuverlässig.
 - **Schutz vor versehentlicher Tonwiedergabe**: Pausiert die Wiedergabe sofort beim Trennen des Kabels, damit das Handy nicht plötzlich laut weiterspielt.
@@ -63,7 +63,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 > **Prinzip**: Die Kompatibilität basiert auf technischen Standardschnittstellen und ist nicht an bestimmte App-Hersteller gebunden. Jede Anwendung, die Standard-Mediensitzungen oder Systembenachrichtigungen nutzt, wird unterstützt.
 
 | Funktion | Status | Technische Umsetzung | Grenzen & Bedingungen |
-| :--- | :---: | :--- | :--- |
+| :--- | :--- | :--- | :--- |
 | **Wiedergabe und Pause** | **Vollständig** | Über Standard-Mediensteuerung mit Tastensperre gegen Mehrfachklicks | Quell-App muss auf Medienbefehle des Systems reagieren |
 | **Vor- und Zurückspringen** | **Vollständig** | Standardbefehle mit zeitlicher Statusverriegelung | Manche Radio- oder Podcast-Streams bieten kein Zurückspringen |
 | **Spulen im Titel** | **Unterstützt** | Reicht die Zeitposition durch und aktualisiert die Fortschrittsanzeige | Bei Live-Übertragungen technisch nicht möglich |
@@ -74,7 +74,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 | **Wiedergabeliste** | **Durchgereicht** | Zeigt die Titelliste an, sofern die Quell-App diese an das System meldet | Bleibt automatisch ausgeblendet, wenn keine Liste vorhanden ist |
 | **Wiederholungsmodus** | **Adaptiv** | Unterstützt Standardeinstellungen und herstellerspezifische Aktionen | Abhängig von der Umsetzung in der jeweiligen Quell-App |
 | **Zufallswiedergabe** | **Eingeschränkt** | Funktioniert nur, wenn die Quell-App entsprechende Aktionen anbietet | Wird von vielen Streaming-Apps nicht über Standards bereitgestellt |
-| **Kaltstart bei Bedarf** | **Vollständig** | Startet ruhende Ziel-Apps per Systembefehl und setzt die Wiedergabe fort | Erfordert erlaubte Hintergrund- oder Autostart-Rechte im Handy |
+| **Kaltstart bei Bedarf** | **Vollständig** | Durchdringt Sperrbildschirm/abgeschaltetes Display automatisch und startet die Wiedergabe sekundenschnell, sobald die Audio-Engine bereit ist | Erfordert Hintergrund- bzw. Autostart-Rechte und Benachrichtigungszugriff |
 | **Benachrichtigungsanzeige** | **Vollständig** | Wandelt Nachrichten in standardisierte Karten für das Fahrzeug um | Erfordert Benachrichtigungszugriff; löscht Restkarten nach Verbindungsende |
 | **Sprachausgabe** | **Systemgesteuert** | Wiedergabe erfolgt automatisch über den Sprachassistenten des Autos | Sprachausgabe richtet sich nach den Spracheinstellungen im Konto |
 | **Direktes Antworten** | **Nicht unterstützt** | Bietet Bestätigung als gelesen. Das Senden von Text zurück an die App wird nicht unterstützt | Messaging-Apps bieten keine öffentlichen Schnittstellen für externe Antworten |
@@ -188,7 +188,7 @@ Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über di
 Wenn im Alltag ein Problem auftritt, können Sie gerne eine Fehlermeldung auf GitHub einreichen. Bitte nutzen Sie folgende Vorlage (**Hinweis: Bitte niemals vertrauliche private Nachrichteninhalte übermitteln**):
 
 ```text
-- Fahrmony-Version: v1.2.5
+- Fahrmony-Version: v1.2.7
 - Android-Version: z. B. Android 14
 - Smartphone-Modell: z. B. Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto-Version: z. B. 11.8
@@ -308,10 +308,10 @@ Dieses Projekt ist unter der Lizenz **Creative Commons Namensnennung - Nicht-kom
 
 ---
 
-## Vorschau v1.2.5
+## Vorschau v1.2.7
 
 <p align="center">
-  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/b8692e9c-62e5-4f82-aff7-be1ba2e0ee34" />
+  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/03007905-3bbb-43da-8f7e-d7d0d9532fb3" />
 </p>
 
 <p align="center">
