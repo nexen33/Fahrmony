@@ -127,9 +127,15 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
                     FahrmonyMediaManager.setRepeatMode(repeatMode)
                 }
 
+                override fun onSetShuffleMode(shuffleMode: Int) {
+                    FahrmonyMediaManager.setShuffleMode(shuffleMode)
+                }
+
                 override fun onCustomAction(action: String?, extras: Bundle?) {
                     if (action == FahrmonyMediaManager.ACTION_CAR_REPEAT) {
                         FahrmonyMediaManager.toggleRepeatMode()
+                    } else if (action == FahrmonyMediaManager.ACTION_CAR_SHUFFLE) {
+                        FahrmonyMediaManager.toggleShuffleMode()
                     } else if (action == FahrmonyMediaManager.ACTION_TOGGLE_LYRICS) {
                         FahrmonyMediaManager.toggleLyricsMode(applicationContext)
                     } else if (action == FahrmonyMediaManager.ACTION_TOGGLE_ARTWORK_MODE) {
@@ -143,6 +149,7 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
             })
 
             setRepeatMode(FahrmonyMediaManager.getActiveRepeatMode())
+            setShuffleMode(FahrmonyMediaManager.getActiveShuffleMode())
             isActive = true
         }
 
@@ -171,13 +178,9 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
 
     override fun onRebind(intent: Intent?) {
         super.onRebind(intent)
-        val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        val isCarMode = uiModeManager?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_CAR
-        if (isCarMode) {
-            isCarConnected = true
-            FahrmonyIpcBridge.notifyCarConnectedChanged(true)
-            FahrmonyMediaManager.onCarConnected(applicationContext)
-        }
+        isCarConnected = true
+        FahrmonyIpcBridge.notifyCarConnectedChanged(true)
+        FahrmonyMediaManager.onCarConnected(applicationContext)
     }
 
     override fun onGetRoot(
@@ -323,7 +326,15 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
 
     fun syncRepeatMode(repeatMode: Int) {
         if (::mediaSession.isInitialized) {
-            mediaSession.setRepeatMode(repeatMode)
+            val safeMode = FahrmonyMediaManager.sanitizeRepeatMode(repeatMode)
+            mediaSession.setRepeatMode(safeMode)
+        }
+    }
+
+    fun syncShuffleMode(shuffleMode: Int) {
+        if (::mediaSession.isInitialized) {
+            val safeMode = FahrmonyMediaManager.sanitizeShuffleMode(shuffleMode)
+            mediaSession.setShuffleMode(safeMode)
         }
     }
 

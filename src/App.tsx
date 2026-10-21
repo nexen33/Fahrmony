@@ -14,6 +14,7 @@ import { translations, type LanguageKey } from './i18n/index.ts';
 import { Switch } from './components/Switch.tsx';
 import { CustomSelect } from './components/CustomSelect.tsx';
 import { SplashView } from './components/SplashView.tsx';
+import { PlayModeCalibrationPopover } from './components/PlayModeCalibrationPopover.tsx';
 
 // 392dp 基准全局屏幕动态自适应 (遵循老项目规范 line 419)
 const calculateZoomRatio = () => {
@@ -319,14 +320,49 @@ const BASE_SUPPORTED_PLAYER_PACKAGES = [
   'app.podcast.cosmos',
 ];
 
-const isPackageMatch = (pkgA?: string | null, pkgB?: string | null): boolean => {
+const isPackageMatch = (pkgA?: string | null, pkgB?: string | null, hasMainKugou: boolean = true): boolean => {
   if (!pkgA || !pkgB) return false;
-  if (pkgA.toLowerCase() === pkgB.toLowerCase()) return true;
-  const kugouAliases = ['kugou.service', 'com.kugou.android', 'com.kugou.android.lite'];
-  if (kugouAliases.includes(pkgA) && kugouAliases.includes(pkgB)) {
-    return true;
+  const a = pkgA.toLowerCase();
+  const b = pkgB.toLowerCase();
+  if (a === b) return true;
+  // 酷狗音乐预置位 (kugou.service) 专属优先绑定正式版 (com.kugou.android)；
+  // 两个独立实体版本 (com.kugou.android 与 com.kugou.android.lite) 之间绝对互斥，严禁互相匹配。
+  // 若一方为预置位别名 kugou.service，优先匹配正式版，仅在未安装正式版时降级匹配概念版。
+  if (a === 'kugou.service' || b === 'kugou.service') {
+    const other = a === 'kugou.service' ? b : a;
+    if (other === 'com.kugou.android') return true;
+    if (other === 'com.kugou.android.lite') return !hasMainKugou;
   }
   return false;
+};
+
+const PlayModeCalibrationPopoverWrapper: React.FC<{
+  activePackage: string | null;
+  t: any;
+  onCalibrated: () => void;
+}> = ({ activePackage, t, onCalibrated }) => {
+  const [renderedPkg, setRenderedPkg] = useState<string | null>(activePackage);
+
+  useEffect(() => {
+    if (activePackage) {
+      setRenderedPkg(activePackage);
+    } else {
+      const timer = window.setTimeout(() => {
+        setRenderedPkg(null);
+      }, 260);
+      return () => window.clearTimeout(timer);
+    }
+  }, [activePackage]);
+
+  if (!renderedPkg) return null;
+
+  return (
+    <PlayModeCalibrationPopover
+      packageName={renderedPkg}
+      t={t}
+      onCalibrated={onCalibrated}
+    />
+  );
 };
 
 export default function App() {
@@ -438,11 +474,41 @@ export default function App() {
   appConfigRef.current = appConfig;
 
   const selectedPlayerPkg = appConfig.defaultPlayerPackage || '';
-  // 概览页大卡片精准映射当前选择播放器的实际后台实况：有对应后台会话则如实展示，无则进入干净的未播放等待态 (支持同源包名别名归一化)
+  // 酷狗实际包名精准感知 (com.kugou.android vs com.kugou.android.lite)
+  const [resolvedKugouPkg, setResolvedKugouPkg] = useState<string | null>(null);
+  const hasMainKugou = resolvedKugouPkg !== 'com.kugou.android.lite';
+
+  // 概览页大卡片精准映射当前选择播放器的实际后台实况：有对应后台会话则如实展示，无则进入干净的未播放等待态
   const displayedSession = useMemo(() => {
     if (!selectedPlayerPkg) return null;
-    return mediaSessions.find((s) => isPackageMatch(s.packageName, selectedPlayerPkg)) || null;
-  }, [mediaSessions, selectedPlayerPkg]);
+    return mediaSessions.find((s) => isPackageMatch(s.packageName, selectedPlayerPkg, hasMainKugou)) || null;
+  }, [mediaSessions, selectedPlayerPkg, hasMainKugou]);
+
+  // 酷狗概念版双场景智能识别：预置位默认专属于正式版；只有当系统彻底未安装正式版时，才兼容接纳概念版
+  const isCustomKugouLite = customPlayer?.pkg === 'com.kugou.android.lite';
+  const isSceneAKugou = !isCustomKugouLite && !hasMainKugou && (isPackageMatch(appConfig.defaultPlayerPackage, 'kugou.service', hasMainKugou) || appConfig.kugou !== false);
+
+  // 毫秒级探测当前系统实际安装或正在调起的酷狗具体版本
+  useEffect(() => {
+    FahrmonyPlugin.resolvePackageName?.({ packageName: 'kugou.service' })
+      .then((res) => {
+        if (res?.resolvedPackage) {
+          setResolvedKugouPkg(res.resolvedPackage);
+        }
+      })
+      .catch(() => { });
+  }, [appConfig.defaultPlayerPackage, customPlayer]);
+
+  // 从活跃媒体会话中实时同步真实酷狗版本
+  useEffect(() => {
+    const hasMain = mediaSessions.some((s) => s.packageName === 'com.kugou.android');
+    const hasLite = mediaSessions.some((s) => s.packageName === 'com.kugou.android.lite');
+    if (hasMain) {
+      setResolvedKugouPkg('com.kugou.android');
+    } else if (hasLite && !resolvedKugouPkg) {
+      setResolvedKugouPkg('com.kugou.android.lite');
+    }
+  }, [mediaSessions, resolvedKugouPkg]);
 
   // 严格白名单与自定义音源过滤后的活跃播放源列表 (彻底屏蔽淘宝等无关会话)
   const supportedMediaSessions = useMemo(() => {
@@ -450,18 +516,26 @@ export default function App() {
     if (customPlayer?.pkg) {
       validPackages.push(customPlayer.pkg);
     }
-    return mediaSessions.filter((s) => validPackages.includes(s.packageName));
-  }, [mediaSessions, customPlayer]);
+    if (isSceneAKugou) {
+      validPackages.push('com.kugou.android.lite');
+    }
+    return mediaSessions.filter((s) => validPackages.some((p) => isPackageMatch(p, s.packageName)));
+  }, [mediaSessions, customPlayer, isSceneAKugou]);
 
   // 途径 2: 概览页静默感知候选会话 (当自定义位为空且有未被关闭的未知音乐在播放时呈现)
   const candidateDiscoveredSession = useMemo(() => {
     if (customPlayer) return null;
     return (
-      discoveredSessions.find(
-        (s) => s.isPlaying && s.packageName !== dismissedDiscoveredPkg && !BASE_SUPPORTED_PLAYER_PACKAGES.includes(s.packageName)
-      ) || null
+      discoveredSessions.find((s) => {
+        if (!s.isPlaying || s.packageName === dismissedDiscoveredPkg) return false;
+        // 若当前属于场景 A，酷狗概念版已被预置位完美接管，坚决不弹出新音源卡片骚扰用户
+        if (isSceneAKugou && isPackageMatch(s.packageName, 'kugou.service')) {
+          return false;
+        }
+        return !BASE_SUPPORTED_PLAYER_PACKAGES.some((p) => isPackageMatch(p, s.packageName));
+      }) || null
     );
-  }, [customPlayer, discoveredSessions, dismissedDiscoveredPkg]);
+  }, [customPlayer, discoveredSessions, dismissedDiscoveredPkg, isSceneAKugou]);
 
   // 封面非线性淡入淡出与切歌双图层过渡机制
   const [activeArtwork, setActiveArtwork] = useState<string | null>(null);
@@ -944,6 +1018,9 @@ export default function App() {
     if (!target) return;
     try {
       const res = await FahrmonyPlugin.launchApp({ packageName: target });
+      if (res?.actualPackage && isPackageMatch(res.actualPackage, 'com.kugou.android')) {
+        setResolvedKugouPkg(res.actualPackage);
+      }
       if (!res || !res.success) {
         showToast('未查找到该App');
       }
@@ -1605,33 +1682,103 @@ export default function App() {
                     );
                   })()}
 
-                  {/* 快捷拉起应用按键 (尺寸与内部字号与播放器选择框 100% 物理对齐) */}
-                  <div style={{ marginTop: '16px' }}>
-                    <button
-                      onClick={() => handleLaunchPlayer()}
-                      className="btn-jelly"
-                      style={{
-                        height: '32px',
-                        minHeight: '32px',
-                        padding: '0 12px',
-                        borderRadius: '8px',
-                        background: 'var(--bg-surface-elevated)',
-                        border: '1px solid var(--border-subtle)',
-                        color: 'var(--text-primary)',
-                        fontSize: '15px',
-                        fontWeight: 500,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        boxSizing: 'border-box',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <Icons.ExternalLink />
-                      <span>{t.nowPlaying.openPlayer}</span>
-                    </button>
-                  </div>
+                  {/* 快捷操作区：启动播放器与播放模式校准 (整体保持左右居中，iOS 规范流体物理过渡) */}
+                  {(() => {
+                    const activeCalibrationPackage: string | null = (() => {
+                      // 1. 若大卡片有活跃会话，以真实会话包名为最高依据
+                      if (displayedSession) {
+                        if (displayedSession.packageName === 'com.netease.cloudmusic') return 'com.netease.cloudmusic';
+                        if (displayedSession.packageName === 'com.kugou.android') return 'com.kugou.android';
+                        return null; // 概念版 (com.kugou.android.lite) 或其他播放器绝对抑制
+                      }
+
+                      // 2. 空闲等待态下基于选定音源门禁
+                      const selectedPkg = appConfig.defaultPlayerPackage || '';
+
+                      if (selectedPkg === 'com.netease.cloudmusic') {
+                        return 'com.netease.cloudmusic';
+                      }
+
+                      // 自定义位概念版且当前选中自定义位，坚决不显示
+                      if (selectedPkg === 'com.kugou.android.lite') {
+                        return null;
+                      }
+
+                      // 预置酷狗位 (kugou.service / com.kugou.android)
+                      if (isPackageMatch(selectedPkg, 'kugou.service', hasMainKugou)) {
+                        // 概念版绝对隐藏校准按钮
+                        if (resolvedKugouPkg === 'com.kugou.android.lite') {
+                          return null;
+                        }
+                        return 'com.kugou.android';
+                      }
+
+                      return null;
+                    })();
+
+                    return (
+                      <div
+                        style={{
+                          marginTop: '16px',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          position: 'relative',
+                          width: '100%',
+                        }}
+                      >
+                        <button
+                          onClick={() => handleLaunchPlayer()}
+                          className="btn-jelly"
+                          style={{
+                            height: '32px',
+                            minHeight: '32px',
+                            padding: '0 12px',
+                            borderRadius: '8px',
+                            background: 'var(--bg-surface-elevated)',
+                            border: '1px solid var(--border-subtle)',
+                            color: 'var(--text-primary)',
+                            fontSize: '15px',
+                            fontWeight: 500,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            boxSizing: 'border-box',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Icons.ExternalLink />
+                          <span>{t.nowPlaying.openPlayer}</span>
+                        </button>
+
+                        {/* 播放模式校准气泡按钮包装层 (iOS 规范流体物理过渡：scale + opacity + width 复合共振，无闪断与延迟) */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            overflow: activeCalibrationPackage ? 'visible' : 'hidden',
+                            maxWidth: activeCalibrationPackage ? '160px' : '0px',
+                            opacity: activeCalibrationPackage ? 1 : 0,
+                            marginLeft: activeCalibrationPackage ? '10px' : '0px',
+                            pointerEvents: activeCalibrationPackage ? 'auto' : 'none',
+                            transition: 'max-width 240ms cubic-bezier(0.25, 1, 0.5, 1), margin-left 240ms cubic-bezier(0.25, 1, 0.5, 1), opacity 240ms cubic-bezier(0.25, 1, 0.5, 1)',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <PlayModeCalibrationPopoverWrapper
+                            activePackage={activeCalibrationPackage}
+                            t={t}
+                            onCalibrated={() => {
+                              showToast(t.nowPlaying.calibrateMode || '播放模式已校准');
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* 途径 2: 概览页静默感知临时推荐卡片 (16px下边距与左边距对齐，大卡片与Tab栏净空高度垂直居中，12px防误触间距) */}
@@ -2463,7 +2610,7 @@ export default function App() {
                       Fahrmony
                     </div>
                     <div style={{ fontSize: '15px', color: 'var(--accent-primary)', fontWeight: 600, marginTop: '2px' }}>
-                      v1.2.7
+                      v1.3.0
                     </div>
                   </div>
 
@@ -2502,7 +2649,19 @@ export default function App() {
                   {/* 仅“更新日志”标题与下方双按钮之间的内容区域具有滚动能力 */}
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     <div>
-                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.2.7（当前）</div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.3.0（当前）</div>
+                      <div style={{ marginTop: '4px' }}>
+                        • 新增: 预置位音乐 App 播放模式车载切换与双向同步支持（部分）<br />
+                        • 新增: 针对部分音乐 App 的播放模式单边校准功能<br />
+                        • 重构: 预置位音乐 App 歌词显示多层级智能抓取，提升歌词命中率<br />
+                        • 优化: 汽水音乐车载歌曲信息和歌词显示，解决流光模式下跳色问题<br />
+                        • 优化: 歌词模式切换实现 0ms 瞬间重推，有缓存时不再触发多余重查<br />
+                        • 修复: 酷狗音乐双版本混淆拉起问题<br />
+                        • 修复: 跨进程 IPC 通信内存可见性屏障
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.2.7</div>
                       <div style={{ marginTop: '4px' }}>
                         • 新增: 开放可选在车机端显示音频 App 原始专辑封面<br />
                         • 优化: 手机锁屏与息屏状态下的冷启动机制，对预置音源深度适配

@@ -1,6 +1,7 @@
 package com.fahrmony.app.nativebridge
 
 import android.app.UiModeManager
+import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -43,6 +44,7 @@ object FahrmonyCarConnectionTracker {
                     addAction(ACTION_CAR_CONNECTION_UPDATED)
                     addAction(UiModeManager.ACTION_ENTER_CAR_MODE)
                     addAction(UiModeManager.ACTION_EXIT_CAR_MODE)
+                    addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
                 }
                 val receiver = object : BroadcastReceiver() {
                     override fun onReceive(ctx: Context?, intent: Intent?) {
@@ -59,6 +61,10 @@ object FahrmonyCarConnectionTracker {
                                     FahrmonyNotificationListener.clearBridgeNotifications(c)
                                     FahrmonyLogBuffer.clear()
                                     FahrmonyIpcBridge.notifyCarConnectedChanged(false)
+                                    // 联动媒体管理器执行断连断播 (坚守连接主权：若媒体服务仍处于活跃连接中或连上未满3000ms，严禁误断连)
+                                    if (!FahrmonyMediaBrowserService.isCarConnected && (System.currentTimeMillis() - FahrmonyMediaManager.getLastCarConnectedTimestamp() > 3000L)) {
+                                        FahrmonyMediaManager.onCarDisconnected()
+                                    }
                                 }
                             }
                             UiModeManager.ACTION_ENTER_CAR_MODE -> {
@@ -71,6 +77,26 @@ object FahrmonyCarConnectionTracker {
                                 FahrmonyNotificationListener.clearBridgeNotifications(c)
                                 FahrmonyLogBuffer.clear()
                                 FahrmonyIpcBridge.notifyCarConnectedChanged(false)
+                                // 联动媒体管理器执行断连断播
+                                if (!FahrmonyMediaBrowserService.isCarConnected && (System.currentTimeMillis() - FahrmonyMediaManager.getLastCarConnectedTimestamp() > 3000L)) {
+                                    FahrmonyMediaManager.onCarDisconnected()
+                                }
+                            }
+                            BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                                val c = ctx ?: context
+                                // 当此前处于车载投屏状态时，捕获车载蓝牙物理断开事件，配合 Provider 状态探测无线 AA 退出
+                                if (cachedConnectionType == CONNECTION_TYPE_PROJECTION || FahrmonyMediaBrowserService.isCarConnected) {
+                                    val currentType = queryConnectionType(c)
+                                    if (currentType == CONNECTION_TYPE_NOT_CONNECTED) {
+                                        cachedConnectionType = CONNECTION_TYPE_NOT_CONNECTED
+                                        FahrmonyNotificationListener.clearBridgeNotifications(c)
+                                        FahrmonyLogBuffer.clear()
+                                        FahrmonyIpcBridge.notifyCarConnectedChanged(false)
+                                        if (!FahrmonyMediaBrowserService.isCarConnected && (System.currentTimeMillis() - FahrmonyMediaManager.getLastCarConnectedTimestamp() > 3000L)) {
+                                            FahrmonyMediaManager.onCarDisconnected()
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

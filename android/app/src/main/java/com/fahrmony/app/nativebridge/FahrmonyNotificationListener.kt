@@ -130,7 +130,8 @@ class FahrmonyNotificationListener : NotificationListenerService() {
                 )
             }
             android.util.Log.i("Fahrmony_CUSTOM", "[NOTIF_POSTED] pkg: $packageName, isSupported: $isSupportedMedia, hasMediaToken: ${mediaToken != null}")
-            val nExtras = sbn.notification?.extras
+            val notif = sbn.notification
+            val nExtras = notif?.extras
             if (nExtras != null) {
                 try {
                     val notifKeys = nExtras.keySet() ?: emptySet<String>()
@@ -147,6 +148,7 @@ class FahrmonyNotificationListener : NotificationListenerService() {
                     )
                 } catch (ignored: Exception) {}
             }
+
         }
 
         if (mediaToken != null && (isSupportedMedia || isCandidateMedia)) {
@@ -233,7 +235,7 @@ class FahrmonyNotificationListener : NotificationListenerService() {
         val conversationName = msg.conversationName
         val isGroup = msg.isGroup
 
-        // 遵循 i18n 规范构建发件人抬头，例如 "来自Lutz:" / "From Lutz:"
+        // 遵循 i18n 规范构建发件人抬头，例如 "来自Alice:" / "From Alice:"
         val senderHeader = FahrmonyCarI18n.getFromSenderPrefix(context, senderName)
         val appBitmap = getAppIconBitmap(context, packageName)
 

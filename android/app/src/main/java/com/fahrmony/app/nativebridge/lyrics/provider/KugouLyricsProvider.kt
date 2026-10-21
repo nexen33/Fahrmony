@@ -6,7 +6,7 @@ import com.fahrmony.app.nativebridge.lyrics.model.LyricResult
 /**
  * 酷狗音乐歌词提供者 (开源基础空桩接口 / Stub Contract)
  *
- * 开放源码版本为保障长期构建自包含性与接口稳定性，默认采用标准空桩实现。
+ * 开放源码版本为保障长期构建自包含性与合规安全，默认采用标准空桩实现。
  * 开发者可根据业务需求自行基于 LyricsProvider 契约扩展实现。
  */
 object KugouLyricsProvider : LyricsProvider {
@@ -22,7 +22,6 @@ object KugouLyricsProvider : LyricsProvider {
     }
 
     override fun getLyrics(packageName: String, metadata: MediaMetadataCompat?): LyricResult {
-        // 开源标准空桩实现：直接回退至 NotFound，触发后续 Provider 兜底
         return LyricResult.NotFound
     }
 

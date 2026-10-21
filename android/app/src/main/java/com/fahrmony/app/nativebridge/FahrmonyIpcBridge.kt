@@ -30,12 +30,15 @@ object FahrmonyIpcBridge {
     const val MSG_UPDATE_CONFIG = 8
     const val MSG_REQUEST_REFRESH = 9
     const val MSG_CONFIG_CHANGED = 10
+    const val MSG_CALIBRATE_PLAY_MODE = 11
 
     // ==========================================
     // 1. :car 服务端 (运行于 :car 独立进程)
     // ==========================================
     private var serverMessenger: Messenger? = null
+    @Volatile
     private var clientMessenger: Messenger? = null
+    @Volatile
     private var isServerInitialized = false
 
     fun getServerBinder(context: Context): IBinder {
@@ -108,6 +111,18 @@ object FahrmonyIpcBridge {
                     FahrmonyMediaManager.refresh(context)
                     sendSyncState(context)
                 }
+                MSG_CALIBRATE_PLAY_MODE -> {
+                    val targetPackage = msg.data.getString("targetPackage") ?: ""
+                    val modeStr = msg.data.getString("mode") ?: ""
+                    val mode = try {
+                        CustomRepeatState.valueOf(modeStr)
+                    } catch (_: Exception) {
+                        null
+                    }
+                    if (targetPackage.isNotBlank() && mode != null) {
+                        FahrmonyMediaManager.calibrateMode(context, targetPackage, mode)
+                    }
+                }
                 else -> super.handleMessage(msg)
             }
         }
@@ -119,6 +134,25 @@ object FahrmonyIpcBridge {
             val msg = Message.obtain(null, MSG_SYNC_STATE).apply {
                 data = Bundle().apply {
                     putBoolean("isCarConnected", connected)
+                }
+            }
+            client.send(msg)
+        } catch (ignored: RemoteException) {
+            clientMessenger = null
+        }
+    }
+
+    fun notifyPlayModeChanged(packageName: String, mode: CustomRepeatState) {
+        val client = clientMessenger ?: return
+        try {
+            val msg = Message.obtain(null, MSG_SYNC_STATE).apply {
+                data = Bundle().apply {
+                    if (packageName == "com.netease.cloudmusic") {
+                        putString("neteasePlayMode", mode.name)
+                    }
+                    if (packageName == "com.kugou.android" || packageName == "kugou.service") {
+                        putString("kugouPlayMode", mode.name)
+                    }
                 }
             }
             client.send(msg)
@@ -142,6 +176,8 @@ object FahrmonyIpcBridge {
                     putParcelableArrayList("sessions", sessionBundles)
                     putBoolean("isCarConnected", FahrmonyMediaBrowserService.isCarConnected)
                     putString("configJson", configJson)
+                    putString("neteasePlayMode", FahrmonyMediaManager.getCustomRepeatState("com.netease.cloudmusic").name)
+                    putString("kugouPlayMode", FahrmonyMediaManager.getCustomRepeatState("com.kugou.android").name)
                 }
             }
             client.send(msg)
@@ -200,13 +236,17 @@ object FahrmonyIpcBridge {
     // ==========================================
     // 2. 主进程客户端 (运行于主进程 / FahrmonyPlugin)
     // ==========================================
+    @Volatile
     private var remoteServiceMessenger: Messenger? = null
+    @Volatile
     private var isBound = false
     private val cachedSessions = CopyOnWriteArrayList<ActiveMediaSessionInfo>()
+    @Volatile
     private var isCarConnectedCache = false
     private var onSessionChangedCallback: ((ActiveMediaSessionInfo?) -> Unit)? = null
     var onCarConnectedCallback: ((Boolean) -> Unit)? = null
     var onConfigChangedCallback: ((String) -> Unit)? = null
+    private var clientAppContext: Context? = null
 
     private val clientMessengerInstance = Messenger(object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(msg: Message) {
@@ -235,6 +275,26 @@ object FahrmonyIpcBridge {
                     val configJson = bundle.getString("configJson")
                     if (!configJson.isNullOrBlank()) {
                         onConfigChangedCallback?.invoke(configJson)
+                    }
+                    val neteaseMode = bundle.getString("neteasePlayMode")
+                    if (!neteaseMode.isNullOrBlank()) {
+                        clientAppContext?.let { ctx ->
+                            try {
+                                val st = CustomRepeatState.valueOf(neteaseMode)
+                                com.fahrmony.app.nativebridge.playmode.SharedPreferencesPlayModePersister(ctx)
+                                    .saveMode("com.netease.cloudmusic", st)
+                            } catch (_: Exception) {}
+                        }
+                    }
+                    val kugouMode = bundle.getString("kugouPlayMode")
+                    if (!kugouMode.isNullOrBlank()) {
+                        clientAppContext?.let { ctx ->
+                            try {
+                                val st = CustomRepeatState.valueOf(kugouMode)
+                                com.fahrmony.app.nativebridge.playmode.SharedPreferencesPlayModePersister(ctx)
+                                    .saveMode("com.kugou.android", st)
+                            } catch (_: Exception) {}
+                        }
                     }
                 }
                 MSG_SESSION_CHANGED -> {
@@ -293,6 +353,7 @@ object FahrmonyIpcBridge {
     }
 
     fun initClient(context: Context, onSessionChanged: ((ActiveMediaSessionInfo?) -> Unit)? = null) {
+        clientAppContext = context.applicationContext
         onSessionChangedCallback = onSessionChanged
         val intent = Intent(context, FahrmonyForegroundService::class.java)
         context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
@@ -308,6 +369,19 @@ object FahrmonyIpcBridge {
                     if (!targetPackage.isNullOrBlank()) {
                         putString("targetPackage", targetPackage)
                     }
+                }
+            }
+            messenger.send(msg)
+        } catch (ignored: RemoteException) {}
+    }
+
+    fun calibratePlayMode(targetPackage: String, mode: String) {
+        val messenger = remoteServiceMessenger ?: return
+        try {
+            val msg = Message.obtain(null, MSG_CALIBRATE_PLAY_MODE).apply {
+                data = Bundle().apply {
+                    putString("targetPackage", targetPackage)
+                    putString("mode", mode)
                 }
             }
             messenger.send(msg)

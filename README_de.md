@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.2.7-orange)
+![Version](https://img.shields.io/badge/Version-v1.3.0-orange)
 
 > Eine lokale Schnittstellenbrücke für Android Auto, mit der Fahrzeug-Displays bei Fahrten im Ausland gängige chinesische Audio-Streaming- und Messaging-Dienste nahtlos anzeigen und teilweise steuern können.
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.2.7/Fahrmony_v1.2.7.apk">
+  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk">
     <img src="https://img.shields.io/badge/Neuestes_Fahrmony_APK_herunterladen-blue?style=forthebadge" height="60">
   </a>
 </p>  
@@ -51,11 +51,11 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 - **Sitzungserkennung und -fokus**: Erkennt aktive Audiositzungen und stabilisiert die Steuerung beim Wechsel zwischen mehreren Audio-Apps.
 - **Kaltstart und automatische Wiederverbindung**: Speziell optimiert für Kaltstart und Wiederverbindung von Apps und Android Auto. Kaltstarts wurden für voreingestellte Audioquellen tiefgehend angepasst. Bei Verbindung mit Android Auto wird der letzte Wiedergabestatus automatisch erkannt und fortgesetzt – in den allermeisten Alltagsszenarien ganz ohne manuelles Tippen auf dem Smartphone oder Autobildschirm. Inklusive aktiver Startverifikation und robuster Selbstheilungs-Wiederholungslogik für ruhende Hintergrund-Apps.
 - **Adaptiver Hintergrund & Original-Cover**: Dynamische Farbabstimmung verhindert standardmäßig, dass dunkle Cover-Bilder die Bedientasten unleserlich machen; die neue optionale Einstellung „Audio-App Original-Wiedergabekarte“ ermöglicht es, direkt das klare, hochauflösende Original-Cover im Auto anzuzeigen, um individuellen Vorlieben für visuelle Originaltreue oder kontrastreiche Tasten gerecht zu werden.
-- **Wiedergabelisten und Wiederholungsmodi**: Reicht vorhandene Titellisten durch und unterstützt gängige Schleifen- und Wiederholungsmodi.
+- **Wiedergabelisten und Wiederholungsmodi**: Reicht vorhandene Titellisten durch; tiefgehende Anpassung für das Umschalten von Wiedergabemodi (Schleife / Zufall / Einzeltitel / Herz-Modus usw.) am Bordbildschirm für gängige Musik-Apps, inklusive einseitiger Kalibrierfunktion auf dem Smartphone zum schnellen manuellen Abgleich bei Statusabweichungen.
 - **Fahrgerechte Nachrichtenbenachrichtigung & Aufräumdienst**: Filtert Gruppenchats und ermöglicht das Vorlesen sowie die Bestätigung als gelesen per Tastendruck; beendet beim Trennen der Verbindung die Weiterleitung und löscht verbleibende Benachrichtigungskarten auf dem Smartphone zuverlässig.
 - **Schutz vor versehentlicher Tonwiedergabe**: Pausiert die Wiedergabe sofort beim Trennen des Kabels, damit das Handy nicht plötzlich laut weiterspielt.
 - **Einheitliches Fluid-Design & Reine Hintergrundsteuerung**: Moderne Benutzeroberfläche, dynamisch an alle Smartphone-Displaygrößen angepasst; Browser-Scrollbalken sind vollständig ausgeblendet und bieten seidenweiches 120-Hz-Overscroll-Verhalten wie eine native App; mit Hell-/Dunkelmodus und Modus „Systemstandard“, 4-Sprachen-Unterstützung sowie Berechtigungs-Leitfaden.
-- **Live-Songtexte im Fahrzeug & Mehrfachmodus**: Zeigt Songtexte in Echtzeit direkt auf der Wiedergabekarte im Fahrzeug an; Umschaltung zwischen „Einzeilig“, „Zweizeilig (mit Zeilenvorschau)“ und „Aus“ über die Medieneinstellungen oder Fahrzeugtasten; präzise adaptive Zeitsynchronisation, flüssiger Zeilenübergang und integrierte Schriftzeichenkonvertierung mit Speicheroptimierung.
+- **Live-Songtexte im Fahrzeug & Mehrfachmodus**: Zeigt Songtexte in Echtzeit direkt auf der Wiedergabekarte im Fahrzeug an; Umschaltung zwischen „Einzeilig“, „Zweizeilig (mit Zeilenvorschau)“ und „Aus“ über die Medieneinstellungen oder Fahrzeugtasten; tiefgreifend optimierte mehrstufige intelligente Suchpfade und flüssige Zeilenwechsel; intelligente Erkennung und Bereinigung von Bluetooth-Songtext-Injektionen; integrierte Schriftzeichenkonvertierung mit Speicheroptimierung.
 - **Dezente Update-Prüfung**: Ein leichtgewichtiger Erkennungsdienst prüft einmal täglich nachts im Hintergrund diskret auf neue GitHub-Releases; ein Doppeltipp auf das App-Logo im Info-Dialog startet zudem jederzeit eine manuelle Prüfung.
 
 ## Kompatibilitätsmatrix
@@ -72,12 +72,28 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 | **Benutzerdefinierte Audioquelle** | **Vollständig** | Automatische Erkennung aktiver Hintergrund-Apps oder manuelle Auswahl im Menü | Erfordert, dass die Ziel-App eine Standard-Mediensitzung oder Benachrichtigung sendet |
 | **Cover-Hintergrund** | **Adaptiv generiert** | Kontrastreiche Farbgestaltung verhindert unleserliche schwarze Tasten | Standardmäßig dynamischer Hintergrund; Original-Karten optional aktivierbar |
 | **Wiedergabeliste** | **Durchgereicht** | Zeigt die Titelliste an, sofern die Quell-App diese an das System meldet | Bleibt automatisch ausgeblendet, wenn keine Liste vorhanden ist |
-| **Wiederholungsmodus** | **Adaptiv** | Unterstützt Standardeinstellungen und herstellerspezifische Aktionen | Abhängig von der Umsetzung in der jeweiligen Quell-App |
-| **Zufallswiedergabe** | **Eingeschränkt** | Funktioniert nur, wenn die Quell-App entsprechende Aktionen anbietet | Wird von vielen Streaming-Apps nicht über Standards bereitgestellt |
+| **Wiederholungsmodus** | **Adaptiv** | Bevorzugt offizielle Standardpositionen; Modusrotation und Smartphone-Kalibrierung für gängige Apps | Abhängig von den Steuerungskanälen oder Systemfähigkeiten der Ziel-App |
+| **Zufallswiedergabe** | **Eingeschränkt** | Unterstützte Apps wechseln über den fahrzeugseitigen Schleifenmodus in den Zufallsmodus, kompatibel mit nativen Systembefehlen | Die meisten Streaming-Apps stellen keinen separaten Zufallssteuerkanal bereit |
 | **Kaltstart bei Bedarf** | **Vollständig** | Durchdringt Sperrbildschirm/abgeschaltetes Display automatisch und startet die Wiedergabe sekundenschnell, sobald die Audio-Engine bereit ist | Erfordert Hintergrund- bzw. Autostart-Rechte und Benachrichtigungszugriff |
 | **Benachrichtigungsanzeige** | **Vollständig** | Wandelt Nachrichten in standardisierte Karten für das Fahrzeug um | Erfordert Benachrichtigungszugriff; löscht Restkarten nach Verbindungsende |
 | **Sprachausgabe** | **Systemgesteuert** | Wiedergabe erfolgt automatisch über den Sprachassistenten des Autos | Sprachausgabe richtet sich nach den Spracheinstellungen im Konto |
 | **Direktes Antworten** | **Nicht unterstützt** | Bietet Bestätigung als gelesen. Das Senden von Text zurück an die App wird nicht unterstützt | Messaging-Apps bieten keine öffentlichen Schnittstellen für externe Antworten |
+
+## Funktionsunterstützung voreingestellter Musik-Apps
+
+Übersicht über den maximalen Funktionsumfang für Steuerung, Songtexte und Moduswechsel der 6 voreingestellten Musik-Apps:
+
+| Voreingestellte Quelle | Grundsteuerung | Live-Songtexte | Modusumschaltung | Mechanismus und Funktionsbeschreibung |
+| :--- | :---: | :---: | :---: | :--- |
+| **QQ Musik** | ✅ | ✅ | ✅ | Native Standard-Modusumschaltung und direkter Textabruf |
+| **NetEase Cloud Musik** | ✅ | ✅ | ✅ | 2-stufige Textsuche; 4-Zustands-Modusumschaltung mit Smartphone-Kalibrierung |
+| **Soda Musik (Luna)** | ✅ | ✅ | Nur OriginOS-Modelle | 3-stufige Textsuche, dedizierter OriginOS-Kanal |
+| **Bodian Musik** | ✅ | ✅ | Nur OriginOS-Modelle | 3-stufige Textsuche, dedizierter OriginOS-Kanal; passt sich automatisch Empfehlungs- und Favoriten-Streams an |
+| **Kuwo Musik** | ✅ | ✅ | Nur OriginOS-Modelle | 3-stufige Textsuche, dedizierter OriginOS-Kanal |
+| **Kugou Musik** | ✅ | ✅ | Je nach Version | 2-stufige Textsuche; Standardversion unterstützt Modusumschaltung mit Kalibrierung, Lite-Version nur auf OriginOS |
+
+> [!NOTE]
+> **Hinweis zu Podcasts und Hörbüchern**: Gesprochene Audioformate enthalten technisch bedingt keine zeitgesteuerten Songtexte, und die Wiedergabe erfolgt typischerweise fortlaufend nach Episoden. Die Beibehaltung des nativen Verhaltens bietet das beste Fahrerlebnis, weshalb sie hier nicht separat aufgeführt sind. Für rechtliche Hinweise und Verantwortlichkeiten zu den aufgeführten Musik-Apps siehe den [Haftungsausschluss](#haftungsausschluss) am Ende des Dokuments.
 
 ## Systemanforderungen
 
@@ -143,6 +159,9 @@ Neben den voreingestellten Audio-Apps bietet Fahrmony einen „Benutzerdefiniert
 #### Wird der Ton über das Auto oder das Smartphone ausgegeben?
 Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über die Lautsprecher des Fahrzeugs. Beim Abziehen des Kabels stoppt Fahrmony die Wiedergabe sofort, damit das Telefon nicht versehentlich in der Öffentlichkeit weiterspielt.
 
+#### Warum weicht der auf dem Smartphone angezeigte Wiedergabemodus gelegentlich von der Umschaltung am Autobildschirm ab?
+Aufgrund architektonischer Grenzen und eingeschränkter Schnittstellen von Drittanbieter-Apps können einige Apps nur über Einwegsteuerung oder benutzerdefinierte Zustände angebunden werden, die ihren Status unter bestimmten Umständen nicht zeitnah zurückmelden. Fahrmony speichert die Umschaltabsicht fahrzeugseitig und hält den Status so synchron wie möglich. Bei Abweichungen tippen Sie auf der Übersichtsseite von Fahrmony unter dem aktuellen Titel auf **Moduskalibrierung**, wählen den korrekten Modus im Pop-up aus und gleichen die Anzeige mit einem Fingertipp ab.
+
 ## Mögliche Ausnahmen und Fehlerbehebung
 
 ### 1. Fahrmony erscheint nicht auf dem Autobildschirm
@@ -188,7 +207,7 @@ Sobald das Smartphone mit dem Auto verbunden ist, läuft die Tonausgabe über di
 Wenn im Alltag ein Problem auftritt, können Sie gerne eine Fehlermeldung auf GitHub einreichen. Bitte nutzen Sie folgende Vorlage (**Hinweis: Bitte niemals vertrauliche private Nachrichteninhalte übermitteln**):
 
 ```text
-- Fahrmony-Version: v1.2.7
+- Fahrmony-Version: v1.3.0
 - Android-Version: z. B. Android 14
 - Smartphone-Modell: z. B. Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto-Version: z. B. 11.8
@@ -308,10 +327,10 @@ Dieses Projekt ist unter der Lizenz **Creative Commons Namensnennung - Nicht-kom
 
 ---
 
-## Vorschau v1.2.7
+## Vorschau v1.3.0
 
 <p align="center">
-  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/03007905-3bbb-43da-8f7e-d7d0d9532fb3" />
+  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/a73527ba-5438-4824-b120-6f3897e29706" />
 </p>
 
 <p align="center">

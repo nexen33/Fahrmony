@@ -6,10 +6,13 @@ import android.os.Looper
 import android.support.v4.media.MediaMetadataCompat
 import com.fahrmony.app.nativebridge.lyrics.cache.LyricCache
 import com.fahrmony.app.nativebridge.lyrics.model.LyricResult
+import com.fahrmony.app.nativebridge.lyrics.provider.BodianLyricsProvider
 import com.fahrmony.app.nativebridge.lyrics.provider.KugouLyricsProvider
 import com.fahrmony.app.nativebridge.lyrics.provider.LrclibLyricsProvider
+import com.fahrmony.app.nativebridge.lyrics.provider.LunaLyricsProvider
 import com.fahrmony.app.nativebridge.lyrics.provider.NeteaseLyricsProvider
 import com.fahrmony.app.nativebridge.lyrics.provider.QQLyricsProvider
+import com.fahrmony.app.nativebridge.lyrics.sanitizer.LunaMetadataSanitizer
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
@@ -18,11 +21,12 @@ import java.util.concurrent.Executors
  *
  * 调度管道：
  * 1. L1 内存 / L2 磁盘双级缓存检测 (0ms 秒开)；
- * 2. QQ 音乐本地私有字段提取 (0ms 零网络)；
+ * 2. QQ 音乐本地私有字段与汽水音乐 Vivo 内存通道提取 (0ms 零网络)；
  * 3. 网易云音乐 MEDIA_ID 精准直出；
- * 4. 酷狗音乐官方公开接口专属提取；
- * 5. 酷我/汽水/波点/自定义音源通用双通道兜底 (云端检索 -> 通用开放歌词源)；
- * 6. 异步并发安全与在途请求去重 (In-Flight Mutex).
+ * 4. 汽水音乐全品牌 MEDIA_ID 官方直连 (全品牌通用)；
+ * 5. 酷狗音乐官方公开接口专属提取；
+ * 6. 酷我/波点/自定义音源通用双通道兜底 (云端检索 -> 通用开放歌词源)；
+ * 7. 异步并发安全与在途请求去重 (In-Flight Mutex).
  */
 object UnifiedLyricsProvider {
 
@@ -53,11 +57,17 @@ object UnifiedLyricsProvider {
             return
         }
 
-        val title = metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
+        var title = metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
             ?: metadata.description?.title?.toString() ?: ""
-        val artist = metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
+        var artist = metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
             ?: metadata.description?.subtitle?.toString() ?: ""
         val durationMs = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
+
+        if (LunaMetadataSanitizer.isSupported(packageName)) {
+            val sanitized = LunaMetadataSanitizer.resolve(packageName, metadata, title, artist, null)
+            title = sanitized.title
+            artist = sanitized.artist
+        }
 
         if (title.isBlank()) {
             callback(LyricResult.NotFound)
@@ -73,12 +83,28 @@ object UnifiedLyricsProvider {
             return
         }
 
-        // 2. QQ 音乐本地私有字段零网络提取
+        // 2. 本地私有字段零网络提取 (QQ 音乐 / 汽水音乐 Vivo 内存通道)
         if (QQLyricsProvider.isSupported(packageName)) {
             val qqResult = QQLyricsProvider.getLyrics(packageName, metadata)
             if (qqResult is LyricResult.Success) {
                 LyricCache.put(context, cacheKey, qqResult)
                 callback(qqResult)
+                return
+            }
+        }
+        if (LunaLyricsProvider.isSupported(packageName)) {
+            val lunaResult = LunaLyricsProvider.getLyrics(packageName, metadata)
+            if (lunaResult is LyricResult.Success) {
+                LyricCache.put(context, cacheKey, lunaResult)
+                callback(lunaResult)
+                return
+            }
+        }
+        if (BodianLyricsProvider.isSupported(packageName)) {
+            val bodianResult = BodianLyricsProvider.getLyrics(packageName, metadata)
+            if (bodianResult is LyricResult.Success) {
+                LyricCache.put(context, cacheKey, bodianResult)
+                callback(bodianResult)
                 return
             }
         }
@@ -105,12 +131,30 @@ object UnifiedLyricsProvider {
                     result = NeteaseLyricsProvider.getLyrics(packageName, metadata)
                 }
 
-                // B. 酷狗专有提取器 (lyrics.kugou.com 专属)
+                // B. 汽水音乐全品牌官方直连提取器 (MEDIA_ID 逆向接口)
+                if (result !is LyricResult.Success && LunaLyricsProvider.isSupported(packageName)) {
+                    val mediaId = metadata.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
+                        ?: metadata.description?.mediaId ?: ""
+                    if (mediaId.isNotBlank()) {
+                        result = LunaLyricsProvider.fetchLyricsByMediaId(mediaId)
+                    }
+                }
+
+                // C. 波点音乐全品牌官方直连提取器 (MEDIA_ID 酷我/波点接口)
+                if (result !is LyricResult.Success && (packageName.equals("cn.wenyu.bodian", ignoreCase = true) || packageName.equals("cn.kuwo.player", ignoreCase = true))) {
+                    val mediaId = metadata.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
+                        ?: metadata.description?.mediaId ?: ""
+                    if (mediaId.isNotBlank()) {
+                        result = BodianLyricsProvider.fetchLyricsByMediaId(mediaId)
+                    }
+                }
+
+                // C. 酷狗专有提取器 (lyrics.kugou.com 专属)
                 if (result !is LyricResult.Success && KugouLyricsProvider.isSupported(packageName)) {
                     result = KugouLyricsProvider.getLyrics(packageName, metadata)
                 }
 
-                // C. 通用音源双通道检索 (云端检索 -> 通用开放歌词源)
+                // D. 通用音源双通道检索 (云端检索 -> 通用开放歌词源)
                 if (result !is LyricResult.Success) {
                     result = KugouLyricsProvider.searchByTitleAndArtist(title, artist, durationMs)
                     if (result !is LyricResult.Success) {

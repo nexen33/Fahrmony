@@ -84,6 +84,14 @@ class LyricSyncEngine(private val mainHandler: Handler = Handler(Looper.getMainL
     fun hasValidLyrics(): Boolean = activeEntries.isNotEmpty()
 
     /**
+     * 判断传入曲目标识是否与当前活跃歌词曲目一致
+     */
+    fun isSameTrack(trackKey: String?): Boolean {
+        if (trackKey.isNullOrBlank() || this.activeTrackKey.isNullOrBlank()) return false
+        return this.activeTrackKey == trackKey
+    }
+
+    /**
      * 更新当前曲目的歌词解析结果
      *
      * @param trackKey 当前曲目唯一标识 (如 "pkg:title:artist")

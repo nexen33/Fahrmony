@@ -212,14 +212,7 @@ class FahrmonyPlugin : Plugin() {
     }
 
     private fun isPackageMatch(pkgA: String?, pkgB: String?): Boolean {
-        if (pkgA.isNullOrBlank() || pkgB.isNullOrBlank()) return false
-        if (pkgA.equals(pkgB, ignoreCase = true)) return true
-        // 酷狗音乐双包名 (kugou.service / com.kugou.android / com.kugou.android.lite) 归一化兜底匹配
-        val kugouAliases = setOf("kugou.service", "com.kugou.android", "com.kugou.android.lite")
-        if (pkgA in kugouAliases && pkgB in kugouAliases) {
-            return true
-        }
-        return false
+        return FahrmonyMediaManager.isPackageMatch(pkgA, pkgB)
     }
 
     @PluginMethod
@@ -237,9 +230,10 @@ class FahrmonyPlugin : Plugin() {
             // 若会话已就绪 (即便当前处于暂停态)，绝不触发 startActivity，纯后台下发播控指令
             if (!hasSessionForTarget && targetPkg.isNotBlank()) {
                 var launchIntent = context.packageManager.getLaunchIntentForPackage(targetPkg)
-                // 酷狗服务包名 (kugou.service) 若无启动入口，兜底使用主界面包名尝试拉起
-                if (launchIntent == null && isPackageMatch(targetPkg, "com.kugou.android")) {
+                // 仅酷狗服务预置别名 (kugou.service) 若无启动入口，兜底尝试优先拉起正式版，无正式版时拉起概念版
+                if (launchIntent == null && targetPkg.equals("kugou.service", ignoreCase = true)) {
                     launchIntent = context.packageManager.getLaunchIntentForPackage("com.kugou.android")
+                        ?: context.packageManager.getLaunchIntentForPackage("com.kugou.android.lite")
                 }
                 if (launchIntent != null) {
                     launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
@@ -318,13 +312,26 @@ class FahrmonyPlugin : Plugin() {
         }
         val pm = context.packageManager
         var intent = pm.getLaunchIntentForPackage(packageName)
-        if (intent == null && FahrmonyMediaManager.isPackageMatch(packageName, "com.kugou.android")) {
-            intent = pm.getLaunchIntentForPackage("com.kugou.android")
-                ?: pm.getLaunchIntentForPackage("com.kugou.android.lite")
+        var actualPkg = packageName
+        if (intent == null && packageName.equals("kugou.service", ignoreCase = true)) {
+            val mainIntent = pm.getLaunchIntentForPackage("com.kugou.android")
+            if (mainIntent != null) {
+                intent = mainIntent
+                actualPkg = "com.kugou.android"
+            } else {
+                val liteIntent = pm.getLaunchIntentForPackage("com.kugou.android.lite")
+                if (liteIntent != null) {
+                    intent = liteIntent
+                    actualPkg = "com.kugou.android.lite"
+                }
+            }
         }
         if (intent == null) {
             try {
-                val lookupPkg = if (FahrmonyMediaManager.isPackageMatch(packageName, "com.kugou.android")) "com.kugou.android" else packageName
+                val lookupPkg = if (packageName.equals("kugou.service", ignoreCase = true)) {
+                    if (pm.getLaunchIntentForPackage("com.kugou.android") != null) "com.kugou.android" else "com.kugou.android.lite"
+                } else packageName
+                actualPkg = lookupPkg
                 val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
                     addCategory(Intent.CATEGORY_LAUNCHER)
                     setPackage(lookupPkg)
@@ -337,13 +344,14 @@ class FahrmonyPlugin : Plugin() {
                         component = ComponentName(act.packageName, act.name)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
+                    actualPkg = act.packageName
                 }
             } catch (ignored: Exception) {}
         }
         if (intent != null) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
-            call.resolve(JSObject().put("success", true))
+            call.resolve(JSObject().put("success", true).put("actualPackage", actualPkg))
         } else {
             call.resolve(JSObject().put("success", false).put("error", "未检测到已安装该应用"))
         }
@@ -377,5 +385,51 @@ class FahrmonyPlugin : Plugin() {
             array.put(obj)
         }
         call.resolve(JSObject().put("discoveredSessions", array))
+    }
+
+    @PluginMethod
+    fun calibratePlayMode(call: PluginCall) {
+        val packageName = call.getString("packageName") ?: ""
+        val mode = call.getString("mode") ?: ""
+        if (packageName.isBlank() || mode.isBlank()) {
+            call.reject("Missing required parameters: packageName and mode")
+            return
+        }
+        val repeatState = try {
+            CustomRepeatState.valueOf(mode)
+        } catch (_: Exception) {
+            null
+        }
+        if (repeatState != null) {
+            // 立即同步写入主进程 SharedPreferences，消除跨进程内存缓存未刷新导致的读取旧状态问题
+            com.fahrmony.app.nativebridge.playmode.SharedPreferencesPlayModePersister(context)
+                .saveMode(packageName, repeatState)
+        }
+        FahrmonyIpcBridge.calibratePlayMode(packageName, mode)
+        call.resolve(JSObject().put("success", true))
+    }
+
+    @PluginMethod
+    fun getPlayModeState(call: PluginCall) {
+        val rawPackageName = call.getString("packageName") ?: "com.netease.cloudmusic"
+        val packageName = FahrmonyMediaManager.resolveRealPackageName(context, rawPackageName)
+        val persister = com.fahrmony.app.nativebridge.playmode.SharedPreferencesPlayModePersister(context)
+        val savedMode = persister.getSavedMode(packageName)
+        val mode = savedMode ?: FahrmonyMediaManager.getCustomRepeatState(packageName)
+        val ret = JSObject().apply {
+            put("packageName", rawPackageName)
+            put("resolvedPackageName", packageName)
+            put("mode", mode.name)
+            put("title", mode.title)
+            put("iconRes", mode.iconRes)
+        }
+        call.resolve(ret)
+    }
+
+    @PluginMethod
+    fun resolvePackageName(call: PluginCall) {
+        val packageName = call.getString("packageName") ?: ""
+        val resolved = FahrmonyMediaManager.resolveRealPackageName(context, packageName)
+        call.resolve(JSObject().put("packageName", packageName).put("resolvedPackage", resolved))
     }
 }

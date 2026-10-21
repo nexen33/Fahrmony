@@ -28,6 +28,14 @@ export interface Translations {
     unknownArtist: string;
     mediaService: string;
     openPlayer: string;
+    calibrateMode?: string;
+    calibrateSubtitle?: string;
+    repeatAll?: string;
+    shuffle?: string;
+    repeatOne?: string;
+    heartbeat?: string;
+    kugouFormalNotice1?: string;
+    kugouFormalNotice2?: string;
     switchPlayer: string;
     selectDefault: string;
     playing: string;
@@ -176,6 +184,14 @@ export const translations: Record<LanguageKey, Translations> = {
       unknownArtist: '未知艺术家',
       mediaService: '车载媒体',
       openPlayer: '启动播放器',
+      calibrateMode: '播放模式校准',
+      calibrateSubtitle: '请选择音频App中当前播放模式以校准',
+      repeatAll: '列表循环',
+      shuffle: '随机播放',
+      repeatOne: '单曲循环',
+      heartbeat: '心动模式',
+      kugouFormalNotice1: '在酷狗正式版下',
+      kugouFormalNotice2: '仅支持车机→手机的单向控制',
       switchPlayer: '切换播放源',
       selectDefault: '设为默认',
       playing: '播放中',
@@ -322,6 +338,14 @@ export const translations: Record<LanguageKey, Translations> = {
       unknownArtist: 'Unknown Artist',
       mediaService: 'In-Car Media',
       openPlayer: 'Launch Player',
+      calibrateMode: 'Calibrate Mode',
+      calibrateSubtitle: 'Select current app mode to calibrate',
+      repeatAll: 'Repeat All',
+      shuffle: 'Shuffle',
+      repeatOne: 'Repeat One',
+      heartbeat: 'Heartbeat',
+      kugouFormalNotice1: 'In Kugou Formal',
+      kugouFormalNotice2: 'Car → Phone control only',
       switchPlayer: 'Switch Source',
       selectDefault: 'Set Default',
       playing: 'Playing',
@@ -468,6 +492,14 @@ export const translations: Record<LanguageKey, Translations> = {
       unknownArtist: 'Unbekannter Künstler',
       mediaService: 'Fahrzeug-Medien',
       openPlayer: 'Player Starten',
+      calibrateMode: 'Modus kalibrieren',
+      calibrateSubtitle: 'Aktuellen Modus zur Kalibrierung wählen',
+      repeatAll: 'Alle wiederholen',
+      shuffle: 'Zufallswiedergabe',
+      repeatOne: 'Titel wiederholen',
+      heartbeat: 'Favoriten-Modus',
+      kugouFormalNotice1: 'In Kugou Formal',
+      kugouFormalNotice2: 'Nur Auto → Handy-Steuerung',
       switchPlayer: 'Quelle Wechseln',
       selectDefault: 'Als Standard',
       playing: 'Wiedergabe',
@@ -614,6 +646,14 @@ export const translations: Record<LanguageKey, Translations> = {
       unknownArtist: '不明なアーティスト',
       mediaService: '車載メディア',
       openPlayer: 'アプリ起動',
+      calibrateMode: '再生モード校正',
+      calibrateSubtitle: '現在の再生モードを選択して校正',
+      repeatAll: 'リストループ',
+      shuffle: 'シャッフル',
+      repeatOne: '1曲リピート',
+      heartbeat: 'ハートビート',
+      kugouFormalNotice1: 'KuGou正式版では',
+      kugouFormalNotice2: '車載→スマホの単方向制御',
       switchPlayer: 'ソース切替',
       selectDefault: 'デフォルト設定',
       playing: '再生中',

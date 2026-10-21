@@ -118,7 +118,7 @@ object FahrmonyConfig {
             "com.netease.cloudmusic" -> sp.getBoolean(KEY_NETEASE, true)
             "com.luna.music" -> sp.getBoolean(KEY_QISHUI, true)
             "cn.wenyu.bodian" -> sp.getBoolean(KEY_BODIAN, true)
-            "kugou.service", "com.kugou.android" -> sp.getBoolean(KEY_KUGOU, true)
+            "kugou.service", "com.kugou.android", "com.kugou.android.lite" -> sp.getBoolean(KEY_KUGOU, true)
             "cn.kuwo.player" -> sp.getBoolean(KEY_KUWO, true)
             "com.ximalaya.ting.android" -> sp.getBoolean(KEY_XIMALAYA, true)
             "app.podcast.cosmos" -> sp.getBoolean(KEY_XIAOYUZHOU, true)

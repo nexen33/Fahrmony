@@ -109,7 +109,10 @@ export interface FahrmonyPluginInterface {
   clearLogs(): Promise<{ success: boolean }>;
   setAppBridgeConfig(options: { config: Partial<AppBridgeConfig> }): Promise<{ success: boolean }>;
   getAppBridgeConfig(): Promise<{ config: AppBridgeConfig }>;
-  launchApp(options: { packageName: string }): Promise<{ success: boolean }>;
+  launchApp(options: { packageName: string }): Promise<{ success: boolean; actualPackage?: string }>;
+  calibratePlayMode(options: { packageName: string; mode: string }): Promise<{ success: boolean }>;
+  getPlayModeState(options: { packageName: string }): Promise<{ packageName: string; resolvedPackageName?: string; mode: string; title: string; iconRes: number }>;
+  resolvePackageName?(options: { packageName: string }): Promise<{ packageName: string; resolvedPackage: string }>;
   checkUpdate(options?: { manual?: boolean }): Promise<UpdateCheckResult>;
   addListener(
     eventName: 'mediaSessionChanged',
@@ -204,7 +207,7 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
           type: 'IM_NOTIFICATION',
           tag: '飞书',
           title: '项目组通知',
-          content: '合拍 Android Auto 桥接版本 v1.2.7 测试通过',
+          content: '合拍 Android Auto 桥接版本 v1.3.0 测试通过',
         }
       ],
     }),
@@ -221,10 +224,20 @@ const FahrmonyPlugin = registerPlugin<FahrmonyPluginInterface>('FahrmonyPlugin',
       alert(`[Fahrmony 模拟环境] 已发送启动应用 Intent：${options.packageName}`);
       return { success: true };
     },
+    calibratePlayMode: async (options: { packageName: string; mode: string }) => {
+      console.log('[Web Mock] Calibrate play mode for package:', options.packageName, 'mode:', options.mode);
+      return { success: true };
+    },
+    getPlayModeState: async (options: { packageName: string }) => ({
+      packageName: options.packageName,
+      mode: 'REPEAT_ALL',
+      title: '列表循环',
+      iconRes: 2131165288,
+    }),
     checkUpdate: async () => ({
       hasUpdate: false,
-      currentVersion: 'v1.2.7',
-      latestVersion: 'v1.2.7',
+      currentVersion: 'v1.3.0',
+      latestVersion: 'v1.3.0',
       downloadUrl: 'https://github.com/nexen33/Fahrmony/releases/latest',
       releaseUrl: 'https://github.com/nexen33/Fahrmony/releases/latest',
       changelog: '当前已是最新版本',

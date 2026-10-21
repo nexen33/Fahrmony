@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.2.7-orange)
+![Version](https://img.shields.io/badge/Version-v1.3.0-orange)
 
 > A local-first interoperability bridge tailored for Android Auto, enabling car displays to naturally display and partially control your favorite Chinese streaming audio and messaging notifications while driving abroad.
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.2.7/Fahrmony_v1.2.7.apk">
+  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk">
     <img src="https://img.shields.io/badge/Download_Latest_Fahrmony_APK-blue?style=forthebadge" height="60">
   </a>
 </p>  
@@ -52,11 +52,11 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 - **Session Discovery & Smart Arbitration**: Automatically detects active playback across the system and anchors focus when switching apps to prevent card jumping.
 - **Cold Start & Warm Reconnect Resumption**: Finely polished for media app and Android Auto cold starts and warm reconnects. Cold starts are deeply optimized for preset audio sources. Upon connecting to Android Auto, the system automatically detects and resumes the previous playback state without requiring manual clicks on the phone or car screen in most driving scenarios; features built-in active verification and self-healing retry logic for sluggish background starts.
 - **Adaptive Ambient Artwork & Original Covers**: Generates high-contrast gradient backdrops by default to completely eliminate invisible black buttons on dark album art; adds an optional "Audio App Original Playing Card" toggle to directly display crisp, original high-definition album art on your car screen, accommodating individual preferences for either visual authenticity or high-contrast button legibility.
-- **Playback Queue & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; probes and supports standard repeat modes as well as vendor custom actions.
+- **Playback Queue & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; deeply adapted head-unit playback mode switching (Loop / Shuffle / Repeat One / Heartbeat, etc.) for mainstream music apps, with phone-side single-sided calibration for one-tap resynchronization when out of sync.
 - **Driving Safety Notification Assistant & Disconnection Cleanup**: Deconstructs direct and group messages, filters out group chat spam, and generates automotive-standard cards with voice readout and "Mark as Read" actions; automatically halts message forwarding and destroys residual bridge notifications upon car disconnection to eliminate phone-side duplicate alerts.
 - **Anti-Jitter & Audio Leak Prevention**: Instantly claims transient audio focus and pauses all players upon car disconnection to eliminate speaker audio leakage; enforces an anti-jitter state lock during track switching to prevent UI flashing.
 - **Unified Fluid Interface & Pure Background Controls**: A lightweight fluid console on the handset dynamically adapted to various screen resolutions; browser scrollbars are completely hidden, delivering silky 120fps native-like stretch and overscroll bounce; supports adaptive light/dark theming with "Follow System" mode, 4-language support, and permission setup guides.
-- **In-Car Live Lyrics & Multi-Mode Switching**: Real-time scrolling lyrics on head-unit playing cards with instant toggling between "Single-line", "Dual-line (with next line preview)", and "Off" via phone Media tab or in-car controls; precision adaptive timeline synchronization, smooth line transitions, and built-in Traditional/Simplified Chinese auto-conversion with multi-tier memory throttling.
+- **In-Car Live Lyrics & Multi-Mode Switching**: Real-time scrolling lyrics on head-unit playing cards with instant toggling between "Single-line", "Dual-line (with next line preview)", and "Off" via phone Media tab or in-car controls; deeply optimized multi-tier intelligent search pipelines and line-switch smoothness; intelligently identifies and sanitizes in-car Bluetooth lyric injection; built-in Traditional/Simplified Chinese auto-conversion with multi-tier memory throttling.
 - **Silent Update Detection**: Built-in lightweight update sensing checks the official GitHub Release once daily in the background with randomized jitter; double-tapping the app logo inside the "About" dialog also triggers an immediate update check to ensure you stay up to date.
 
 ## Compatibility
@@ -73,12 +73,28 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 | **Custom Audio Source** | **Full** | Auto-detects active background apps for recommendations or active in-app selection | Requires target app to register MediaSession or post media notification |
 | **Cover Artwork** | **Adaptive** | Generates high-contrast gradient art to preserve button visibility | Avoids loading remote image bitmaps directly by default; optional raw card support |
 | **Playback Queue** | **Passthrough** | Displays track lists on car display when provided by source app | Automatically hidden if the source app does not expose a queue |
-| **Repeat Modes** | **Adaptive** | Prioritizes standard flags; probes vendor actions as fallback | Depends on source app exposing standard or custom controls |
-| **Shuffle** | **Limited** | Functional only when source app exposes cycle actions | Most streaming apps do not expose standalone shuffle commands |
+| **Repeat Modes** | **Adaptive** | Prioritizes standard flags; provides mode rotation and one-tap phone-side calibration for mainstream apps | Depends on source app control channel or system capability |
+| **Shuffle** | **Limited** | Supported apps toggle into shuffle via head-unit cycle mode, while remaining compatible with native system shuffle commands | Most streaming apps do not expose standalone shuffle commands |
 | **Cold Start** | **Full** | Automatically penetrates and awakens during lockscreen/screen-off, resuming playback in seconds once audio engine is ready | Requires handset permission for background autostart and Notification Access |
 | **Notification Display** | **Full** | Parses messages and generates standardized car cards | Requires granted Notification Access; auto-cleans residual alerts upon disconnect |
 | **Voice Readout** | **System-driven** | Handled by vehicle voice assistant following automotive specs | Voice synthesis quality depends on system speech settings |
 | **Direct Reply** | **Unsupported** | Offers "Mark as Read" dismissal. **Replying back to source app is unsupported** | Messaging apps do not provide public third-party message-sending APIs |
+
+## Preset Music App Support Matrix
+
+Maximum support status for head-unit controls, lyrics, and play mode toggling across the 6 preset music apps:
+
+| Preset Audio Source | Basic Playback | Live Lyrics Display | Playback Mode Switch | Mechanism & Feature Notes |
+| :--- | :---: | :---: | :---: | :--- |
+| **QQ Music** | ✅ | ✅ | ✅ | Native standard mode toggling & direct lyrics extraction |
+| **NetEase Cloud Music** | ✅ | ✅ | ✅ | 2-tier lyrics search; 4-state custom mode toggle with single-sided calibration support |
+| **Soda Music (Luna)** | ✅ | ✅ | OriginOS only | 3-tier lyrics search, dedicated OriginOS channel |
+| **Bodian Music** | ✅ | ✅ | OriginOS only | 3-tier lyrics search, dedicated OriginOS channel; auto-adapts to daily recommendations and favorite streams |
+| **Kuwo Music** | ✅ | ✅ | OriginOS only | 3-tier lyrics search, dedicated OriginOS channel |
+| **Kugou Music** | ✅ | ✅ | Depends on edition | 2-tier lyrics search; standard edition supports one-way mode switch with calibration, Lite edition supports mode switch on OriginOS only |
+
+> [!NOTE]
+> **Regarding Podcasts & Audiobooks**: Long-form spoken-word audio inherently lacks timestamped lyrics, and in-vehicle listening typically follows sequential episode progression. Preserving native playback behavior delivers the best experience, so they are not listed here separately. For compliance and legal responsibilities regarding the listed audio apps, please refer to the [Disclaimer](#disclaimer) below.
 
 ## Requirements
 
@@ -144,6 +160,9 @@ In either the **Media Tab** or **Overview Tab**, open the player dropdown menu, 
 #### Does audio output from the car or the phone speaker?
 Audio automatically routes through the vehicle speakers when connected. Upon disconnection, Fahrmony's built-in leakage prevention pauses playback instantly, preventing sudden loud speaker output in public.
 
+#### Why does the playback mode shown on the phone occasionally differ from what was toggled on the car screen?
+Due to architectural and API exposure limitations in third-party audio apps, certain apps can only be adapted via one-way controls or custom bidirectional states, which may fail to report updated states in real time under certain conditions. Fahrmony records switching intent on the head unit and keeps local states synchronized as closely as possible. If a display desync occurs, simply tap **Mode Calibration** beneath the active track on Fahrmony's mobile Overview tab, select the correct mode in the popup panel, and align the head unit with one tap.
+
 ## Troubleshooting & Potential Exceptions
 
 ### 1. Fahrmony icon does not appear on car display
@@ -189,7 +208,7 @@ Audio automatically routes through the vehicle speakers when connected. Upon dis
 If you encounter an issue during daily driving, please file a report on GitHub Issues using the template below (**Note: Never submit personal private chat contents**):
 
 ```text
-- Fahrmony Version: v1.2.7
+- Fahrmony Version: v1.3.0
 - Android OS Version: e.g., Android 14
 - Phone Model: e.g., Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto Version: e.g., 11.8
@@ -309,10 +328,10 @@ Released under the **Creative Commons Attribution-NonCommercial 4.0 Internationa
 
 ---
 
-## Preview v1.2.7
+## Preview v1.3.0
 
 <p align="center">
-  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/03007905-3bbb-43da-8f7e-d7d0d9532fb3" />
+  <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/a73527ba-5438-4824-b120-6f3897e29706" />
 </p>
 
 <p align="center">
