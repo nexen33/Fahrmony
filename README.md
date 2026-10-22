@@ -26,7 +26,7 @@
       <img alt="v1.3.0 更新内容" src="https://github.com/user-attachments/assets/8792aed7-1bb0-401f-b6cc-3401830ac95e" />
     </td>
     <td valign="top">
-      <img alt="Image" src="https://github.com/user-attachments/assets/e61327b1-0609-4c4c-9021-e875cb02d3c1" />
+      <img alt="Image" src="https://github.com/user-attachments/assets/ea2fe3fa-846d-483a-947d-8a0b1cf4aeb6" />
     </td>
   </tr>
 </table>
