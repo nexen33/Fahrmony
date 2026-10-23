@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Fahrmony · Privacy Policy & Safety Statement</title>
+
+  <!-- Typography: Exactly aligned with Fahrmony App design tokens -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    // 1. Default to Light Theme unless explicitly saved otherwise
+    (function() {
+      try {
+        var t = localStorage.getItem('fahrmony_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.style.backgroundColor = t === 'dark' ? '#0a0c10' : '#f8fafc';
+      } catch(e) {}
+    })();
+  </script>
+
+  <style>
+    :root {
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Cascadia Code', Menlo, Monaco, Consolas, monospace;
+
+      /* Color Tokens (Light Mode - Default) */
+      --bg-main: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #f1f5f9;
+      --bg-surface-glass: rgba(255, 255, 255, 0.82);
+      --border-subtle: rgba(0, 0, 0, 0.06);
+      --border-glass: rgba(0, 0, 0, 0.09);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-tertiary: #94a3b8;
+
+      --accent-primary: #0284c7;
+      --accent-light: #0ea5e9;
+      --accent-glow: rgba(2, 132, 199, 0.15);
+      --accent-tint: rgba(2, 132, 199, 0.08);
+
+      --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 12px 32px -4px rgba(15, 23, 42, 0.06);
+      --shadow-card: 0 8px 24px -4px rgba(15, 23, 42, 0.04);
+      --glass-inner-border: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+      --status-success: #10b981;
+      --status-success-bg: rgba(16, 185, 129, 0.12);
+      --status-warning: #f59e0b;
+      --status-warning-bg: rgba(245, 158, 11, 0.12);
+
+      --sat: max(env(safe-area-inset-top, 0px), 16px);
+      --sab: max(env(safe-area-inset-bottom, 0px), 24px);
+      
+      /* Apple Signature Spring Ease (Snappy start, smooth deceleration) */
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg-main: #0a0c10;
+      --bg-surface: #12151c;
+      --bg-surface-elevated: #181c25;
+      --bg-surface-glass: rgba(18, 21, 28, 0.80);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glass: rgba(255, 255, 255, 0.12);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-tertiary: #64748b;
+
+      --accent-primary: #0ea5e9;
+      --accent-light: #38bdf8;
+      --accent-glow: rgba(14, 165, 233, 0.22);
+      --accent-tint: rgba(14, 165, 233, 0.12);
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+      --shadow-md: 0 16px 40px -4px rgba(0, 0, 0, 0.45);
+      --shadow-card: 0 8px 24px -4px rgba(0, 0, 0, 0.35);
+      --glass-inner-border: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      line-height: 1.65;
+      transition: background-color 0.35s var(--ease-spring), color 0.35s var(--ease-spring);
+      position: relative;
+    }
+
+    .ambient-glow {
+      position: fixed;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(60px);
+      opacity: 0.75;
+    }
+
+    header.nav-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: var(--bg-surface-glass);
+      border-bottom: 1px solid var(--border-glass);
+      box-shadow: var(--shadow-sm);
+      transition: background 0.35s var(--ease-spring);
+    }
+
+    .nav-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      object-fit: cover;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      background: var(--accent-primary);
+      display: block;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Apple-Style Segmented Control with Sliding Pill Indicator */
+    .segmented-control {
+      position: relative;
+      display: inline-flex;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-glass);
+      border-radius: 999px;
+      padding: 3px;
+      gap: 0;
+      user-select: none;
+    }
+
+    .sliding-pill {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      left: 0;
+      border-radius: 999px;
+      background: var(--accent-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+      transition: transform 0.36s var(--ease-spring), width 0.28s var(--ease-spring);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .seg-btn {
+      position: relative;
+      z-index: 2;
+      border: none;
+      background: transparent;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: color 0.22s ease;
+    }
+
+    .seg-btn.active {
+      color: #ffffff !important;
+    }
+
+    .seg-btn:active {
+      transform: scale(0.96);
+    }
+
+    .theme-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 17px;
+      border: 1px solid var(--border-glass);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s var(--ease-spring);
+    }
+
+    .theme-btn:active {
+      transform: scale(0.94);
+    }
+
+    /* Content Fade Transition Wrapper */
+    main.content-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 20px 80px 20px;
+      position: relative;
+      z-index: 10;
+      transition: opacity 0.25s var(--ease-spring), transform 0.25s var(--ease-spring);
+    }
+
+    main.content-container.fade-out {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+
+    main.content-container.fade-in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .hero-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 28px;
+      padding: 36px 32px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow-card), var(--glass-inner-border);
+    }
+
+    .hero-badge-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .badge-capsule {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      background: var(--status-success-bg);
+      color: var(--status-success);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .badge-capsule.blue {
+      background: var(--accent-tint);
+      color: var(--accent-primary);
+      border-color: rgba(2, 132, 199, 0.25);
+    }
+
+    .hero-title {
+      font-size: clamp(26px, 4vw, 36px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      margin-bottom: 12px;
+    }
+
+    .hero-desc {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 70ch;
+      line-height: 1.7;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .metric-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm), var(--glass-inner-border);
+      transition: transform 0.25s var(--ease-spring), border-color 0.25s var(--ease-spring);
+    }
+
+    .metric-item:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-light);
+    }
+
+    .metric-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .metric-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .metric-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .section-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 28px 28px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-card), var(--glass-inner-border);
+      transition: background 0.35s var(--ease-spring);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .section-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--accent-tint);
+      color: var(--accent-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .card-paragraph {
+      font-size: 14.5px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+
+    .card-paragraph:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Apple-Style Inset Specification Card (Replacing generic AI border-left callout) */
+    .spec-card {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-glass);
+      border-radius: 18px;
+      padding: 20px;
+      margin: 18px 0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    [data-theme="dark"] .spec-card {
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .spec-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .spec-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--accent-tint);
+      color: var(--accent-primary);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .spec-content {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .spec-content strong {
+      color: var(--text-primary);
+    }
+
+    .spec-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .spec-list li {
+      position: relative;
+      padding-left: 18px;
+    }
+
+    .spec-list li::before {
+      content: "•";
+      position: absolute;
+      left: 4px;
+      color: var(--accent-primary);
+      font-weight: 700;
+    }
+
+    /* Table styling - Clean & Language Isolated */
+    .table-responsive {
+      overflow-x: auto;
+      margin: 16px 0;
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    table.policy-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: left;
+    }
+
+    table.policy-table th {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      font-weight: 600;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    table.policy-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+
+    table.policy-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    code.badge-code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--accent-tint);
+      color: var(--accent-primary);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 500;
+      word-break: break-all;
+    }
+
+    footer.page-footer {
+      max-width: 900px;
+      margin: 40px auto 0 auto;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 18px;
+    }
+
+    .footer-links a {
+      color: var(--accent-primary);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s ease;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    /* 4-Language Visibility Rules */
+    .lang-zh, .lang-de, .lang-ja { display: none !important; }
+    .lang-en { display: block !important; }
+
+    body[data-lang="en"] .lang-en { display: block !important; }
+    body[data-lang="en"] .lang-zh, body[data-lang="en"] .lang-de, body[data-lang="en"] .lang-ja { display: none !important; }
+
+    body[data-lang="zh"] .lang-zh { display: block !important; }
+    body[data-lang="zh"] .lang-en, body[data-lang="zh"] .lang-de, body[data-lang="zh"] .lang-ja { display: none !important; }
+
+    body[data-lang="de"] .lang-de { display: block !important; }
+    body[data-lang="de"] .lang-en, body[data-lang="de"] .lang-zh, body[data-lang="de"] .lang-ja { display: none !important; }
+
+    body[data-lang="ja"] .lang-ja { display: block !important; }
+    body[data-lang="ja"] .lang-en, body[data-lang="ja"] .lang-zh, body[data-lang="ja"] .lang-de { display: none !important; }
+
+    /* Inline text variant */
+    span.lang-en, span.lang-zh, span.lang-de, span.lang-ja {
+      display: inline !important;
+    }
+    body[data-lang="en"] span.lang-zh, body[data-lang="en"] span.lang-de, body[data-lang="en"] span.lang-ja { display: none !important; }
+    body[data-lang="zh"] span.lang-en, body[data-lang="zh"] span.lang-de, body[data-lang="zh"] span.lang-ja { display: none !important; }
+    body[data-lang="de"] span.lang-en, body[data-lang="de"] span.lang-zh, body[data-lang="de"] span.lang-ja { display: none !important; }
+    body[data-lang="ja"] span.lang-en, body[data-lang="ja"] span.lang-zh, body[data-lang="ja"] span.lang-de { display: none !important; }
+
+    @media (max-width: 640px) {
+      .hero-card { padding: 26px 20px; }
+      .section-card { padding: 22px 18px; }
+      .metrics-grid { grid-template-columns: 1fr; }
+      .nav-inner { flex-direction: column; gap: 10px; align-items: flex-start; }
+      .nav-actions { width: 100%; justify-content: space-between; }
+    }
+  </style>
+</head>
+<body data-lang="en">
+  <div class="ambient-glow"></div>
+
+  <!-- Header -->
+  <header class="nav-header">
+    <div class="nav-inner">
+      <a href="https://github.com/nexen33/Fahrmony" class="brand-group" target="_blank" rel="noopener">
+        <img src="public/logo.png" alt="Fahrmony Logo" class="brand-logo" onerror="this.onerror=null; this.src='logo.png';" />
+        <div class="brand-text">
+          <span class="brand-title">Fahrmony · 合拍</span>
+          <span class="brand-subtitle">
+            <span class="lang-en">Privacy Policy & Safety</span>
+            <span class="lang-zh">隐私政策与安全承诺</span>
+            <span class="lang-de">Datenschutzerklärung</span>
+            <span class="lang-ja">プライバシーポリシー</span>
+          </span>
+        </div>
+      </a>
+
+      <div class="nav-actions">
+        <!-- Apple-Style Sliding Segmented Control -->
+        <div class="segmented-control" id="langSelector">
+          <div class="sliding-pill" id="slidingPill"></div>
+          <button class="seg-btn active" data-lang="en" onclick="changeLanguage('en', this)">EN</button>
+          <button class="seg-btn" data-lang="zh" onclick="changeLanguage('zh', this)">中文</button>
+          <button class="seg-btn" data-lang="de" onclick="changeLanguage('de', this)">DE</button>
+          <button class="seg-btn" data-lang="ja" onclick="changeLanguage('ja', this)">JA</button>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="theme-btn" id="themeToggle" title="Toggle Dark/Light Mode" onclick="toggleTheme()">
+          <span id="themeIcon">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content (Breathing Transition) -->
+  <main class="content-container" id="mainContent">
+
+    <!-- Hero Card -->
+    <section class="hero-card">
+      <div class="hero-badge-wrap">
+        <span class="badge-capsule">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span class="lang-en">Strictly GDPR / DSGVO & CCPA Compliant</span>
+          <span class="lang-zh">符合欧盟 GDPR / 德国 DSGVO 严苛标准</span>
+          <span class="lang-de">DSGVO & CCPA konforme Architektur</span>
+          <span class="lang-ja">GDPR / APPI 厳格準拠</span>
+        </span>
+        <span class="badge-capsule blue">
+          <span class="lang-en">Zero-Knowledge · 100% Local Processing</span>
+          <span class="lang-zh">零知识架构 · 100% 本地运算</span>
+          <span class="lang-de">Zero-Knowledge · 100% Lokale Ausführung</span>
+          <span class="lang-ja">ゼロ知識設計 · 100% ローカル処理</span>
+        </span>
+      </div>
+
+      <h1 class="hero-title">
+        <span class="lang-en">Fahrmony Privacy Policy & Safety Statement</span>
+        <span class="lang-zh">Fahrmony 隐私政策与安全承诺</span>
+        <span class="lang-de">Fahrmony Datenschutzerklärung</span>
+        <span class="lang-ja">Fahrmony プライバシーポリシー</span>
+      </h1>
+
+      <p class="hero-desc lang-en">
+        Fahrmony adheres to the absolute principle of local computation, ephemeral memory handling, and zero data telemetry. We operate no cloud databases, require no user accounts, and process all in-car bridging locally within your device.
+      </p>
+      <p class="hero-desc lang-zh">
+        Fahrmony 恪守“绝对本地运行、用完即焚、零隐私索取”的设计准则。我们不设任何自建服务器，无账号登录，不跟踪设备标识，所有消息与媒体投屏均在您的手机内存沙盒内即时完成。
+      </p>
+      <p class="hero-desc lang-de">
+        Fahrmony basiert auf dem fundamentalen Prinzip der vollständigen lokalen Datenverarbeitung und des Null-Datentransfers. Die Anwendung betreibt keine eigenen Cloud-Datenbanken, erfordert keine Registrierung und verarbeitet Medien- und Benachrichtigungsdaten rein flüchtig.
+      </p>
+      <p class="hero-desc lang-ja">
+        Fahrmonyは「完全ローカル処理・揮発性メモリ即時破棄・個人データ不取得」の原則を厳格に遵守します。独自のクラウドサーバーやユーザー登録は一切不要であり、端末内部で安全に動作します。
+      </p>
+    </section>
+
+    <!-- Key Metrics Grid -->
+    <div class="metrics-grid">
+      <div class="metric-item">
+        <div class="metric-val">0 B</div>
+        <div class="metric-label">
+          <span class="lang-en">Cloud Telemetry Sent</span>
+          <span class="lang-zh">云端个人数据上传</span>
+          <span class="lang-de">Übermittelte Telemetriedaten</span>
+          <span class="lang-ja">クラウド個人データ送信</span>
+        </div>
+        <div class="metric-sub">
+          <span class="lang-en">No proprietary tracking servers</span>
+          <span class="lang-zh">无自建业务服务器与追踪器</span>
+          <span class="lang-de">Keine eigenen Tracking-Server</span>
+          <span class="lang-ja">独自サーバー・追跡皆無</span>
+        </div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-val">0 s</div>
+        <div class="metric-label">
+          <span class="lang-en">Disk Retention for Messages</span>
+          <span class="lang-zh">私密消息磁盘留存</span>
+          <span class="lang-de">Speicherung auf Festspeicher</span>
+          <span class="lang-ja">メッセージのディスク保存</span>
+        </div>
+        <div class="metric-sub">
+          <span class="lang-en">Ephemeral RAM-only processing</span>
+          <span class="lang-zh">纯内存即时解构，用完即焚</span>
+          <span class="lang-de">Verarbeitung rein im flüchtigen RAM</span>
+          <span class="lang-ja">RAM内即時処理・保存ゼロ</span>
+        </div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-val">100%</div>
+        <div class="metric-label">
+          <span class="lang-en">Disconnection Session Purge</span>
+          <span class="lang-zh">离车会话自动销毁</span>
+          <span class="lang-de">Automatische Sitzungsbereinigung</span>
+          <span class="lang-ja">切断時セッション完全消去</span>
+        </div>
+        <div class="metric-sub">
+          <span class="lang-en">Automatic bridge cleanup on exit</span>
+          <span class="lang-zh">拔线离车即刻清空车载转接</span>
+          <span class="lang-de">Vollständige Zerstörung bei Trennung</span>
+          <span class="lang-ja">降車・切断時に自動破棄</span>
+        </div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-val">Open</div>
+        <div class="metric-label">
+          <span class="lang-en">Auditable Source Code</span>
+          <span class="lang-zh">全量源码公开可审</span>
+          <span class="lang-de">Öffentlich einsehbarer Code</span>
+          <span class="lang-ja">全ソースコード公開検証</span>
+        </div>
+        <div class="metric-sub">
+          <span class="lang-en">Publicly inspected on GitHub</span>
+          <span class="lang-zh">在 GitHub 接受全球开发者检验</span>
+          <span class="lang-de">Vollständig transparent auf GitHub</span>
+          <span class="lang-ja">GitHub上で世界中に公開</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1: Overview & Core Philosophy -->
+    <article class="section-card">
+      <div class="section-header">
+        <div class="section-icon">01</div>
+        <h2 class="section-title">
+          <span class="lang-en">Overview & Core Philosophy</span>
+          <span class="lang-zh">概述与核心准则</span>
+          <span class="lang-de">Übersicht & Leitprinzipien</span>
+          <span class="lang-ja">概要および基本原則</span>
+        </h2>
+      </div>
+
+      <div class="lang-en">
+        <p class="card-paragraph">
+          <strong>No Accounts & No Tracking:</strong> Fahrmony requires no user registration, assigns no user identifiers (UUID/IMEI/MAC), and embeds zero commercial advertising or crash tracking SDKs (no Firebase, no telemetry beacons, no Sentry, no Bugly).
+        </p>
+        <p class="card-paragraph">
+          <strong>Bridge Middleware:</strong> Fahrmony operates purely as a lightweight automotive middleware projecting media states to Android Auto. It does not store, host, or pirate copyrighted media files.
+        </p>
+      </div>
+
+      <div class="lang-zh">
+        <p class="card-paragraph">
+          <strong>无账号体系与无身份识别：</strong>本应用不需要用户注册账号，不分配任何跨应用跟踪的用户唯一标识符（UUID/IMEI/MAC地址），不接入任何第三方商业统计分析插件（无 Firebase、无 Bugly、无友盟等）。
+        </p>
+        <p class="card-paragraph">
+          <strong>非独立音乐播放器：</strong>Fahrmony 仅充当轻量级车载中间件，负责将手机已安装音频软件的媒体会话转接给车机大屏，不托管、不下载、不缓存任何音频版权文件。
+        </p>
+      </div>
+
+      <div class="lang-de">
+        <p class="card-paragraph">
+          <strong>Keine Konten & kein Tracking:</strong> Die Anwendung erfordert keine Benutzerregistrierung, vergibt keine Gerätekennungen und bindet keine kommerziellen Analyse- oder Werbe-SDKs ein.
+        </p>
+        <p class="card-paragraph">
+          <strong>Reine Middleware:</strong> Fahrmony dient ausschließlich der Übertragung von Medieninformationen an Android Auto und speichert oder hostet keine urheberrechtlich geschützten Audiodateien.
+        </p>
+      </div>
+
+      <div class="lang-ja">
+        <p class="card-paragraph">
+          <strong>アカウント不要・トラッキング皆無：</strong>本アプリはユーザー登録や識別子（IMEI/MAC/UUID等）の付与を行わず、商用広告やクラッシュ解析SDK（Firebase、Bugly等）を一切搭載しません。
+        </p>
+        <p class="card-paragraph">
+          <strong>車載連携ミドルウェア：</strong>Fahrmonyは端末内の音楽再生状態をAndroid Auto画面へ安全に投影するミドルウェアであり、音声ファイルを保存・配信・改ざんすることはありません。
+        </p>
+      </div>
+    </article>
+
+    <!-- Section 2: Regulatory Compliance (GDPR, CCPA & Android Auto) -->
+    <article class="section-card">
+      <div class="section-header">
+        <div class="section-icon">02</div>
+        <h2 class="section-title">
+          <span class="lang-en">Regulatory Compliance (GDPR, CCPA & Android Auto)</span>
+          <span class="lang-zh">国际法规遵从性 (GDPR / CCPA)</span>
+          <span class="lang-de">Einhaltung internationaler Datenschutzgesetze</span>
+          <span class="lang-ja">国際法規への準拠 (GDPR / 個人情報保護法)</span>
+        </h2>
+      </div>
+
+      <!-- Apple-Style Inset Spec Card (Replacing the AI callout bracket) -->
+      <div class="spec-card">
+        <div class="spec-header">
+          <span class="spec-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span class="lang-en">Legal Bases (GDPR Article 6)</span>
+            <span class="lang-zh">合法处理依据 (GDPR 第6条)</span>
+            <span class="lang-de">Rechtsgrundlagen (Art. 6 DSGVO)</span>
+            <span class="lang-ja">適法処理の根拠 (GDPR第6条)</span>
+          </span>
+        </div>
+        <div class="spec-content">
+          <ul class="spec-list">
+            <li>
+              <span class="lang-en"><strong>Art. 6(1)(a) Consent:</strong> Processing of notification content relies entirely on the user explicitly granting Android Notification Access, which can be revoked anytime in system settings.</span>
+              <span class="lang-zh"><strong>Art. 6(1)(a) 用户明示同意：</strong>通知监听权由用户在系统“通知使用权”中主动授权，用户可随时在手机系统设置中一键撤销。</span>
+              <span class="lang-de"><strong>Art. 6 Abs. 1 lit. a DSGVO:</strong> Ausdrückliche Einwilligung über die Android-Berechtigungseinstellungen (jederzeit widerrufbar).</span>
+              <span class="lang-ja"><strong>第6条第1項(a) 利用者の明示的同意：</strong>端末の「通知アクセス権」にて随時有効化および撤回が可能です。</span>
+            </li>
+            <li>
+              <span class="lang-en"><strong>Art. 6(1)(b) Functional Performance:</strong> Processing of active media session states is strictly necessary to project playback metadata and controls to Android Auto.</span>
+              <span class="lang-zh"><strong>Art. 6(1)(b) 履行用户指令：</strong>媒体会话状态同步是执行用户主动发起的“车机大屏播放控制”所不可或缺的纯本地技术交互。</span>
+              <span class="lang-de"><strong>Art. 6 Abs. 1 lit. b DSGVO:</strong> Erforderlich zur Erbringung der vom Nutzer veranlassten Fahrzeugsteuerung.</span>
+              <span class="lang-ja"><strong>第6条第1項(b) 契約または指示の履行：</strong>車載画面へのメディア情報連携という利用者自身の要求に基づく機能提供に限定されます。</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="lang-en">
+        <p class="card-paragraph">
+          <strong>Data Minimization (Art. 5(1)(c), (e) GDPR):</strong> All notification payloads and media session tokens are processed ephemerally in volatile memory (RAM) with a retention period of zero. No personal messages are committed to non-volatile disk storage.
+        </p>
+      </div>
+      <div class="lang-zh">
+        <p class="card-paragraph">
+          <strong>数据最小化与存储期限限制 (Article 5 GDPR)：</strong>所有传入的通知载荷与媒体会话全过程仅在手机运行内存（Volatile RAM）中即时处理，保留期限为零。绝不将任何个人通讯内容持久化至本地存储。
+        </p>
+      </div>
+      <div class="lang-de">
+        <p class="card-paragraph">
+          <strong>Datenminimierung (Art. 5 DSGVO):</strong> Alle Benachrichtigungsinhalte werden ausschließlich flüchtig im Arbeitsspeicher (RAM) verarbeitet. Die Speicherdauer beträgt 0 Sekunden.
+        </p>
+      </div>
+      <div class="lang-ja">
+        <p class="card-paragraph">
+          <strong>データの最小化と保存制限 (GDPR第5条)：</strong>受信した通知データおよび再生セッションは、端末の揮発性メモリ（RAM）上でのみ一時的に処理され、保存期間はゼロです。
+        </p>
+      </div>
+    </article>
+
+    <!-- Section 3: Sensitive Permissions & Purpose Disclosures (Table) -->
+    <article class="section-card">
+      <div class="section-header">
+        <div class="section-icon">03</div>
+        <h2 class="section-title">
+          <span class="lang-en">Sensitive Permissions & Purpose Disclosures</span>
+          <span class="lang-zh">系统敏感权限用途与保护措施</span>
+          <span class="lang-de">Sensible Berechtigungen & Schutzmaßnahmen</span>
+          <span class="lang-ja">機密権限の利用目的と保護措置</span>
+        </h2>
+      </div>
+
+      <!-- Completely Language-Isolated Table -->
+      <div class="table-responsive">
+        <table class="policy-table">
+          <thead>
+            <tr>
+              <th>
+                <span class="lang-en">Permission</span>
+                <span class="lang-zh">权限名称</span>
+                <span class="lang-de">Berechtigung</span>
+                <span class="lang-ja">権限名</span>
+              </th>
+              <th>
+                <span class="lang-en">Scope</span>
+                <span class="lang-zh">处理范围</span>
+                <span class="lang-de">Bereich</span>
+                <span class="lang-ja">処理範囲</span>
+              </th>
+              <th>
+                <span class="lang-en">Purposes & Safeguards</span>
+                <span class="lang-zh">具体用途与安全保护机制</span>
+                <span class="lang-de">Zwecke & Schutzmaßnahmen</span>
+                <span class="lang-ja">利用目的と保護措置</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code class="badge-code">BIND_NOTIFICATION_LISTENER_SERVICE</code></td>
+              <td>
+                <span class="lang-en">Volatile RAM Only</span>
+                <span class="lang-zh">手机运行内存 (RAM)</span>
+                <span class="lang-de">Flüchtiger Arbeitsspeicher (RAM)</span>
+                <span class="lang-ja">揮発性メモリ (RAM)</span>
+              </td>
+              <td>
+                <div class="lang-en">
+                  <strong>Strict Whitelist:</strong> Listens exclusively to designated messaging packages (WeChat, QQ, TIM, Feishu, DingTalk) and active MediaSessions.<br>
+                  <strong>RAM-Only:</strong> Sanitizes text to build Android Auto <code>MessagingStyle</code> audio readouts. Never recorded to disk, never shared, and auto-purged upon vehicle disconnection.
+                </div>
+                <div class="lang-zh">
+                  <strong>严格白名单过滤：</strong>仅捕获主流即时通讯应用及媒体会话。<br>
+                  <strong>用完即焚：</strong>清洗消息文本后构建车载标准 <code>MessagingStyle</code> 供车机语音助手朗读，绝不保存至磁盘、绝不外传，离车拔线断连后通过感知器自动全部销毁。
+                </div>
+                <div class="lang-de">
+                  <strong>Strikte Whitelist:</strong> Lauscht ausschließlich auf spezifizierte Messenger-Apps und Mediensitzungen.<br>
+                  <strong>Flüchtiger RAM:</strong> Aufbereitung für Sprachausgabe. Keine Festplattenspeicherung, keine Weitergabe, sofortige Vernichtung beim Trennen der Verbindung.
+                </div>
+                <div class="lang-ja">
+                  <strong>ホワイトリスト限定：</strong>対象メッセージアプリおよび再生中MediaSessionのみを監視。<br>
+                  <strong>揮発性メモリ即時破棄：</strong>車載音声読み上げ形式へ即座に変換。ディスク保存・ログ出力・外部送信は行わず、車両切断（降車）時にメモリから自動破棄されます。
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><code class="badge-code">FOREGROUND_SERVICE_MEDIA_PLAYBACK</code></td>
+              <td>
+                <span class="lang-en">:car Sub-process</span>
+                <span class="lang-zh">:car 独立车载进程</span>
+                <span class="lang-de">:car Unterprozess</span>
+                <span class="lang-ja">:car 独立車載プロセス</span>
+              </td>
+              <td>
+                <div class="lang-en">Mandated by Android Auto to maintain audio/lyric bridge communication while the screen is locked. A persistent status notification guarantees complete transparency.</div>
+                <div class="lang-zh">Android Auto 官方车载投屏架构强制要求。用于在息屏长途行驶中维持低延迟播控通信，前台通知保障运行完全透明。</div>
+                <div class="lang-de">Erforderlich für die unterbrechungsfreie Medien- und Textspiegelung bei gesperrtem Bildschirm. Statusbenachrichtigung gewährleistet vollständige Transparenz.</div>
+                <div class="lang-ja">画面消灯時でも車載ディスプレイとの安定した低遅延通信を維持するためのAndroid Auto公式必須要件です。常駐通知により動作が常に透明化されます。</div>
+              </td>
+            </tr>
+            <tr>
+              <td><code class="badge-code">POST_NOTIFICATIONS</code></td>
+              <td>
+                <span class="lang-en">Android 13+ (API 33+)</span>
+                <span class="lang-zh">Android 13 及更高版本</span>
+                <span class="lang-de">Android 13 und höher</span>
+                <span class="lang-ja">Android 13以降</span>
+              </td>
+              <td>
+                <div class="lang-en">Required exclusively to display the mandatory foreground service status indicator and bridged in-car messaging cards.</div>
+                <div class="lang-zh">仅用于常驻展示前台运行状态指示及转接车载消息卡片。</div>
+                <div class="lang-de">Ausschließlich zur Anzeige des Vordergrunddienst-Status und der weitergeleiteten Nachrichtenkarten.</div>
+                <div class="lang-ja">フォアグラウンドサービスの実行状態表示および車載メッセージカードの表示にのみ使用されます。</div>
+              </td>
+            </tr>
+            <tr>
+              <td><code class="badge-code">INTERNET</code></td>
+              <td>
+                <span class="lang-en">Outbound HTTPS</span>
+                <span class="lang-zh">单向出站 HTTPS</span>
+                <span class="lang-de">Ausgehendes HTTPS</span>
+                <span class="lang-ja">単方向 HTTPS</span>
+              </td>
+              <td>
+                <div class="lang-en">Strictly limited to 2 scenarios: on-demand public lyric retrieval (transmitting only song title and artist) and read-only GitHub Releases version comparison. Zero telemetry.</div>
+                <div class="lang-zh">仅用于两处公开功能：播放未带歌词曲目时单向从公开在线源检索纯文本（仅包含歌名与歌手），以及版本检测时只读查询 GitHub Releases 接口。</div>
+                <div class="lang-de">Streng beschränkt auf Songtext-Abruf (nur Titel und Interpret) sowie schreibgeschützte GitHub-Versionsprüfung. Keine Telemetrie.</div>
+                <div class="lang-ja">オンライン歌詞の単方向照会（曲名・アーティスト名のみ送信）、およびGitHub公式APIによるアップデート確認のみに制限されています。端末識別子の送信は一切ありません。</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <!-- Section 4: Outbound Network Requests -->
+    <article class="section-card">
+      <div class="section-header">
+        <div class="section-icon">04</div>
+        <h2 class="section-title">
+          <span class="lang-en">Outbound Network Requests Disclosure</span>
+          <span class="lang-zh">外部网络请求详细披露</span>
+          <span class="lang-de">Offenlegung ausgehender Netzwerkverbindungen</span>
+          <span class="lang-ja">外部ネットワーク通信の開示</span>
+        </h2>
+      </div>
+
+      <div class="lang-en">
+        <p class="card-paragraph">
+          <strong>1. On-Demand Public Lyrics Retrieval:</strong> Triggered only when the active media player does not report embedded lyrics. Transmits strictly the track title and artist name. Contains NO device identifiers (IMEI, MAC, Android ID, IP tracking), NO user tokens, and NO account credentials.
+        </p>
+        <p class="card-paragraph">
+          <strong>2. GitHub Releases Version Check:</strong> Automated once daily in background or manually triggered. Performs a standard read-only GET request to <code>https://api.github.com/repos/nexen33/Fahrmony/releases/latest</code> to check for updates. No personal data or telemetry is collected.
+        </p>
+      </div>
+
+      <div class="lang-zh">
+        <p class="card-paragraph">
+          <strong>1. 在线歌词单向检索：</strong>仅在当前播放曲目未包含歌词时，单向从公开在线渠道检索纯文本歌词（仅传输歌名与歌手，不包含任何设备信息、用户标识或 Cookie）。
+        </p>
+        <p class="card-paragraph">
+          <strong>2. GitHub Releases 版本检测：</strong>按需向官方公开的 GitHub API 发起只读版本号比对，仅用于提醒用户安全更新，绝不上传设备硬件码或行为特征。
+        </p>
+      </div>
+
+      <div class="lang-de">
+        <p class="card-paragraph">
+          <strong>1. Bedarfsweiser Online-Songtextabruf:</strong> Überträgt ausschließlich Titel und Interpret, sofern keine Songtexte lokal vorliegen. Enthält keinerlei Geräte-IDs, IP-Tracking oder Cookies.
+        </p>
+        <p class="card-paragraph">
+          <strong>2. GitHub-Versionsprüfung:</strong> Regelmäßige schreibgeschützte Abfrage der offiziellen GitHub Releases API zur Prüfung auf Sicherheitsaktualisierungen.
+        </p>
+      </div>
+
+      <div class="lang-ja">
+        <p class="card-paragraph">
+          <strong>1. オンライン歌詞の単方向取得：</strong>再生中の楽曲に歌詞が含まれていない場合のみ、公開されたオンライン歌詞ソースから曲名とアーティスト名のみで検索を行います（端末固有情報、IP追跡、Cookieは含まれません）。
+        </p>
+        <p class="card-paragraph">
+          <strong>2. GitHub Releases バージョン確認：</strong>安全な利用のため、公式GitHub APIへ定期的に読み取り専用リクエストを行い、最新リリースを確認します。
+        </p>
+      </div>
+    </article>
+
+    <!-- Section 5: Third-Party Libraries & Sub-Processors -->
+    <article class="section-card">
+      <div class="section-header">
+        <div class="section-icon">05</div>
+        <h2 class="section-title">
+          <span class="lang-en">Third-Party Libraries & Sub-Processors</span>
+          <span class="lang-zh">第三方库与境外传输</span>
+          <span class="lang-de">Keine Drittanbieter-Tracker und Drittlandübermittlung</span>
+          <span class="lang-ja">第三者提供および国外移転の不存在</span>
+        </h2>
+      </div>
+
+      <div class="lang-en">
+        <p class="card-paragraph">
+          <strong>Zero Trackers:</strong> Fahrmony contains zero advertising SDKs, zero telemetry beacons, and zero crash tracking frameworks (no Firebase, no Sentry, no Bugly).
+        </p>
+        <p class="card-paragraph">
+          <strong>Zero International Transfers (Art. 44+ GDPR):</strong> Because all personal data is processed solely on the local device, no cross-border transfer of personal data occurs.
+        </p>
+      </div>
+
+      <div class="lang-zh">
+        <p class="card-paragraph">
+          <strong>零追踪器：</strong>无广告 SDK、无统计打点、无崩溃收集探针（无 Firebase、无 Bugly、无友盟）。
+        </p>
+        <p class="card-paragraph">
+          <strong>无境外传输：</strong>所有数据均在个人手机本地运算，不存在个人数据出境或第三方共享。
+        </p>
+      </div>
+
+      <div class="lang-de">
+        <p class="card-paragraph">
+          <strong>Keine Werbe- oder Analyse-SDKs:</strong> Keine Einbindung von Firebase, Bugly, Google Analytics oder vergleichbaren Tracking-Diensten.
+        </p>
+        <p class="card-paragraph">
+          <strong>Keine Drittlandübermittlung (Art. 44 ff. DSGVO):</strong> Da alle Verarbeitungen ausschließlich lokal auf Ihrem Endgerät stattfinden, erfolgt keine Übermittlung personenbezogener Daten in Drittländer.
+        </p>
+      </div>
+
+      <div class="lang-ja">
+        <p class="card-paragraph">
+          <strong>トラッカーの不使用：</strong>広告SDK、マーケティング分析ツール、クラッシュ報告ツール（Firebase、Bugly等）は一切導入していません。
+        </p>
+        <p class="card-paragraph">
+          <strong>国外移転の不存在 (GDPR第44条以降)：</strong>すべてのデータ処理はユーザー端末内で完結するため、個人データの第三国移転は発生しません。
+        </p>
+      </div>
+    </article>
+
+    <!-- Section 6: Retention, Storage & User Rights -->
+    <article class="section-card">
+      <div class="section-header">
+        <div class="section-icon">06</div>
+        <h2 class="section-title">
+          <span class="lang-en">Data Retention, Local Storage & User Rights</span>
+          <span class="lang-zh">数据存储、删除机制与用户权利</span>
+          <span class="lang-de">Speicherung, Löschung und Betroffenenrechte</span>
+          <span class="lang-ja">データの保管・消去および利用者の権利</span>
+        </h2>
+      </div>
+
+      <div class="lang-en">
+        <p class="card-paragraph">
+          <strong>Retention:</strong> Transient notification data is destroyed upon vehicle disconnect. Local preferences (theme, preferred player) are stored in local <code>SharedPreferences</code>.
+        </p>
+        <p class="card-paragraph">
+          <strong>Right to Erasure (Art. 17 GDPR):</strong> Users can wipe all local preferences instantly via <strong>Android Settings -> Apps -> Fahrmony -> Storage -> Clear Data</strong>, or by uninstalling the Application.
+        </p>
+        <p class="card-paragraph">
+          <strong>Right to Lodge a Complaint (Art. 77 GDPR):</strong> Users have the right to lodge a complaint with a competent data protection supervisory authority in their EU member state of residence.
+        </p>
+        <p class="card-paragraph">
+          <strong>CCPA / CPRA Statement:</strong> We do not sell, rent, or share personal information with third parties.
+        </p>
+      </div>
+
+      <div class="lang-zh">
+        <p class="card-paragraph">
+          <strong>存储机制：</strong>通知数据用完即焚；本地设置（主题、默认播放器）存储在 Android 本地 <code>SharedPreferences</code>。
+        </p>
+        <p class="card-paragraph">
+          <strong>彻底删除权 (Art. 17 GDPR)：</strong>用户可随时通过系统设置清除应用存储或卸载，即可瞬间完全销毁所有本地配置文件。
+        </p>
+        <p class="card-paragraph">
+          <strong>申诉权 (Art. 77 GDPR)：</strong>若认为数据处理不合规，用户有权向所在地区的监管机构提出申诉。
+        </p>
+        <p class="card-paragraph">
+          <strong>CCPA 承诺：</strong>绝不出售、出租或共享任何个人数据。
+        </p>
+      </div>
+
+      <div class="lang-de">
+        <p class="card-paragraph">
+          <strong>Löschung (Art. 17 DSGVO):</strong> Nutzer können alle lokalen Einstellungen jederzeit über die Android-Systemeinstellungen („Speicherinhalt löschen“) oder durch Deinstallation restlos entfernen.
+        </p>
+        <p class="card-paragraph">
+          <strong>Beschwerderecht (Art. 77 DSGVO):</strong> Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde Ihres Wohnsitzes zu beschweren, wenn Sie der Ansicht sind, dass die Verarbeitung gegen die DSGVO verstößt.
+        </p>
+        <p class="card-paragraph">
+          <strong>CCPA-Zusicherung:</strong> Wir verkaufen, vermieten oder teilen keine persönlichen Daten mit Dritten.
+        </p>
+      </div>
+
+      <div class="lang-ja">
+        <p class="card-paragraph">
+          <strong>消去権 (GDPR第17条 / 忘れられる権利)：</strong>端末の「設定」->「アプリ」->「Fahrmony」->「ストレージを消去」またはアプリのアンインストールにより、ローカル設定をいつでも完全に消去できます。
+        </p>
+        <p class="card-paragraph">
+          <strong>監督機関への不服申立て (GDPR第77条)：</strong>EU居住者は、所轄のデータ保護監督機関に異議を申し立てる権利を有します。
+        </p>
+        <p class="card-paragraph">
+          <strong>情報販売・共有の禁止 (CCPA)：</strong>個人情報の第三者への販売・共有は一切行いません。
+        </p>
+      </div>
+    </article>
+
+    <!-- Section 7: Children’s Privacy & Disclaimers -->
+    <article class="section-card">
+      <div class="section-header">
+        <div class="section-icon">07</div>
+        <h2 class="section-title">
+          <span class="lang-en">Children’s Privacy & Disclaimers</span>
+          <span class="lang-zh">未成年人保护与免责声明</span>
+          <span class="lang-de">Minderjährigenschutz & Haftungsausschluss</span>
+          <span class="lang-ja">未成年者保護および免責事項</span>
+        </h2>
+      </div>
+
+      <div class="lang-en">
+        <p class="card-paragraph">
+          <strong>Children’s Privacy:</strong> The Application is designed exclusively for licensed vehicle operators and does not knowingly collect information from children under 13 (or under 16 in the EU).
+        </p>
+        <p class="card-paragraph">
+          <strong>Trademarks:</strong> Android Auto is a trademark of Google LLC. Other referenced third-party app names are used solely for descriptive compatibility purposes.
+        </p>
+      </div>
+
+      <div class="lang-zh">
+        <p class="card-paragraph">
+          <strong>未成年人保护：</strong>本应用专为合法机动车驾驶员设计，不面向 13 周岁（或欧盟 16 周岁）以下儿童，绝不故意收集任何儿童个人信息。
+        </p>
+        <p class="card-paragraph">
+          <strong>第三方商标与合规声明：</strong>Android Auto 为 Google LLC 的注册商标。文中提及的第三方商标仅作兼容性说明，版权归原权利人所有。
+        </p>
+      </div>
+
+      <div class="lang-de">
+        <p class="card-paragraph">
+          <strong>Schutz von Minderjährigen:</strong> Die Anwendung richtet sich an Personen mit gültiger Fahrerlaubnis und sammelt wissentlich keine Daten von Kindern unter 16 Jahren.
+        </p>
+        <p class="card-paragraph">
+          <strong>Markenzeichen:</strong> Android Auto ist eine Marke von Google LLC. Alle genannten Drittanbieter-Namen dienen ausschließlich der Kompatibilitätsbeschreibung.
+        </p>
+      </div>
+
+      <div class="lang-ja">
+        <p class="card-paragraph">
+          <strong>未成年者のプライバシー：</strong>本アプリは運転免許証を所持するドライバー向けに設計されており、16歳未満の未成年者から個人情報を意図的に収集することはありません。
+        </p>
+        <p class="card-paragraph">
+          <strong>商標および免責事項：</strong>Android AutoはGoogle LLCの登録商標です。記載されているサードパーティ各社の名称は技術的互換性の説明目的のみで使用されています。
+        </p>
+      </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+      <p>
+        <span class="lang-en">Fahrmony Open Source Project · Free & Libre Automotive Middleware</span>
+        <span class="lang-zh">Fahrmony 开源项目 · 自由透明的车载投屏中间件</span>
+        <span class="lang-de">Fahrmony Open-Source-Projekt · Freie & transparente Fahrzeug-Middleware</span>
+        <span class="lang-ja">Fahrmony オープンソースプロジェクト · 自由でセキュアな車載ミドルウェア</span>
+      </p>
+      <div class="footer-links">
+        <a href="https://github.com/nexen33/Fahrmony" target="_blank" rel="noopener">
+          <span class="lang-en">GitHub Repository</span>
+          <span class="lang-zh">GitHub 源码仓库</span>
+          <span class="lang-de">GitHub-Repository</span>
+          <span class="lang-ja">GitHub リポジトリ</span>
+        </a>
+        <a href="https://github.com/nexen33/Fahrmony/blob/main/PRIVACY_POLICY.md" target="_blank" rel="noopener">
+          <span class="lang-en">Markdown Version</span>
+          <span class="lang-zh">Markdown 规范文件</span>
+          <span class="lang-de">Markdown-Version</span>
+          <span class="lang-ja">Markdown ドキュメント</span>
+        </a>
+        <a href="https://github.com/nexen33/Fahrmony/issues" target="_blank" rel="noopener">
+          <span class="lang-en">Security Issues / Contact</span>
+          <span class="lang-zh">安全漏洞报告与反馈</span>
+          <span class="lang-de">Sicherheit & Feedback</span>
+          <span class="lang-ja">セキュリティ報告・お問い合わせ</span>
+        </a>
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    // 1. Theme Toggle with Apple-style icon transition
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const target = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', target);
+      document.documentElement.style.backgroundColor = target === 'dark' ? '#0a0c10' : '#f8fafc';
+      try {
+        localStorage.setItem('fahrmony_theme', target);
+      } catch(e) {}
+      updateThemeIcon(target);
+    }
+
+    function updateThemeIcon(theme) {
+      const icon = document.getElementById('themeIcon');
+      if (icon) {
+        icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+      }
+    }
+
+    // 2. Apple Sliding Pill Segmented Control + Breathing Content Transition
+    function updatePillPosition(activeBtn) {
+      const pill = document.getElementById('slidingPill');
+      if (!pill || !activeBtn) return;
+      pill.style.width = activeBtn.offsetWidth + 'px';
+      pill.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+    }
+
+    let isTransitioning = false;
+    const docTitles = {
+      en: 'Fahrmony · Privacy Policy & Safety Statement',
+      zh: 'Fahrmony · 隐私政策与安全承诺',
+      de: 'Fahrmony · Datenschutzerklärung',
+      ja: 'Fahrmony · プライバシーポリシー'
+    };
+
+    function changeLanguage(lang, btnElement) {
+      if (isTransitioning) return;
+      const currentLang = document.body.getAttribute('data-lang');
+      if (currentLang === lang) return;
+
+      isTransitioning = true;
+      const main = document.getElementById('mainContent');
+      
+      // Step A: Trigger smooth breathing fade-out
+      if (main) main.classList.add('fade-out');
+
+      // Update segmented buttons & move sliding pill with spring timing
+      document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btnElement.classList.add('active');
+      updatePillPosition(btnElement);
+
+      // Step B: Swap language during mid-fade (~160ms) and breathe back in
+      setTimeout(() => {
+        document.body.setAttribute('data-lang', lang);
+        document.documentElement.setAttribute('lang', lang);
+        if (docTitles[lang]) {
+          document.title = docTitles[lang];
+        }
+        try {
+          localStorage.setItem('fahrmony_privacy_lang', lang);
+        } catch(e) {}
+
+        if (main) {
+          main.classList.remove('fade-out');
+          main.classList.add('fade-in');
+          setTimeout(() => {
+            main.classList.remove('fade-in');
+            isTransitioning = false;
+          }, 300);
+        } else {
+          isTransitioning = false;
+        }
+      }, 160);
+    }
+
+    // Initialize layout, default light theme, and sliding pill on window load
+    window.addEventListener('DOMContentLoaded', () => {
+      // Theme icon
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      updateThemeIcon(currentTheme);
+
+      // Initial active language button & pill placement
+      const currentLang = document.body.getAttribute('data-lang') || 'en';
+      const initialBtn = document.querySelector(`.seg-btn[data-lang="${currentLang}"]`) || document.querySelector('.seg-btn');
+      if (initialBtn) {
+        initialBtn.classList.add('active');
+        updatePillPosition(initialBtn);
+        // Delay slightly for font rendering measurement
+        setTimeout(() => updatePillPosition(initialBtn), 50);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      const activeBtn = document.querySelector('.seg-btn.active');
+      if (activeBtn) updatePillPosition(activeBtn);
+    });
+  </script>
+</body>
+</html>
