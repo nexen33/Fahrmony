@@ -15,9 +15,7 @@
 > A local-first interoperability bridge tailored for Android Auto, enabling car displays to naturally display and partially control your favorite Chinese streaming audio and messaging notifications while driving abroad.
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk">
-    <img src="https://img.shields.io/badge/Download_Latest_Fahrmony_APK-blue?style=forthebadge" height="60">
-  </a>
+  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/Visit-Official_Website-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="Official Website" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk"><img src="https://img.shields.io/badge/Download-Latest_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="Download Latest APK" /></a>
 </p>  
 
 ## What is Fahrmony?

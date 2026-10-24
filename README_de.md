@@ -15,9 +15,7 @@
 > Eine lokale Schnittstellenbrücke für Android Auto, mit der Fahrzeug-Displays bei Fahrten im Ausland gängige chinesische Audio-Streaming- und Messaging-Dienste nahtlos anzeigen und teilweise steuern können.
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk">
-    <img src="https://img.shields.io/badge/Neuestes_Fahrmony_APK_herunterladen-blue?style=forthebadge" height="60">
-  </a>
+  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/Besuchen-Offizielle_Website-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="Offizielle Website" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk"><img src="https://img.shields.io/badge/Download-Neueste_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="Neueste APK herunterladen" /></a>
 </p>  
 
 ## Was ist Fahrmony?

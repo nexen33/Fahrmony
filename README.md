@@ -15,13 +15,7 @@
 > 一个为 Android Auto 打造的本地互操作桥接工具，让海外行车使用 Android Auto 时能够自然显示和部分操控你常用的中文流媒体音频与即时通讯通知。
 
 <p align="center">
-  <a href="https://nexen33.github.io/Fahrmony/home.html">
-    <img src="https://img.shields.io/badge/点击进入-官方主页-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="官方主页" />
-  </a>
-  &nbsp;&nbsp;
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk">
-    <img src="https://img.shields.io/badge/点击下载-Fahrmony_最新安装包-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="下载安装包" />
-  </a>
+  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/点击进入-官方主页-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="官方主页" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk"><img src="https://img.shields.io/badge/点击下载-Fahrmony_最新安装包-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="下载安装包" /></a>
 </p>
  
 <table align="center">

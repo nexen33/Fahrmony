@@ -15,11 +15,8 @@
 > Android Auto 向けに設計されたローカル相互運用ブリッジ。海外での運転時にも、普段使い慣れた中国語ストリーミング音楽やメッセージ通知を車載画面で自然に表示・操作できます。
 
 <p align="center">
-  <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk">
-    <img src="https://img.shields.io/badge/最新の_Fahrmony_APKをダウンロード-blue?style=forthebadge" height="60">
-  </a>
+  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/公式サイト-アクセス-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="公式サイト" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk"><img src="https://img.shields.io/badge/最新版APK-ダウンロード-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="最新版APKをダウンロード" /></a>
 </p>
-
 
 ## Fahrmony とは
 
