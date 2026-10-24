@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Fahrmony · In-Car Audio & IM Bridge for Android Auto</title>
+
+  <!-- Typography: Exactly aligned with Fahrmony App design tokens -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+
+  <script>
+    // 1. Synchronous Theme & Language Initialization
+    (function () {
+      try {
+        var t = localStorage.getItem('fahrmony_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.style.backgroundColor = t === 'dark' ? '#0a0c10' : '#f8fafc';
+      } catch (e) { }
+    })();
+  </script>
+
+  <style>
+    :root {
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      /* Color Tokens (Light Mode - Default) */
+      --bg-main: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #f1f5f9;
+      --bg-surface-glass: rgba(255, 255, 255, 0.85);
+      --border-subtle: rgba(0, 0, 0, 0.06);
+      --border-glass: rgba(0, 0, 0, 0.08);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-tertiary: #94a3b8;
+
+      --accent-primary: #0284c7;
+      --accent-light: #0ea5e9;
+      --accent-glow: rgba(2, 132, 199, 0.18);
+      --accent-tint: rgba(2, 132, 199, 0.08);
+
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 16px 36px -4px rgba(15, 23, 42, 0.07);
+      --shadow-card: 0 12px 32px -4px rgba(15, 23, 42, 0.05);
+      --shadow-pop: 0 24px 50px -10px rgba(15, 23, 42, 0.12);
+
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-bounce: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+      --navbar-top: 16px;
+    }
+
+    [data-theme="dark"] {
+      --bg-main: #0a0c10;
+      --bg-surface: #12151c;
+      --bg-surface-elevated: #181c25;
+      --bg-surface-glass: rgba(18, 21, 28, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glass: rgba(255, 255, 255, 0.12);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-tertiary: #64748b;
+
+      --accent-primary: #0ea5e9;
+      --accent-light: #38bdf8;
+      --accent-glow: rgba(14, 165, 233, 0.25);
+      --accent-tint: rgba(14, 165, 233, 0.12);
+
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+      --shadow-md: 0 18px 44px -4px rgba(0, 0, 0, 0.5);
+      --shadow-card: 0 12px 32px -4px rgba(0, 0, 0, 0.4);
+      --shadow-pop: 0 28px 56px -10px rgba(0, 0, 0, 0.65);
+    }
+
+    /* Requirement 6: Global non-selectable text enforcement */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-sans);
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    /* Only changelog body content is allowed to be selected and copied */
+    .selectable-text,
+    .selectable-text *,
+    #changelog-list,
+    .changelog-item span {
+      -webkit-user-select: text !important;
+      -moz-user-select: text !important;
+      -ms-user-select: text !important;
+      user-select: text !important;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      line-height: 1.6;
+      transition: background-color 0.4s var(--ease-spring), color 0.4s var(--ease-spring);
+      position: relative;
+    }
+
+    /* Ambient background glow */
+    .bg-glow {
+      position: fixed;
+      top: -15vw;
+      right: -10vw;
+      width: 55vw;
+      height: 55vw;
+      max-width: 800px;
+      max-height: 800px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, rgba(2, 132, 199, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.8;
+      transition: opacity 0.4s var(--ease-spring);
+    }
+
+    /* Requirement 2: Deprecated separate blur mask in favor of App-style content mask */
+    .top-blur-mask {
+      display: none !important;
+    }
+
+    /* =========================================================
+       Native App-style Scroll Viewport & Content Mask Architecture
+       (Directly mirroring src/App.tsx line 1348-1354 dock mask pattern:
+        The content itself dissolves to transparent before the navbar edge,
+        leaving the navbar completely untouched and 100% razor sharp)
+       ========================================================= */
+    .page-scroll-viewport {
+      width: 100%;
+      height: 100dvh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      box-sizing: border-box;
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent var(--navbar-top, 16px),
+        black calc(var(--navbar-top, 16px) + 60px),
+        black 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent var(--navbar-top, 16px),
+        black calc(var(--navbar-top, 16px) + 60px),
+        black 100%
+      );
+    }
+
+    /* Scrollbar refinements */
+    .page-scroll-viewport::-webkit-scrollbar {
+      width: 6px;
+    }
+    .page-scroll-viewport::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .page-scroll-viewport::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 9999px;
+    }
+
+    /* Inner Page Container: Pinned with safe breathing margin below navbar */
+    .page-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: calc(var(--navbar-top, 16px) + 60px + 16px) 20px 48px;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    /* Cascade Reveal Animation */
+    .cascade-item {
+      opacity: 0;
+      transform: translateY(22px) scale(0.985);
+      animation: cascadeReveal 0.8s var(--ease-spring) forwards;
+      animation-delay: calc(var(--delay, 0) * 75ms);
+    }
+
+    @keyframes cascadeReveal {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Staggered in-panel waterfall animation */
+    @keyframes panelWaterfallIn {
+      0% {
+        opacity: 0;
+        transform: translateY(18px) scale(0.985);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .stagger-in {
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+      animation: panelWaterfallIn 0.65s var(--ease-spring) both;
+      animation-delay: calc(var(--stagger, 0) * 35ms);
+      will-change: transform, opacity;
+    }
+
+    /* Silky i18n waterfall & breathing transitions */
+    .i18n-translatable {
+      transition: opacity 0.2s var(--ease-spring), transform 0.2s var(--ease-spring);
+    }
+
+    .cascade-fading {
+      opacity: 0 !important;
+      transform: translateY(-10px) scale(0.99) !important;
+      transition: opacity 0.18s var(--ease-spring), transform 0.18s var(--ease-spring) !important;
+    }
+
+    .panel-fading-out {
+      opacity: 0 !important;
+      transform: translateY(-8px) scale(0.99) !important;
+      transition: opacity 0.18s var(--ease-spring), transform 0.18s var(--ease-spring) !important;
+    }
+
+    /* =========================================================
+       Top Navigation Bar (Concentric 10px edge alignment)
+       ========================================================= */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 10px;
+      background: var(--bg-surface-glass);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid var(--border-glass);
+      border-radius: 9999px;
+      /* Capsule Navbar */
+      box-shadow: var(--shadow-sm);
+      position: fixed;
+      top: var(--navbar-top, 16px);
+      left: 20px;
+      right: 20px;
+      max-width: 1160px;
+      margin: 0 auto;
+      z-index: 100;
+      transition: all 0.35s var(--ease-spring);
+      box-sizing: border-box;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+      flex-shrink: 0;
+      min-width: max-content;
+    }
+
+    .brand-logo-wrap {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      transition: transform 0.25s var(--ease-spring), border-color 0.25s ease;
+    }
+
+    .brand:hover .brand-logo-wrap {
+      transform: scale(1.08) rotate(-2deg);
+      border-color: var(--accent-primary);
+    }
+
+    .brand-logo {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .brand-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Requirement 7: “合拍”永远横向，坚决不被压成竖向 */
+    .brand-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--accent-tint);
+      color: var(--accent-primary);
+      padding: 3px 10px;
+      border-radius: 9999px;
+      /* Pill */
+      letter-spacing: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    /* Segmented Language Slider (Desktop / Wide screen) */
+    .lang-slider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: var(--bg-surface-elevated);
+      border-radius: 9999px;
+      /* Capsule */
+      padding: 3px;
+      border: 1px solid var(--border-subtle);
+      height: 36px;
+      box-sizing: border-box;
+    }
+
+    .lang-pill {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      border-radius: 9999px;
+      /* Capsule pill */
+      background: var(--bg-surface);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: left 0.35s var(--ease-spring), width 0.35s var(--ease-spring);
+      pointer-events: none;
+    }
+
+    .lang-btn {
+      position: relative;
+      z-index: 1;
+      border: none;
+      background: transparent;
+      padding: 0 12px;
+      height: 100%;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 9999px;
+      transition: color 0.2s ease;
+      font-family: var(--font-sans);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .lang-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .lang-btn.active {
+      color: var(--accent-primary);
+    }
+
+    /* Sub-pixel baseline calibration: shift Chinese up by 1px */
+    .lang-btn[data-lang="zh"],
+    #lang-dropdown-current[data-lang="zh"],
+    .lang-dropdown-item[data-lang="zh"] span {
+      transform: translateY(-1px);
+    }
+
+    /* Custom Capsule Dropdown (Narrow Screen) */
+    .lang-dropdown {
+      display: none;
+      position: relative;
+      align-items: center;
+      height: 36px;
+      box-sizing: border-box;
+    }
+
+    .lang-dropdown-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      padding: 0 14px 0 16px;
+      height: 36px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      outline: none;
+      transition: all 0.25s var(--ease-spring);
+      box-sizing: border-box;
+      white-space: nowrap;
+    }
+
+    .lang-dropdown-trigger:hover {
+      border-color: var(--border-glass);
+      background: var(--bg-surface);
+    }
+
+    .lang-dropdown.open .lang-dropdown-trigger {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .lang-dropdown-arrow {
+      width: 12px;
+      height: 12px;
+      stroke: var(--text-secondary);
+      transition: transform 0.25s var(--ease-spring);
+      flex-shrink: 0;
+    }
+
+    .lang-dropdown.open .lang-dropdown-arrow {
+      transform: rotate(180deg);
+    }
+
+    /* Elegant Rounded Glassmorphic Menu Panel */
+    .lang-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 104px;
+      min-width: unset;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-glass);
+      border-radius: 16px;
+      padding: 5px;
+      box-shadow: var(--shadow-pop);
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      opacity: 0;
+      transform: translateY(-8px) scale(0.96);
+      pointer-events: none;
+      transition: opacity 0.22s var(--ease-spring), transform 0.22s var(--ease-spring);
+      transform-origin: top right;
+    }
+
+    [data-theme="light"] .lang-dropdown-menu {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+    }
+
+    [data-theme="dark"] .lang-dropdown-menu {
+      background: rgba(18, 21, 28, 0.96);
+      backdrop-filter: blur(28px) saturate(190%);
+      -webkit-backdrop-filter: blur(28px) saturate(190%);
+    }
+
+    .lang-dropdown.open .lang-dropdown-menu {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .lang-dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      user-select: none;
+    }
+
+    .lang-dropdown-item:hover {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+    }
+
+    .lang-dropdown-item.active {
+      color: var(--accent-primary);
+      background: var(--accent-tint);
+    }
+
+    .lang-dropdown-item .item-check {
+      opacity: 0;
+      transition: opacity 0.18s ease;
+      color: var(--accent-primary);
+    }
+
+    .lang-dropdown-item.active .item-check {
+      opacity: 1;
+    }
+
+    @media (max-width: 580px) {
+      .navbar {
+        left: 12px;
+        right: 12px;
+        padding: 10px 10px;
+        gap: 10px;
+      }
+
+      .page-container {
+        padding: calc(var(--navbar-top, 16px) + 60px + 12px) 16px 48px;
+      }
+
+      /* Logo and brand maintain standard dimensions without height compression */
+      .brand-logo-wrap {
+        width: 38px;
+        height: 38px;
+      }
+
+      .brand-name {
+        font-size: 1.2rem;
+      }
+
+      .lang-slider {
+        display: none;
+      }
+
+      .lang-dropdown {
+        display: flex;
+      }
+    }
+
+    /* Theme Switcher Button (Circle) */
+    .theme-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      /* Circular */
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s var(--ease-spring);
+      flex-shrink: 0;
+    }
+
+    .theme-btn:active {
+      transform: scale(0.9);
+    }
+
+    .theme-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.4s var(--ease-spring);
+    }
+
+    [data-theme="dark"] .icon-sun {
+      display: block;
+    }
+
+    [data-theme="dark"] .icon-moon {
+      display: none;
+    }
+
+    [data-theme="light"] .icon-sun {
+      display: none;
+    }
+
+    [data-theme="light"] .icon-moon {
+      display: block;
+    }
+
+    /* Hero Section */
+    .hero-section {
+      margin-top: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: all 0.4s var(--ease-spring);
+    }
+
+    .hero-badge-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    /* Requirement 3: Multi-language Version Tag */
+    .version-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      /* Pill */
+      background: var(--accent-tint);
+      border: 1px solid rgba(2, 132, 199, 0.2);
+      color: var(--accent-primary);
+      font-size: 0.88rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      text-align: center;
+    }
+
+    .version-tag::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+      box-shadow: 0 0 10px #10b981;
+    }
+
+    .hero-title {
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      color: var(--text-primary);
+      max-width: 26ch;
+      margin-bottom: 24px;
+      text-align: center;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .text-accent {
+      color: var(--accent-primary);
+      font-weight: 700;
+    }
+
+    /* Feature Capsule Tags */
+    .feature-capsules-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 36px;
+      max-width: 720px;
+    }
+
+    .capsule-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .feature-capsules-wrap {
+      position: relative;
+    }
+
+    .feature-capsule {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 18px;
+      border-radius: 9999px;
+      /* Pill */
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      transition: all 0.25s var(--ease-spring);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+    }
+
+    /* Requirement 1: Pulsing bottom-inner progress bar, masked by capsule frame at curve boundaries */
+    .feature-capsule::after {
+      content: '';
+      position: absolute;
+      bottom: 0px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      transform-origin: left center;
+      transform: scaleX(0);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    @keyframes chipPulseSweep {
+      0% {
+        transform: scaleX(0);
+        opacity: 0;
+        background: #ffffff;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.95);
+      }
+      15% {
+        opacity: 1;
+        background: #ffffff;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+      }
+      50% {
+        opacity: 1;
+        background: #38bdf8;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.85);
+      }
+      80% {
+        transform: scaleX(1);
+        opacity: 1;
+        background: var(--accent-primary);
+        box-shadow: 0 0 12px var(--accent-glow);
+      }
+      100% {
+        transform: scaleX(1);
+        opacity: 0;
+        background: var(--accent-primary);
+        box-shadow: 0 0 12px var(--accent-glow);
+      }
+    }
+
+    .feature-capsule.pulse-active::after {
+      animation: chipPulseSweep 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Interruptible: when hovering any capsule or when container is interrupted, immediately fade out and stop */
+    .feature-capsule:hover::after,
+    .feature-capsule:focus-visible::after,
+    .feature-capsules-wrap.is-interrupted .feature-capsule::after {
+      opacity: 0 !important;
+      animation: none !important;
+      transition: opacity 0.2s ease !important;
+    }
+
+    .feature-capsule:hover {
+      background: var(--bg-surface);
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    /* Requirement 4: Action Buttons Row with identical standardized height (46px) */
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 52px;
+    }
+
+    .btn-cta {
+      height: 46px;
+      /* Strictly equalized height */
+      padding: 0 28px;
+      border-radius: 9999px;
+      /* Capsule Pill */
+      font-size: 0.96rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: width 0.42s var(--ease-spring), background-color 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+      box-shadow: var(--shadow-sm);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      box-sizing: border-box;
+      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .btn-morph-content {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      transition: opacity 0.2s var(--ease-spring), transform 0.2s var(--ease-spring);
+    }
+
+    .btn-morph-content.morph-fading {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+
+    .btn-cta:active {
+      transform: scale(0.96);
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Ambient natural breathing glow hinting download */
+    @keyframes btnBreathingGlow {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(2, 132, 199, 0), var(--shadow-sm);
+      }
+      50% {
+        box-shadow: 0 0 18px 4px var(--accent-glow), 0 4px 14px var(--accent-tint);
+      }
+    }
+
+    #btn-download-apk {
+      animation: btnBreathingGlow 3.2s ease-in-out infinite;
+    }
+
+    #btn-download-apk:hover,
+    #btn-download-apk:focus-visible,
+    #btn-download-apk:active {
+      animation: none;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-light);
+      box-shadow: 0 10px 28px -4px var(--accent-glow);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-surface-elevated);
+      border-color: var(--border-glass);
+      transform: translateY(-2px);
+    }
+
+    /* =========================================================
+       Main Display Card (Changelog OR Core Features & Compatibility)
+       ========================================================= */
+    .main-display-card {
+      width: 100%;
+      max-width: 960px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 32px;
+      /* Large Rounded Bento */
+      padding: 34px 38px;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 56px;
+      text-align: left;
+      contain: layout style;
+      transition: opacity 0.35s var(--ease-spring), transform 0.35s var(--ease-spring);
+    }
+
+    @media (max-width: 600px) {
+      .main-display-card {
+        padding: 24px 18px;
+        border-radius: 24px;
+      }
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Changelog List */
+    .changelog-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .changelog-item {
+      font-size: 0.98rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tag-type {
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      /* Pill */
+      white-space: nowrap;
+      font-family: var(--font-mono);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .tag-add {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+    }
+
+    .tag-refactor {
+      background: rgba(14, 165, 233, 0.12);
+      color: #0284c7;
+    }
+
+    .tag-opt {
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+    }
+
+    .tag-fix {
+      background: rgba(139, 92, 246, 0.12);
+      color: #8b5cf6;
+    }
+
+    /* =========================================================
+       Requirement 5: Core Features & Compatibility Matrix (Bento Layout)
+       ========================================================= */
+    .features-compat-view {
+      display: none;
+    }
+
+    .features-compat-view.active {
+      display: block;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .feature-card {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .feature-card:hover {
+      background: var(--bg-surface);
+      border-color: var(--accent-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px var(--accent-glow);
+      transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s var(--ease-spring);
+    }
+
+    .feature-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 0.98rem;
+      color: var(--text-primary);
+    }
+
+    .feature-icon-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent-tint);
+      color: var(--accent-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .feature-card-desc {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    /* Compatibility Tables */
+    .section-subhead {
+      font-size: 1.12rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 32px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      background: var(--bg-surface-elevated);
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-subtle) transparent;
+    }
+
+    .table-container::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 9999px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb:hover {
+      background: var(--text-tertiary);
+    }
+
+    .compat-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+      min-width: 620px;
+    }
+
+    .compat-table th,
+    .compat-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .compat-table th {
+      background: rgba(0, 0, 0, 0.02);
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    [data-theme="dark"] .compat-table th {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .compat-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+
+    .badge-status svg {
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0;
+    }
+
+    .subhead-icon {
+      stroke: var(--accent-primary);
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+    }
+
+    .status-full {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+    }
+
+    .status-partial {
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+    }
+
+    .status-none {
+      background: rgba(239, 68, 68, 0.12);
+      color: #ef4444;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: auto;
+      padding-top: 36px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--text-tertiary);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    .footer-copyright {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .footer-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .footer-link:hover {
+      color: var(--accent-primary);
+    }
+
+    @media (max-width: 600px) {
+      .footer {
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="bg-glow"></div>
+
+  <!-- Top Navigation Bar: Independent Fixed Glassmorphic Capsule (z:100, 100% crisp, zero blur bleed) -->
+  <header class="navbar cascade-item" style="--delay: 1;" id="navbar">
+    <a href="home.html" class="brand">
+      <div class="brand-logo-wrap">
+        <img src="public/logo.png" alt="Fahrmony Logo" class="brand-logo"
+          onerror="this.src='Archiev/Logo/fahrmony_logo.png'">
+      </div>
+      <span class="brand-name">
+        Fahrmony <span class="brand-badge">合拍</span>
+      </span>
+    </a>
+
+    <div class="nav-controls">
+      <!-- Segmented slider for desktop/tablet -->
+      <div class="lang-slider" id="lang-slider">
+        <div class="lang-pill" id="lang-pill"></div>
+        <button class="lang-btn active" data-lang="zh">中文</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="de">DE</button>
+        <button class="lang-btn" data-lang="ja">JA</button>
+      </div>
+
+      <!-- Requirement 7: Custom Glassmorphic Capsule Dropdown for narrow mobile screens -->
+      <div class="lang-dropdown" id="lang-dropdown">
+        <button class="lang-dropdown-trigger" id="lang-dropdown-trigger" aria-haspopup="listbox" aria-expanded="false">
+          <span id="lang-dropdown-current" data-lang="zh">中文</span>
+          <svg class="lang-dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div class="lang-dropdown-menu" id="lang-dropdown-menu" role="listbox">
+          <div class="lang-dropdown-item active" data-lang="zh" role="option">
+            <span>中文</span>
+            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lang-dropdown-item" data-lang="en" role="option">
+            <span>EN</span>
+            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lang-dropdown-item" data-lang="de" role="option">
+            <span>DE</span>
+            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="lang-dropdown-item" data-lang="ja" role="option">
+            <span>JA</span>
+            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Light/Dark theme toggle (Circle) -->
+      <button class="theme-btn" id="theme-btn" aria-label="Toggle Theme">
+        <svg class="icon-sun" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- App-style Scroll Viewport with direct content maskImage -->
+  <div class="page-scroll-viewport" id="page-scroll-viewport">
+    <div class="page-container">
+
+      <!-- Main Content -->
+      <main class="hero-section" id="hero-section">
+      <!-- Requirement 3: Multi-language Version Tag -->
+      <div class="hero-badge-wrap cascade-item i18n-translatable" style="--delay: 2;">
+        <span class="version-tag" id="txt-version-tag">v1.3.0 最新上线</span>
+      </div>
+
+      <h1 class="hero-title cascade-item i18n-translatable" style="--delay: 3;" id="txt-hero-title">
+        为中文主流 <span class="text-accent">音频&通讯</span> App <br>打造的 <span class="text-accent">Android Auto</span> 插件
+      </h1>
+
+      <!-- Feature Capsule Chips -->
+      <div class="feature-capsules-wrap i18n-translatable">
+        <div class="capsule-row cascade-item" style="--delay: 4;" id="capsule-row-1">
+          <span class="feature-capsule" id="chip-1">基础播控</span>
+          <span class="feature-capsule" id="chip-2">歌词显示</span>
+          <span class="feature-capsule" id="chip-3">IM消息播报</span>
+        </div>
+        <div class="capsule-row cascade-item" style="--delay: 5;" id="capsule-row-2">
+          <span class="feature-capsule" id="chip-4">深度适配</span>
+          <span class="feature-capsule" id="chip-5">无感使用</span>
+          <span class="feature-capsule" id="chip-6">开源透明可查</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons Row (Requirement 4 & 5) -->
+      <div class="cta-row cascade-item i18n-translatable" style="--delay: 6;">
+        <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk"
+          class="btn-cta btn-primary" target="_blank" id="btn-download-apk">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span id="txt-btn-download">下载最新 APK</span>
+        </a>
+
+        <!-- Requirement 5: Secondary Button toggling Changelog vs Core Features & Compatibility -->
+        <button class="btn-cta btn-secondary" id="btn-toggle-view">
+          <span class="btn-morph-content" id="btn-toggle-inner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round" id="icon-toggle">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span id="txt-btn-toggle">核心功能与适配</span>
+          </span>
+        </button>
+      </div>
+
+      <!-- Main Display Card (Changelog View / Features & Compatibility View) -->
+      <section class="main-display-card cascade-item i18n-translatable" style="--delay: 7;" id="main-display-card">
+
+        <!-- View 1: Changelog (Default View) -->
+        <div id="view-changelog">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span id="txt-changelog-head">v1.3.0 更新日志</span>
+            </h2>
+            <span style="font-size:0.86rem; color:var(--text-tertiary); font-family:var(--font-mono);"
+              id="txt-changelog-date">2026-10-24</span>
+          </div>
+
+          <ul class="changelog-list selectable-text" id="changelog-list">
+            <!-- Dynamically populated without trailing punctuation -->
+          </ul>
+        </div>
+
+        <!-- View 2: Core Features & Compatibility Matrix (Requirement 5) -->
+        <div id="view-features-compat" class="features-compat-view">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polygon
+                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                </polygon>
+              </svg>
+              <span id="txt-features-head">核心功能特性</span>
+            </h2>
+            <span
+              style="font-size:0.84rem; color:var(--accent-primary); font-weight:600; font-family:var(--font-mono);">100%
+              Local · No Root</span>
+          </div>
+
+          <!-- 10 Core Features Grid (from descri.txt) -->
+          <div class="features-grid" id="features-grid">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Compatibility Matrix Subhead -->
+          <h3 class="section-subhead">
+            <svg class="subhead-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m3 17 2 2 4-4"></path>
+              <path d="m3 7 2 2 4-4"></path>
+              <path d="M13 6h8"></path>
+              <path d="M13 12h8"></path>
+              <path d="M13 18h8"></path>
+            </svg>
+            <span id="txt-compat-preset-title">预置位音乐 App 支持情况一览</span>
+          </h3>
+
+          <div class="table-container">
+            <table class="compat-table">
+              <thead>
+                <tr>
+                  <th id="th-app">预置位音源</th>
+                  <th id="th-ctrl">基础播控</th>
+                  <th id="th-lyric">实时歌词</th>
+                  <th id="th-mode">播放模式</th>
+                  <th id="th-note">机制与功能说明</th>
+                </tr>
+              </thead>
+              <tbody id="compat-preset-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer cascade-item i18n-translatable" style="--delay: 8;">
+      <div class="footer-copyright">Copyright © 2026 Tun & PaMa AG. All rights reserved.</div>
+      <div class="footer-links">
+        <a href="https://github.com/nexen33/Fahrmony" class="footer-link" target="_blank" id="txt-footer-repo">GitHub
+          源码仓库</a>
+        <a href="privacy.html" class="footer-link" id="txt-footer-privacy">隐私政策</a>
+        <a href="https://github.com/nexen33/Fahrmony/issues" class="footer-link" target="_blank"
+          id="txt-footer-issues">问题反馈与支持</a>
+      </div>
+    </footer>
+
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // Multi-Language Dictionary (ZH, EN, DE, JA)
+    // Avoids trailing multibyte + single-quote collision
+    // ==========================================
+    const I18N = {
+      zh: {
+        tagRelease: "v1.3.0 最新上线",
+        heroTitle: "为中文主流 <span class=\"text-accent\">音频&通讯</span> App <br>打造的 <span class=\"text-accent\">Android Auto</span> 插件",
+        chips: [
+          "基础播控", "歌词显示", "IM消息播报",
+          "深度适配", "无感使用", "开源透明可查"
+        ],
+        btnDownload: "下载最新 APK",
+        btnToggleToFeatures: "核心功能与适配",
+        btnToggleToChangelog: "更新日志",
+        changelogHead: "v1.3.0 更新日志",
+        featuresHead: "核心功能特性",
+        compatPresetTitle: "预置位音乐 App 支持情况一览",
+        thApp: "预置位音源",
+        thCtrl: "基础播控",
+        thLyric: "实时歌词",
+        thMode: "播放模式",
+        thNote: "机制与说明",
+        footerRepo: "GitHub 源码仓库",
+        footerPrivacy: "隐私政策",
+        footerIssues: "问题反馈与支持",
+        changelog: [
+          { type: "新增", tagClass: "tag-add", text: "预置位音乐 App 车载播放模式切换与状态双向同步（部分支持）" },
+          { type: "新增", tagClass: "tag-add", text: "播放模式单边校准功能，当状态未对齐时，可在手机端卡片一键校准同步" },
+          { type: "重构", tagClass: "tag-refactor", text: "预置位音乐 App 歌词多层级抓取架构，改善歌词命中率" },
+          { type: "优化", tagClass: "tag-opt", text: "汽水音乐车载歌曲信息与歌词显示，解决流光模式在切歌时的跳色问题" },
+          { type: "优化", tagClass: "tag-opt", text: "歌词模式切换实现 0ms 瞬间重推，有缓存时不再发起多余重查" },
+          { type: "修复", tagClass: "tag-fix", text: "酷狗音乐多版本（正式版/概念版）共存时的混淆拉起与状态绑定异常" },
+          { type: "修复", tagClass: "tag-fix", text: "跨进程 IPC 通信内存可见性屏障" }
+        ],
+        features: [
+          { icon: "1", title: "基础播放控制", desc: "在车机大屏顺畅控制播放、暂停、切歌与播放进度毫秒级拖拽。" },
+          { icon: "2", title: "实时歌词显示", desc: "深度适配 QQ音乐、网易云、汽水、波点、酷狗等，支持单行/双行/关闭三态平滑滚动。" },
+          { icon: "3", title: "播放模式切换", desc: "支持车机端单曲/列表循环/随机切换与双向状态同步，附带手机端单边对齐校准。" },
+          { icon: "4", title: "自定义音源扩展", desc: "自动检测后台正在发声的音频 App，通过智能推荐或手动添加纳入自定义车机槽位。" },
+          { icon: "5", title: "智能流光与原图封面", desc: "高对比度流光背景杜绝按键黑底，亦可一键切换为原汁原味的高清专辑封面图。" },
+          { icon: "6", title: "冷启动与热重连续播", desc: "深度打磨生命周期，插线或无线连接即刻恢复续播，日常用车无需掏手机提前点播。" },
+          { icon: "7", title: "主流 IM 消息转接", desc: "支持微信、QQ、飞书、钉钉等车规卡片转接与语音助手安全朗读，离车自动清除。" },
+          { icon: "8", title: "无感更新检查", desc: "内置轻量感知机制，每晚后台静默检测 GitHub Releases 最新版本；支持双击手动检查。" },
+          { icon: "9", title: "深浅色自适应与多语言", desc: "原生适配系统深浅色主题模式，完整支持中文、英语、德语与日语四种语言体系。" },
+          { icon: "10", title: "隐私承诺与零追踪", desc: "100% 手机本地计算，无自建业务服务器，零隐私收集，不含任何商业广告与追踪 SDK。" }
+        ],
+        presetCompat: [
+          { app: "QQ音乐", ctrl: "✅ 支持", lyric: "✅ 完整支持", mode: "✅ 完整支持", note: "原生标准模式切换与高精度歌词直取" },
+          { app: "网易云音乐", ctrl: "✅ 支持", lyric: "✅ 完整支持", mode: "✅ 双向同步", note: "歌词两级搜寻；四态模式切换，支持手机端单边校准" },
+          { app: "汽水音乐", ctrl: "✅ 支持", lyric: "✅ 深度支持", mode: "仅 OriginOS", note: "歌词三级搜寻；OriginOS 独立通道适配" },
+          { app: "波点音乐", ctrl: "✅ 支持", lyric: "✅ 深度支持", mode: "仅 OriginOS", note: "歌词三级搜寻；自适应推荐流与收藏流播放模式" },
+          { app: "酷我音乐", ctrl: "✅ 支持", lyric: "✅ 深度支持", mode: "仅 OriginOS", note: "歌词三级搜寻；OriginOS 独立通道适配" },
+          { app: "酷狗音乐", ctrl: "✅ 支持", lyric: "✅ 深度支持", mode: "视版本情况", note: "歌词两级搜寻；正式版支持单向模式切换与单边校准" }
+        ]
+      },
+      en: {
+        tagRelease: "v1.3.0 Latest Release",
+        heroTitle: "An <span class=\"text-accent\">Android Auto</span> Plugin <br>Built for Chinese Mainstream <span class=\"text-accent\">Audio & IM</span> Apps",
+        chips: [
+          "Playback Controls", "Synced Lyrics", "IM Voice Alerts",
+          "Deep Integration", "Seamless Plug & Play", "Open Source & Auditable"
+        ],
+        btnDownload: "Download Latest APK",
+        btnToggleToFeatures: "Features & Compatibility",
+        btnToggleToChangelog: "Changelog",
+        changelogHead: "v1.3.0 Changelog",
+        featuresHead: "Core Features",
+        compatPresetTitle: "Preset Music Apps Compatibility",
+        thApp: "Audio App",
+        thCtrl: "Controls",
+        thLyric: "Synced Lyrics",
+        thMode: "Playback Mode",
+        thNote: "Implementation Details",
+        footerRepo: "GitHub Repository",
+        footerPrivacy: "Privacy Policy",
+        footerIssues: "Issues & Support",
+        changelog: [
+          { type: "New", tagClass: "tag-add", text: "In-car playback mode switching and bidirectional sync for preset apps" },
+          { type: "New", tagClass: "tag-add", text: "Unilateral playback mode calibration to resync states with a single tap" },
+          { type: "Refactor", tagClass: "tag-refactor", text: "Multi-tier lyric scraping architecture improving lyric hit rates" },
+          { type: "Opt", tagClass: "tag-opt", text: "Fixed color flashes during track switches under ambient glow mode" },
+          { type: "Opt", tagClass: "tag-opt", text: "0ms instant lyric mode switching utilizing existing memory cache" },
+          { type: "Fix", tagClass: "tag-fix", text: "Resolved launch conflicts when multiple editions of Kugou coexist" },
+          { type: "Fix", tagClass: "tag-fix", text: "Strengthened memory visibility barrier for cross-process IPC" }
+        ],
+        features: [
+          { icon: "1", title: "Essential Transport Controls", desc: "Smoothly control playback, pause, skip tracks, and seek progress directly on the car display." },
+          { icon: "2", title: "Synchronized Real-Time Lyrics", desc: "Deeply optimized for QQ Music, NetEase, Luna, Bodian, Kugou with millisecond-accurate scrolling." },
+          { icon: "3", title: "Playback Mode Switching", desc: "Toggle Repeat One, Repeat All, and Shuffle with bidirectional sync and unilateral phone calibration." },
+          { icon: "4", title: "Custom Audio Sources", desc: "Automatically detects active background audio streams and integrates them into custom car slots." },
+          { icon: "5", title: "Ambient Glow & Original Covers", desc: "Dynamic ambient glow prevents in-car UI buttons from blacking out, with optional original artwork." },
+          { icon: "6", title: "Cold-Start Auto-Resume", desc: "Plug in wired or wirelessly and playback resumes automatically without touching the phone." },
+          { icon: "7", title: "Mainstream IM Messaging Bridge", desc: "Forwards notifications for WeChat, QQ, Lark, DingTalk with safe car voice assistant readouts." },
+          { icon: "8", title: "Silent Update Checks", desc: "Performs silent nightly checks against GitHub Releases; double-tap logo in About to check manually." },
+          { icon: "9", title: "Dark/Light Theme & Multi-Language", desc: "Seamlessly adapts to system light and dark themes with Chinese, English, German, and Japanese UI." },
+          { icon: "10", title: "Privacy & Zero Telemetry", desc: "100% local computation with zero cloud servers. Zero personal data collection and zero ad trackers." }
+        ],
+        presetCompat: [
+          { app: "QQ Music", ctrl: "✅ Supported", lyric: "✅ Full Support", mode: "✅ Full Sync", note: "Native standard mode switching and direct high-precision lyric fetching" },
+          { app: "NetEase Cloud Music", ctrl: "✅ Supported", lyric: "✅ Full Support", mode: "✅ Full Sync", note: "Two-tier lyric search; 4-state mode switching with unilateral calibration" },
+          { app: "Soda Music (Luna)", ctrl: "✅ Supported", lyric: "✅ Deep Support", mode: "OriginOS only", note: "Three-tier lyric search; dedicated OriginOS system channel" },
+          { app: "Bodian Music", ctrl: "✅ Supported", lyric: "✅ Deep Support", mode: "OriginOS only", note: "Three-tier lyric search; adaptive recommendation vs favorite stream modes" },
+          { app: "Kuwo Music", ctrl: "✅ Supported", lyric: "✅ Deep Support", mode: "OriginOS only", note: "Three-tier lyric search; OriginOS dedicated channel integration" },
+          { app: "Kugou Music", ctrl: "✅ Supported", lyric: "✅ Deep Support", mode: "Version specific", note: "Two-tier lyric search; official release supports mode toggle and calibration" }
+        ]
+      },
+      de: {
+        tagRelease: "v1.3.0 Neueste Version",
+        heroTitle: "Ein <span class=\"text-accent\">Android Auto</span>-Plugin <br>für chinesische <span class=\"text-accent\">Audio- & Messenger</span>-Apps",
+        chips: [
+          "Wiedergabesteuerung", "Songtextanzeige", "Nachrichtenansage",
+          "Tiefenintegration", "Nahtlose Nutzung", "Open Source & Transparent"
+        ],
+        btnDownload: "Neueste APK herunterladen",
+        btnToggleToFeatures: "Funktionen & Kompatibilität",
+        btnToggleToChangelog: "Änderungsprotokoll",
+        changelogHead: "v1.3.0 Änderungsprotokoll",
+        featuresHead: "Kernfunktionen",
+        compatPresetTitle: "Kompatibilität voreingestellter Musik-Apps",
+        thApp: "Audio-App",
+        thCtrl: "Steuerung",
+        thLyric: "Songtexte",
+        thMode: "Wiedergabemodus",
+        thNote: "Hinweise & Details",
+        footerRepo: "GitHub-Repository",
+        footerPrivacy: "Datenschutzerklärung",
+        footerIssues: "Feedback & Support",
+        changelog: [
+          { type: "Neu", tagClass: "tag-add", text: "Wiedergabemodus-Umschaltung mit bidirektionaler Statussynchronisation" },
+          { type: "Neu", tagClass: "tag-add", text: "Einseitige Modus-Kalibrierung auf der Smartphone-Karte per Knopfdruck" },
+          { type: "Refaktor", tagClass: "tag-refactor", text: "Mehrstufige Songtext-Abrufarchitektur zur Steigerung der Trefferquote" },
+          { type: "Optimiert", tagClass: "tag-opt", text: "Farbsprünge im Ambient-Glow-Modus beim Titelwechsel behoben" },
+          { type: "Optimiert", tagClass: "tag-opt", text: "Verzögerungsfreie 0ms-Umschaltung des Songtextmodus mit Cache" },
+          { type: "Behoben", tagClass: "tag-fix", text: "Konflikte bei gleichzeitiger Installation mehrerer Kugou-Versionen gelöst" },
+          { type: "Behoben", tagClass: "tag-fix", text: "Speichersichtbarkeitsbarriere für prozessübergreifende IPC verstärkt" }
+        ],
+        features: [
+          { icon: "1", title: "Essenzielle Wiedergabesteuerung", desc: "Reibungslose Steuerung von Wiedergabe, Pause, Titelsprüngen und Positionsregelung am Autodisplay." },
+          { icon: "2", title: "Echtzeit-Songtextanzeige", desc: "Tief optimiert für QQ Music, NetEase, Luna, Bodian, Kugou mit flüssigem Millisekunden-Scrollen." },
+          { icon: "3", title: "Wiedergabemodus-Umschaltung", desc: "Schalten Sie Wiederholung und Zufallswiedergabe mit bidirektionaler Synchronisation um." },
+          { icon: "4", title: "Erweiterung benutzerdefinierter Quellen", desc: "Erkennt aktive Audio-Apps im Hintergrund und bindet sie flexibel in Fahrzeug-Slots ein." },
+          { icon: "5", title: "Ambient Glow & Original-Cover", desc: "Dynamisches Umgebungsleuchten verhindert Verdunklung der Tasten; Original-Cover wählbar." },
+          { icon: "6", title: "Kaltstart & Auto-Fortsetzen", desc: "Einfach per Kabel oder kabellos verbinden – die Wiedergabe setzt automatisch fort." },
+          { icon: "7", title: "Messenger-Nachrichtenbrücke", desc: "Leitet WeChat-, QQ-, Feishu- und DingTalk-Benachrichtigungen mit Sprachausgabe weiter." },
+          { icon: "8", title: "Lautlose Update-Prüfung", desc: "Prüft nachts im Hintergrund auf neue GitHub-Releases; manuelles Prüfen per Logo-Doppeltipp." },
+          { icon: "9", title: "Dunkel-/Hell-Modus & Mehrsprachig", desc: "Passt sich an das Systemdesign an und bietet volle Unterstützung für Chinesisch, Englisch, Deutsch und Japanisch." },
+          { icon: "10", title: "100% Lokal & Privatsphäre", desc: "Ausschließlich lokale Verarbeitung ohne eigene Server, ohne Datenerfassung und ohne Werbe-SDKs." }
+        ],
+        presetCompat: [
+          { app: "QQ Music", ctrl: "✅ Unterstützt", lyric: "✅ Voll unterstützt", mode: "✅ Synchron", note: "Standard-Modusumschaltung und hochpräziser Songtextabruf" },
+          { app: "NetEase Cloud Music", ctrl: "✅ Unterstützt", lyric: "✅ Voll unterstützt", mode: "✅ Synchron", note: "Zweistufige Suche; 4-Zustands-Modus mit Smartphone-Kalibrierung" },
+          { app: "Soda Music (Luna)", ctrl: "✅ Unterstützt", lyric: "✅ Erweitert", mode: "Nur OriginOS", note: "Dreistufige Songtextsuche; nativer OriginOS-Systemkanal" },
+          { app: "Bodian Music", ctrl: "✅ Unterstützt", lyric: "✅ Erweitert", mode: "Nur OriginOS", note: "Dreistufige Suche; passt sich an Empfehlungs- und Favoriten-Streams an" },
+          { app: "Kuwo Music", ctrl: "✅ Unterstützt", lyric: "✅ Erweitert", mode: "Nur OriginOS", note: "Dreistufige Songtextsuche über den dedizierten OriginOS-Kanal" },
+          { app: "Kugou Music", ctrl: "✅ Unterstützt", lyric: "✅ Erweitert", mode: "Versionsabhängig", note: "Zweistufige Suche; Standard-Version unterstützt Moduswechsel" }
+        ]
+      },
+      ja: {
+        tagRelease: "v1.3.0 最新リリース",
+        heroTitle: "中国の主要<span class=\"text-accent\">音楽・メッセージ</span>アプリに対応した<br><span class=\"text-accent\">Android Auto</span> プラグイン",
+        chips: [
+          "基本再生操作", "リアルタイム歌詞", "メッセージ読み上げ",
+          "高度な最適化", "シームレスな体験", "完全オープンソース"
+        ],
+        btnDownload: "最新APKをダウンロード",
+        btnToggleToFeatures: "コア機能と対応状況",
+        btnToggleToChangelog: "更新履歴",
+        changelogHead: "v1.3.0 更新履歴",
+        featuresHead: "コア機能と特徴",
+        compatPresetTitle: "プリセット音楽アプリ対応一覧",
+        thApp: "音楽アプリ",
+        thCtrl: "基本制御",
+        thLyric: "同期歌詞",
+        thMode: "再生モード",
+        thNote: "仕様と詳細",
+        footerRepo: "GitHub リポジトリ",
+        footerPrivacy: "プライバシーポリシー",
+        footerIssues: "不具合報告・サポート",
+        changelog: [
+          { type: "新規", tagClass: "tag-add", text: "車載再生モードの切り替えおよび双方向ステータス同期を追加" },
+          { type: "新規", tagClass: "tag-add", text: "スマホ側でのワンタップ再生モード手動同期・キャリブレーション機能" },
+          { type: "刷新", tagClass: "tag-refactor", text: "マルチティア歌詞取得エンジンの刷新による歌詞ヒット率の向上" },
+          { type: "改善", tagClass: "tag-opt", text: "流光アンビエントモードにおける曲切り替え時の色飛びを解消" },
+          { type: "改善", tagClass: "tag-opt", text: "キャッシュ活用により0msの高速歌詞表示切り替えを実現" },
+          { type: "修正", tagClass: "tag-fix", text: "複数バージョンのKuGou共存時の競合起動と状態同期の不具合を修正" },
+          { type: "修正", tagClass: "tag-fix", text: "プロセス間IPC通信におけるメモリバリアの安全性を强化" }
+        ],
+        features: [
+          { icon: "1", title: "基本的な再生コントロール", desc: "車載大画面で再生、一時停止、曲送り、シークバーのドラッグをスムーズに制御" },
+          { icon: "2", title: "リアルタイム歌詞同期表示", desc: "主要音楽アプリを高度に最適化。1行/2行/非表示の3モードに対応し滑らかにスクロール" },
+          { icon: "3", title: "再生モード切り替え", desc: "リピート、シャッフル再生の切り替えと双方向ステータス同期、手動補正に対応" },
+          { icon: "4", title: "カスタム音源の拡張", desc: "バックグラウンドで再生中のアプリを自動検知し車載ショートカット枠へ追加可能" },
+          { icon: "5", title: "流光背景とオリジナルアートワーク", desc: "高コントラストのアンビエント背景でボタンの視認性を確保。元画像表示にも切り替え可能" },
+          { icon: "6", title: "コールドスタート自動レジューム", desc: "接続時に前回の再生状態を自動復元。日常利用でスマホを取り出す必要はありません" },
+          { icon: "7", title: "主要IMメッセージの車載転送", desc: "WeChat、QQ、Lark、DingTalkの通知を車載カード形式で転送し音声アシスタントで安全に読み上げ" },
+          { icon: "8", title: "バックグラウンド更新確認", desc: "夜間にGitHub Releasesの最新バージョンを自動検知。ロゴのダブルタップで手動確認も可能" },
+          { icon: "9", title: "ダーク/ライトモードと多言語対応", desc: "システムのダーク/ライトテーマに自動追従。中国語、英語、ドイツ語、日本語に完全対応" },
+          { icon: "10", title: "プライバシー保護と完全ローカル処理", desc: "外部サーバーなしの100%端末内処理。データ収集やトラッキング広告は一切含みません" }
+        ],
+        presetCompat: [
+          { app: "QQ音楽", ctrl: "✅ 対応", lyric: "✅ 深度対応", mode: "✅ 完全同期", note: "標準モード切り替えと高精度歌詞取得に対応" },
+          { app: "網易雲音楽 (NetEase)", ctrl: "✅ 対応", lyric: "✅ 深度対応", mode: "✅ 完全同期", note: "2段階歌詞検索、4状態モード切り替えとスマホ側手動校正に対応" },
+          { app: "汽水音楽 (Luna)", ctrl: "✅ 対応", lyric: "✅ 深度対応", mode: "OriginOS限定", note: "3段階歌詞検索、OriginOS専用システムチャンネル連携" },
+          { app: "波点音楽 (Bodian)", ctrl: "✅ 対応", lyric: "✅ 深度対応", mode: "OriginOS限定", note: "3段階歌詞検索、おすすめストリームとコレクションストリームに適応" },
+          { app: "酷我音楽 (Kuwo)", ctrl: "✅ 対応", lyric: "✅ 深度対応", mode: "OriginOS限定", note: "3段階歌詞検索、OriginOS専用チャンネル連携" },
+          { app: "酷狗音楽 (Kugou)", ctrl: "✅ 対応", lyric: "✅ 深度对应", mode: "バージョン依存", note: "2段階歌詞検索、正式版でモード切り替えと手動校正に対応" }
+        ]
+      }
+    };
+
+    // State Variables
+    let currentLang = 'zh';
+    let currentView = 'changelog'; // 'changelog' | 'features'
+
+    // DOM Elements
+    const langSlider = document.getElementById('lang-slider');
+    const langPill = document.getElementById('lang-pill');
+    const langBtns = document.querySelectorAll('.lang-btn');
+    const langDropdown = document.getElementById('lang-dropdown');
+    const langDropdownTrigger = document.getElementById('lang-dropdown-trigger');
+    const langDropdownCurrent = document.getElementById('lang-dropdown-current');
+    const langDropdownItems = document.querySelectorAll('.lang-dropdown-item');
+    const themeBtn = document.getElementById('theme-btn');
+
+    const btnToggleView = document.getElementById('btn-toggle-view');
+    const txtBtnToggle = document.getElementById('txt-btn-toggle');
+    const iconToggle = document.getElementById('icon-toggle');
+
+    const viewChangelog = document.getElementById('view-changelog');
+    const viewFeaturesCompat = document.getElementById('view-features-compat');
+
+    // ==========================================
+    // 1. Theme Management
+    // ==========================================
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const target = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', target);
+      document.documentElement.style.backgroundColor = target === 'dark' ? '#0a0c10' : '#f8fafc';
+      try { localStorage.setItem('fahrmony_theme', target); } catch (e) { }
+    }
+    themeBtn.addEventListener('click', toggleTheme);
+
+    // ==========================================
+    // 2. Language Slider & Localization Engine
+    // (Requirement 1: Silky waterfall + breathing animation)
+    // ==========================================
+    function updateLangPillPosition(btn) {
+      if (!btn || !langSlider || !langPill) return;
+      const rect = btn.getBoundingClientRect();
+      const parentRect = langSlider.getBoundingClientRect();
+      langPill.style.left = (rect.left - parentRect.left) + 'px';
+      langPill.style.width = rect.width + 'px';
+    }
+
+    // Lucide Icons for 10 Core Features
+    const FEATURE_ICONS = [
+      // 1: Controls (Play)
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>',
+      // 2: Lyrics (Music)
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>',
+      // 3: Playback Mode (Repeat)
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>',
+      // 4: Custom Audio Sources (PlusCircle)
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>',
+      // 5: Ambient Glow (Sparkles)
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>',
+      // 6: Cold-Start Auto-Resume (Zap)
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+      // 7: Mainstream IM Messaging Bridge (MessageSquare)
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+      // 8: Silent Update Checks (RefreshCw)
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>',
+      // 9: Dark/Light Theme & Multi-Language (Globe)
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>',
+      // 10: Local Privacy & Zero Telemetry (ShieldCheck)
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>'
+    ];
+
+    // Helper: Format status badge using crisp Lucide SVG check icons instead of emojis
+    function formatStatusBadge(rawText) {
+      if (!rawText) return '';
+      const clean = rawText.replace(/✅\s*/g, '').trim();
+      const isPartial = clean.includes('OriginOS') || clean.includes('仅') || clean.includes('Nur') || clean.includes('限定') || clean.includes('视') || clean.includes('specific') || clean.includes('abhängig') || clean.includes('依存');
+      const badgeClass = isPartial ? 'status-partial' : 'status-full';
+      const checkSvg = !isPartial
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+        : '';
+      return `<span class="badge-status ${badgeClass}">${checkSvg}<span>${clean}</span></span>`;
+    }
+
+    function renderLanguageContent(lang) {
+      const dict = I18N[lang] || I18N.zh;
+
+      // Hero Tag (Requirement 3)
+      document.getElementById('txt-version-tag').textContent = dict.tagRelease;
+
+      // Hero Title
+      document.getElementById('txt-hero-title').innerHTML = dict.heroTitle;
+
+      // Feature Chips
+      dict.chips.forEach((text, i) => {
+        const el = document.getElementById('chip-' + (i + 1));
+        if (el) el.textContent = text;
+      });
+
+      // Action Buttons (Requirement 4 & 5)
+      document.getElementById('txt-btn-download').textContent = dict.btnDownload;
+      txtBtnToggle.textContent = (currentView === 'changelog') ? dict.btnToggleToFeatures : dict.btnToggleToChangelog;
+
+      // Changelog Head
+      document.getElementById('txt-changelog-head').textContent = dict.changelogHead;
+
+      // Render Changelog List (strictly without trailing punctuation)
+      const changelogList = document.getElementById('changelog-list');
+      changelogList.innerHTML = dict.changelog.map((item, idx) => `
+        <li class="changelog-item">
+          <span class="tag-type ${item.tagClass}">${item.type}</span>
+          <span>${item.text}</span>
+        </li>
+      `).join('');
+
+      // Features & Compatibility Card (Requirement 5)
+      document.getElementById('txt-features-head').textContent = dict.featuresHead;
+      document.getElementById('txt-compat-preset-title').textContent = dict.compatPresetTitle;
+
+      // Table Headers
+      document.getElementById('th-app').textContent = dict.thApp;
+      document.getElementById('th-ctrl').textContent = dict.thCtrl;
+      document.getElementById('th-lyric').textContent = dict.thLyric;
+      document.getElementById('th-mode').textContent = dict.thMode;
+      document.getElementById('th-note').textContent = dict.thNote;
+
+      // Render 10 Core Features Bento Cards with Lucide Icons
+      const featuresGrid = document.getElementById('features-grid');
+      featuresGrid.innerHTML = dict.features.map((f, i) => `
+        <div class="feature-card">
+          <div class="feature-card-header">
+            <span class="feature-icon-badge">${FEATURE_ICONS[i] || (i + 1)}</span>
+            <span>${f.title}</span>
+          </div>
+          <p class="feature-card-desc">${f.desc}</p>
+        </div>
+      `).join('');
+
+      // Render Preset Compat Table with Lucide SVG status badges
+      const presetTbody = document.getElementById('compat-preset-tbody');
+      presetTbody.innerHTML = dict.presetCompat.map(row => `
+        <tr>
+          <td><strong>${row.app}</strong></td>
+          <td>${formatStatusBadge(row.ctrl)}</td>
+          <td>${formatStatusBadge(row.lyric)}</td>
+          <td>${formatStatusBadge(row.mode)}</td>
+          <td style="color:var(--text-secondary);">${row.note}</td>
+        </tr>
+      `).join('');
+
+      // Footer Links
+      document.getElementById('txt-footer-repo').textContent = dict.footerRepo;
+      document.getElementById('txt-footer-privacy').textContent = dict.footerPrivacy;
+      document.getElementById('txt-footer-issues').textContent = dict.footerIssues;
+    }
+
+    let isLangSwitching = false;
+    function applyLanguage(lang, withCascade = true) {
+      if (!withCascade) {
+        currentLang = lang;
+        renderLanguageContent(lang);
+        return;
+      }
+      if (isLangSwitching) return;
+      isLangSwitching = true;
+
+      // Smooth waterfall & fade-out stage for all page content below navbar
+      const waterfallTargets = document.querySelectorAll('.hero-section .cascade-item, footer.cascade-item');
+      waterfallTargets.forEach(el => el.classList.add('cascade-fading'));
+
+      setTimeout(() => {
+        currentLang = lang;
+        renderLanguageContent(lang);
+
+        // Staggered cascade reveal with fresh reflow (identical to initial page load experience)
+        waterfallTargets.forEach((el, idx) => {
+          el.classList.remove('cascade-fading');
+          el.style.animation = 'none';
+          void el.offsetWidth; // Force reflow
+          const delay = el.style.getPropertyValue('--delay') || (idx + 2);
+          el.style.animation = 'cascadeReveal 0.8s var(--ease-spring) forwards';
+          el.style.animationDelay = `calc(${delay} * 75ms)`;
+        });
+
+        // Release mutex lock once animation is safely initiated
+        setTimeout(() => {
+          isLangSwitching = false;
+        }, 150);
+      }, 190);
+    }
+
+    // Language labels mapping
+    const LANG_LABELS = { zh: '中文', en: 'EN', de: 'DE', ja: 'JA' };
+
+    function syncLangDropdown(lang) {
+      if (langDropdownCurrent) {
+        langDropdownCurrent.textContent = LANG_LABELS[lang] || lang.toUpperCase();
+        langDropdownCurrent.setAttribute('data-lang', lang);
+      }
+      langDropdownItems.forEach(item => {
+        item.classList.toggle('active', item.getAttribute('data-lang') === lang);
+      });
+    }
+
+    // Custom Dropdown Trigger
+    if (langDropdownTrigger) {
+      langDropdownTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = langDropdown.classList.toggle('open');
+        langDropdownTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (langDropdown && !langDropdown.contains(e.target)) {
+          langDropdown.classList.remove('open');
+          langDropdownTrigger.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
+    // Custom Dropdown Items
+    langDropdownItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const lang = item.getAttribute('data-lang');
+        if (langDropdown) langDropdown.classList.remove('open');
+        if (langDropdownTrigger) langDropdownTrigger.setAttribute('aria-expanded', 'false');
+        if (lang === currentLang || isLangSwitching) return;
+
+        // Sync Desktop Slider
+        const matchingBtn = document.querySelector(`.lang-btn[data-lang="${lang}"]`);
+        if (matchingBtn) {
+          langBtns.forEach(b => b.classList.toggle('active', b === matchingBtn));
+          updateLangPillPosition(matchingBtn);
+        }
+        syncLangDropdown(lang);
+        applyLanguage(lang, true);
+      });
+    });
+
+    // Slider Buttons
+    langBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lang = btn.getAttribute('data-lang');
+        if (lang === currentLang || isLangSwitching) return;
+        langBtns.forEach(b => b.classList.toggle('active', b === btn));
+        syncLangDropdown(lang);
+        updateLangPillPosition(btn);
+        applyLanguage(lang, true);
+      });
+    });
+
+    // Throttled Window Resize Observer
+    let resizeRaf = null;
+    window.addEventListener('resize', () => {
+      if (resizeRaf) return;
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = null;
+        const activeBtn = document.querySelector('.lang-btn.active');
+        if (activeBtn) updateLangPillPosition(activeBtn);
+      });
+    });
+
+    // ==========================================
+    // 3. View Switcher: Changelog vs Features & Compat
+    // (Requirement 4: Smooth button width easing & staggered waterfall panel loading)
+    // ==========================================
+    function triggerFeaturesWaterfall() {
+      const header = viewFeaturesCompat.querySelector('.card-header');
+      const cards = viewFeaturesCompat.querySelectorAll('.feature-card');
+      const subhead = viewFeaturesCompat.querySelector('.section-subhead');
+      const table = viewFeaturesCompat.querySelector('.table-container');
+
+      const elements = [header, ...cards, subhead, table].filter(Boolean);
+      elements.forEach((el, idx) => {
+        el.classList.remove('stagger-in');
+        el.style.animation = 'none';
+        el.style.setProperty('--stagger', idx);
+      });
+      void viewFeaturesCompat.offsetWidth;
+      elements.forEach(el => {
+        el.style.animation = '';
+        el.classList.add('stagger-in');
+      });
+    }
+
+    function triggerChangelogWaterfall() {
+      const header = viewChangelog.querySelector('.card-header');
+      const items = viewChangelog.querySelectorAll('.changelog-item');
+
+      const elements = [header, ...items].filter(Boolean);
+      elements.forEach((el, idx) => {
+        el.classList.remove('stagger-in');
+        el.style.animation = 'none';
+        el.style.setProperty('--stagger', idx);
+      });
+      void viewChangelog.offsetWidth;
+      elements.forEach(el => {
+        el.style.animation = '';
+        el.classList.add('stagger-in');
+      });
+    }
+
+    let isToggling = false;
+    btnToggleView.addEventListener('click', () => {
+      if (isToggling) return;
+      isToggling = true;
+
+      const dict = I18N[currentLang] || I18N.zh;
+      const targetView = (currentView === 'changelog') ? 'features' : 'changelog';
+      const targetText = (targetView === 'changelog') ? dict.btnToggleToFeatures : dict.btnToggleToChangelog;
+      const targetIcon = (targetView === 'changelog')
+        ? '<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>'
+        : '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline>';
+
+      // 1. Measure starting width of capsule button
+      const startWidth = btnToggleView.getBoundingClientRect().width;
+      btnToggleView.style.width = startWidth + 'px';
+
+      // 2. Fade out button text and icon
+      const morphInner = document.getElementById('btn-toggle-inner');
+      morphInner.classList.add('morph-fading');
+
+      // 3. Fade out currently active panel view
+      const activeViewEl = (currentView === 'changelog') ? viewChangelog : viewFeaturesCompat;
+      activeViewEl.classList.add('panel-fading-out');
+
+      // 4. Staggered transition
+      setTimeout(() => {
+        // Resolve latest language dictionary dynamically to eliminate cross-language race condition
+        const freshDict = I18N[currentLang] || I18N.zh;
+        txtBtnToggle.textContent = (targetView === 'changelog') ? freshDict.btnToggleToFeatures : freshDict.btnToggleToChangelog;
+        iconToggle.innerHTML = targetIcon;
+
+        // Measure target button width
+        btnToggleView.style.width = 'auto';
+        const targetWidth = btnToggleView.getBoundingClientRect().width;
+        btnToggleView.style.width = startWidth + 'px';
+        void btnToggleView.offsetWidth; // Force reflow
+        btnToggleView.style.width = targetWidth + 'px'; // Smooth spring easing width morph
+
+        // Fade button text/icon in
+        morphInner.classList.remove('morph-fading');
+
+        // Switch panels with waterfall entrance
+        currentView = targetView;
+        if (currentView === 'features') {
+          viewChangelog.style.display = 'none';
+          viewChangelog.classList.remove('panel-fading-out');
+          viewFeaturesCompat.style.display = 'block';
+          viewFeaturesCompat.classList.remove('panel-fading-out');
+          triggerFeaturesWaterfall();
+        } else {
+          viewFeaturesCompat.style.display = 'none';
+          viewFeaturesCompat.classList.remove('panel-fading-out');
+          viewChangelog.style.display = 'block';
+          viewChangelog.classList.remove('panel-fading-out');
+          triggerChangelogWaterfall();
+        }
+
+        // Clean up explicit width after easing completes
+        setTimeout(() => {
+          btnToggleView.style.width = '';
+          isToggling = false;
+        }, 450);
+      }, 200);
+    });
+
+    // Initial Execution
+    setTimeout(() => {
+      const activeBtn = document.querySelector('.lang-btn.active');
+      if (activeBtn) updateLangPillPosition(activeBtn);
+      syncLangDropdown('zh');
+      applyLanguage('zh', false);
+    }, 50);
+
+    // ==========================================
+    // 4. Feature Capsules Sequential Pulse Engine
+    // (Requirement 3: Sequential bottom-border pulse sweep, interruptible)
+    // ==========================================
+    const chipsWrap = document.querySelector('.feature-capsules-wrap');
+    const chips = Array.from(document.querySelectorAll('.feature-capsule'));
+    let currentPulseIdx = 0;
+    let pulseTimer = null;
+    let isPulseInterrupted = false;
+    let pulseGeneration = 0;
+
+    function stopAllPulses() {
+      pulseGeneration++;
+      if (pulseTimer) {
+        clearTimeout(pulseTimer);
+        pulseTimer = null;
+      }
+      chips.forEach(c => c.classList.remove('pulse-active'));
+    }
+
+    function runNextPulse() {
+      if (isPulseInterrupted || chips.length === 0) return;
+
+      stopAllPulses();
+      const currentToken = ++pulseGeneration;
+      const chip = chips[currentPulseIdx];
+      chip.classList.add('pulse-active');
+
+      // Pulse sweep animation duration is 1150ms. Once finished, wait 200ms before triggering the next chip.
+      pulseTimer = setTimeout(() => {
+        if (currentToken !== pulseGeneration || isPulseInterrupted) return;
+        chip.classList.remove('pulse-active');
+        currentPulseIdx = (currentPulseIdx + 1) % chips.length;
+
+        pulseTimer = setTimeout(() => {
+          if (currentToken !== pulseGeneration || isPulseInterrupted) return;
+          runNextPulse();
+        }, 200);
+      }, 1150);
+    }
+
+    if (chipsWrap && chips.length > 0) {
+      // Start sequential pulse after initial cascade entrance finishes (~1.2s)
+      setTimeout(runNextPulse, 1200);
+
+      const handleInterrupt = () => {
+        isPulseInterrupted = true;
+        chipsWrap.classList.add('is-interrupted');
+        stopAllPulses();
+      };
+
+      const handleResume = () => {
+        isPulseInterrupted = false;
+        chipsWrap.classList.remove('is-interrupted');
+        if (pulseTimer) clearTimeout(pulseTimer);
+        pulseTimer = setTimeout(runNextPulse, 200);
+      };
+
+      chipsWrap.addEventListener('mouseenter', handleInterrupt);
+      chipsWrap.addEventListener('mouseleave', handleResume);
+      chipsWrap.addEventListener('focusin', handleInterrupt);
+      chipsWrap.addEventListener('focusout', handleResume);
+      chipsWrap.addEventListener('touchstart', handleInterrupt, { passive: true });
+      chipsWrap.addEventListener('touchend', handleResume, { passive: true });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) handleInterrupt();
+        else handleResume();
+      });
+    }
+  </script>
+</body>
+
+</html>
