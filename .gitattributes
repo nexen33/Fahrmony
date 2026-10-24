@@ -1,0 +1,4 @@
+# Exclude standalone web pages from GitHub Linguist language statistics
+# so that Kotlin remains the dominant project language.
+home.html linguist-detectable=false
+privacy.html linguist-detectable=false
