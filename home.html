@@ -535,6 +535,11 @@
       opacity: 1;
     }
 
+    /* Smart compact mode for narrow viewports: hides brand badge to prevent overflow */
+    .navbar.compact-navbar .brand-badge {
+      display: none !important;
+    }
+
     @media (max-width: 580px) {
       .navbar {
         left: 12px;
@@ -563,6 +568,21 @@
 
       .lang-dropdown {
         display: flex;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .navbar {
+        gap: 6px;
+      }
+      .brand {
+        gap: 8px;
+      }
+      .nav-controls {
+        gap: 6px;
+      }
+      .brand-badge {
+        display: none !important;
       }
     }
 
@@ -660,7 +680,7 @@
     }
 
     .hero-title {
-      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-size: clamp(2.1rem, 5vw, 3.6rem);
       font-weight: 700;
       letter-spacing: -0.03em;
       line-height: 1.25;
@@ -670,6 +690,25 @@
       text-align: center;
       margin-left: auto;
       margin-right: auto;
+    }
+
+    .hero-title .title-chunk {
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 520px) {
+      .hero-title {
+        font-size: clamp(1.8rem, 7.8vw, 2.25rem);
+        line-height: 1.28;
+      }
+      .hero-title .hero-break-wide {
+        display: none;
+      }
+      .hero-title .title-chunk {
+        display: block;
+        margin: 2px 0;
+      }
     }
 
     .text-accent {
@@ -986,6 +1025,59 @@
       display: block;
     }
 
+    .features-compat-view .head-chunk {
+      display: inline;
+    }
+
+    .features-badge {
+      font-size: 0.84rem;
+      color: var(--accent-primary);
+      font-weight: 600;
+      font-family: var(--font-mono);
+      white-space: nowrap;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .features-badge .badge-chunk {
+      display: inline;
+    }
+
+    .features-badge .badge-dot {
+      display: inline;
+    }
+
+    @media (max-width: 520px) {
+      .features-compat-view .head-chunk {
+        display: block;
+        line-height: 1.25;
+      }
+      .features-badge .badge-dot {
+        display: none;
+      }
+      .features-badge .badge-chunk {
+        display: block;
+        line-height: 1.25;
+      }
+    }
+
+    body.is-compact .features-compat-view .head-chunk,
+    .compact-header .head-chunk {
+      display: block;
+      line-height: 1.25;
+    }
+
+    body.is-compact .features-badge .badge-dot,
+    .compact-header .features-badge .badge-dot {
+      display: none;
+    }
+
+    body.is-compact .features-badge .badge-chunk,
+    .compact-header .features-badge .badge-chunk {
+      display: block;
+      line-height: 1.25;
+    }
+
     .features-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1054,6 +1146,7 @@
     .table-container {
       width: 100%;
       overflow-x: auto;
+      overflow-y: hidden;
       border: 1px solid var(--border-subtle);
       border-radius: 20px;
       background: var(--bg-surface-elevated);
@@ -1064,11 +1157,12 @@
     }
 
     .table-container::-webkit-scrollbar {
-      height: 6px;
+      height: 5px;
     }
 
     .table-container::-webkit-scrollbar-track {
       background: transparent;
+      margin: 0 24px; /* Strictly restrict scrollbar track within bottom straight section */
     }
 
     .table-container::-webkit-scrollbar-thumb {
@@ -1222,7 +1316,7 @@
           onerror="this.src='Archiev/Logo/fahrmony_logo.png'">
       </div>
       <span class="brand-name">
-        Fahrmony <span class="brand-badge">合拍</span>
+        Fahrmony <span class="brand-badge" id="brand-badge">合拍</span>
       </span>
     </a>
 
@@ -1296,7 +1390,7 @@
       </div>
 
       <h1 class="hero-title cascade-item i18n-translatable" style="--delay: 3;" id="txt-hero-title">
-        为中文主流 <span class="text-accent">音频&通讯</span> App <br>打造的 <span class="text-accent">Android Auto</span> 插件
+        <span class="title-chunk">为中文主流</span> <span class="title-chunk text-accent">音频&通讯 App</span><br class="hero-break-wide"><span class="title-chunk">打造的</span> <span class="title-chunk"><span class="text-accent">Android Auto</span> 插件</span>
       </h1>
 
       <!-- Feature Capsule Chips -->
@@ -1369,7 +1463,7 @@
 
         <!-- View 2: Core Features & Compatibility Matrix (Requirement 5) -->
         <div id="view-features-compat" class="features-compat-view">
-          <div class="card-header">
+          <div class="card-header" id="features-card-header">
             <h2 class="card-title">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
@@ -1377,11 +1471,9 @@
                   points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
                 </polygon>
               </svg>
-              <span id="txt-features-head">核心功能特性</span>
+              <span id="txt-features-head"><span class="head-chunk">核心</span><span class="head-chunk">功能特性</span></span>
             </h2>
-            <span
-              style="font-size:0.84rem; color:var(--accent-primary); font-weight:600; font-family:var(--font-mono);">100%
-              Local · No Root</span>
+            <span class="features-badge" id="features-badge"><span class="badge-chunk">100% Local</span><span class="badge-dot"> · </span><span class="badge-chunk">No Root</span></span>
           </div>
 
           <!-- 10 Core Features Grid (from descri.txt) -->
@@ -1445,7 +1537,7 @@
     const I18N = {
       zh: {
         tagRelease: "v1.3.0 最新上线",
-        heroTitle: "为中文主流 <span class=\"text-accent\">音频&通讯</span> App <br>打造的 <span class=\"text-accent\">Android Auto</span> 插件",
+        heroTitle: "<span class=\"title-chunk\">为中文主流</span> <span class=\"title-chunk text-accent\">音频&通讯 App</span><br class=\"hero-break-wide\"><span class=\"title-chunk\">打造的</span> <span class=\"title-chunk\"><span class=\"text-accent\">Android Auto</span> 插件</span>",
         chips: [
           "基础播控", "歌词显示", "IM消息播报",
           "深度适配", "无感使用", "开源透明可查"
@@ -1454,7 +1546,7 @@
         btnToggleToFeatures: "核心功能与适配",
         btnToggleToChangelog: "更新日志",
         changelogHead: "v1.3.0 更新日志",
-        featuresHead: "核心功能特性",
+        featuresHead: '<span class="head-chunk">核心</span><span class="head-chunk">功能特性</span>',
         compatPresetTitle: "预置位音乐 App 支持情况一览",
         thApp: "预置位音源",
         thCtrl: "基础播控",
@@ -1654,6 +1746,7 @@
     let currentView = 'changelog'; // 'changelog' | 'features'
 
     // DOM Elements
+    const navbar = document.getElementById('navbar');
     const langSlider = document.getElementById('lang-slider');
     const langPill = document.getElementById('lang-pill');
     const langBtns = document.querySelectorAll('.lang-btn');
@@ -1762,7 +1855,7 @@
       `).join('');
 
       // Features & Compatibility Card (Requirement 5)
-      document.getElementById('txt-features-head').textContent = dict.featuresHead;
+      document.getElementById('txt-features-head').innerHTML = dict.featuresHead;
       document.getElementById('txt-compat-preset-title').textContent = dict.compatPresetTitle;
 
       // Table Headers
@@ -1848,6 +1941,7 @@
       langDropdownItems.forEach(item => {
         item.classList.toggle('active', item.getAttribute('data-lang') === lang);
       });
+      checkNavbarFit();
     }
 
     // Custom Dropdown Trigger
@@ -1897,6 +1991,29 @@
       });
     });
 
+    // Smart Navbar & Layout Fitting: Ensure elements adapt smoothly on narrow viewports
+    function checkNavbarFit() {
+      if (!navbar || !themeBtn) return;
+      navbar.classList.remove('compact-navbar');
+      document.body.classList.remove('is-compact');
+      const navRect = navbar.getBoundingClientRect();
+      const themeRect = themeBtn.getBoundingClientRect();
+      if (themeRect.right > navRect.right - 9.5) {
+        navbar.classList.add('compact-navbar');
+        document.body.classList.add('is-compact');
+      }
+      checkFeaturesHeaderFit();
+    }
+
+    function checkFeaturesHeaderFit() {
+      const header = document.getElementById('features-card-header');
+      if (!header) return;
+      header.classList.remove('compact-header');
+      if (header.offsetWidth > 0 && header.offsetWidth < 440) {
+        header.classList.add('compact-header');
+      }
+    }
+
     // Throttled Window Resize Observer
     let resizeRaf = null;
     window.addEventListener('resize', () => {
@@ -1905,14 +2022,22 @@
         resizeRaf = null;
         const activeBtn = document.querySelector('.lang-btn.active');
         if (activeBtn) updateLangPillPosition(activeBtn);
+        checkNavbarFit();
       });
     });
+
+    if (window.ResizeObserver && navbar) {
+      new ResizeObserver(() => checkNavbarFit()).observe(navbar);
+      const featHeader = document.getElementById('features-card-header');
+      if (featHeader) new ResizeObserver(() => checkFeaturesHeaderFit()).observe(featHeader);
+    }
 
     // ==========================================
     // 3. View Switcher: Changelog vs Features & Compat
     // (Requirement 4: Smooth button width easing & staggered waterfall panel loading)
     // ==========================================
     function triggerFeaturesWaterfall() {
+      checkFeaturesHeaderFit();
       const header = viewFeaturesCompat.querySelector('.card-header');
       const cards = viewFeaturesCompat.querySelectorAll('.feature-card');
       const subhead = viewFeaturesCompat.querySelector('.section-subhead');
