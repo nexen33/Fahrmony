@@ -335,8 +335,10 @@ object FahrmonyUpdateManager {
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, btnIgnore, pIgnore)
             .build()
 
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-        nm?.notify(NOTIFICATION_ID_UPDATE, notification)
+        try {
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            nm?.notify(NOTIFICATION_ID_UPDATE, notification)
+        } catch (ignored: Exception) {}
     }
 }
 
@@ -345,14 +347,16 @@ object FahrmonyUpdateManager {
  */
 class FahrmonyUpdateReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action == FahrmonyUpdateManager.ACTION_IGNORE_UPDATE) {
-            val verToIgnore = intent.getStringExtra(FahrmonyUpdateManager.EXTRA_VERSION_TO_IGNORE)
-            if (!verToIgnore.isNullOrBlank()) {
-                FahrmonyUpdateManager.ignoreVersion(context, verToIgnore)
+        runCatching {
+            if (intent?.action == FahrmonyUpdateManager.ACTION_IGNORE_UPDATE) {
+                val verToIgnore = intent.getStringExtra(FahrmonyUpdateManager.EXTRA_VERSION_TO_IGNORE)
+                if (!verToIgnore.isNullOrBlank()) {
+                    FahrmonyUpdateManager.ignoreVersion(context, verToIgnore)
+                }
+                // 清除当前通知
+                val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                nm?.cancel(FahrmonyUpdateManager.NOTIFICATION_ID_UPDATE)
             }
-            // 清除当前通知
-            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-            nm?.cancel(FahrmonyUpdateManager.NOTIFICATION_ID_UPDATE)
         }
     }
 }
@@ -362,8 +366,10 @@ class FahrmonyUpdateReceiver : BroadcastReceiver() {
  */
 class FahrmonyUpdateAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        FahrmonyUpdateManager.performCheckAndNotify(context, isManual = false)
-        // 重新调度次日 20:00
-        FahrmonyUpdateManager.init(context)
+        runCatching {
+            FahrmonyUpdateManager.performCheckAndNotify(context, isManual = false)
+            // 重新调度次日 20:00
+            FahrmonyUpdateManager.init(context)
+        }
     }
 }

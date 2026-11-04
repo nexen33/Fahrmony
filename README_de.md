@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.3.0-orange)
+![Version](https://img.shields.io/badge/Version-v1.3.2-orange)
 
 > Eine lokale Schnittstellenbrücke für Android Auto, mit der Fahrzeug-Displays bei Fahrten im Ausland gängige chinesische Audio-Streaming- und Messaging-Dienste nahtlos anzeigen und teilweise steuern können.
 
 <p align="center">
-  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/Besuchen-Offizielle_Website-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="Offizielle Website" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk"><img src="https://img.shields.io/badge/Download-Neueste_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="Neueste APK herunterladen" /></a>
+  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/Besuchen-Offizielle_Website-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="Offizielle Website" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.2/Fahrmony_v1.3.2.apk"><img src="https://img.shields.io/badge/Download-Neueste_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="Neueste APK herunterladen" /></a>
 </p>  
 
 ## Was ist Fahrmony?
@@ -50,7 +50,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 - **Kaltstart und automatische Wiederverbindung**: Speziell optimiert für Kaltstart und Wiederverbindung von Apps und Android Auto. Kaltstarts wurden für voreingestellte Audioquellen tiefgehend angepasst. Bei Verbindung mit Android Auto wird der letzte Wiedergabestatus automatisch erkannt und fortgesetzt – in den allermeisten Alltagsszenarien ganz ohne manuelles Tippen auf dem Smartphone oder Autobildschirm. Inklusive aktiver Startverifikation und robuster Selbstheilungs-Wiederholungslogik für ruhende Hintergrund-Apps.
 - **Adaptiver Hintergrund & Original-Cover**: Dynamische Farbabstimmung verhindert standardmäßig, dass dunkle Cover-Bilder die Bedientasten unleserlich machen; die neue optionale Einstellung „Audio-App Original-Wiedergabekarte“ ermöglicht es, direkt das klare, hochauflösende Original-Cover im Auto anzuzeigen, um individuellen Vorlieben für visuelle Originaltreue oder kontrastreiche Tasten gerecht zu werden.
 - **Wiedergabelisten und Wiederholungsmodi**: Reicht vorhandene Titellisten durch; tiefgehende Anpassung für das Umschalten von Wiedergabemodi (Schleife / Zufall / Einzeltitel / Herz-Modus usw.) am Bordbildschirm für gängige Musik-Apps, inklusive einseitiger Kalibrierfunktion auf dem Smartphone zum schnellen manuellen Abgleich bei Statusabweichungen.
-- **Fahrgerechte Nachrichtenbenachrichtigung & Aufräumdienst**: Filtert Gruppenchats und ermöglicht das Vorlesen sowie die Bestätigung als gelesen per Tastendruck; beendet beim Trennen der Verbindung die Weiterleitung und löscht verbleibende Benachrichtigungskarten auf dem Smartphone zuverlässig.
+- **Fahrgerechte Benachrichtigungen & Display-Anpassung**: Für die 4 gängigen Messaging-Apps wurde die Anzeige von Benachrichtigungskarten im Fahrzeug unter der aktuellen Architektur umfassend optimiert, mit standardisierter Formatierung und ohne störende Präfixe oder Badge-Zahlen; erkennt Einzel- und Gruppenchats zuverlässig und filtert Gruppen-Spam; unterstützt fahrzeuggerechtes Vorlesen und „Stummschalten“; bei eingehenden Anrufen unterstützt QQ in speziellen Szenarien (wenn auf dem Smartphone kein Vollbild-Anrufbildschirm erscheint) das Annehmen oder Ablehnen über alternative Fahrzeugtasten; setzt die Musikwiedergabe nach Gesprächsende automatisch fort; beendet beim Trennen der Verbindung die Weiterleitung und löscht verbleibende Benachrichtigungskarten auf dem Smartphone zuverlässig.
 - **Schutz vor versehentlicher Tonwiedergabe**: Pausiert die Wiedergabe sofort beim Trennen des Kabels, damit das Handy nicht plötzlich laut weiterspielt.
 - **Einheitliches Fluid-Design & Reine Hintergrundsteuerung**: Moderne Benutzeroberfläche, dynamisch an alle Smartphone-Displaygrößen angepasst; Browser-Scrollbalken sind vollständig ausgeblendet und bieten seidenweiches 120-Hz-Overscroll-Verhalten wie eine native App; mit Hell-/Dunkelmodus und Modus „Systemstandard“, 4-Sprachen-Unterstützung sowie Berechtigungs-Leitfaden.
 - **Live-Songtexte im Fahrzeug & Mehrfachmodus**: Zeigt Songtexte in Echtzeit direkt auf der Wiedergabekarte im Fahrzeug an; Umschaltung zwischen „Einzeilig“, „Zweizeilig (mit Zeilenvorschau)“ und „Aus“ über die Medieneinstellungen oder Fahrzeugtasten; tiefgreifend optimierte mehrstufige intelligente Suchpfade und flüssige Zeilenwechsel; intelligente Erkennung und Bereinigung von Bluetooth-Songtext-Injektionen; integrierte Schriftzeichenkonvertierung mit Speicheroptimierung.
@@ -73,9 +73,9 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 | **Wiederholungsmodus** | **Adaptiv** | Bevorzugt offizielle Standardpositionen; Modusrotation und Smartphone-Kalibrierung für gängige Apps | Abhängig von den Steuerungskanälen oder Systemfähigkeiten der Ziel-App |
 | **Zufallswiedergabe** | **Eingeschränkt** | Unterstützte Apps wechseln über den fahrzeugseitigen Schleifenmodus in den Zufallsmodus, kompatibel mit nativen Systembefehlen | Die meisten Streaming-Apps stellen keinen separaten Zufallssteuerkanal bereit |
 | **Kaltstart bei Bedarf** | **Vollständig** | Durchdringt Sperrbildschirm/abgeschaltetes Display automatisch und startet die Wiedergabe sekundenschnell, sobald die Audio-Engine bereit ist | Erfordert Hintergrund- bzw. Autostart-Rechte und Benachrichtigungszugriff |
-| **Benachrichtigungsanzeige** | **Vollständig** | Wandelt Nachrichten in standardisierte Karten für das Fahrzeug um | Erfordert Benachrichtigungszugriff; löscht Restkarten nach Verbindungsende |
+| **Benachrichtigungsanzeige** | **Vollständig** | Umfassend optimierte Kartenanzeige für 4 gängige Messaging-Apps; unterstützt das Nachliefern ungelesener Nachrichten nach Kaltstart; filtert laufende Anrufstatus-Karten geräuschlos | Erfordert Benachrichtigungszugriff; löscht Restkarten nach Verbindungsende |
 | **Sprachausgabe** | **Systemgesteuert** | Wiedergabe erfolgt automatisch über den Sprachassistenten des Autos | Sprachausgabe richtet sich nach den Spracheinstellungen im Konto |
-| **Direktes Antworten** | **Nicht unterstützt** | Bietet Bestätigung als gelesen. Das Senden von Text zurück an die App wird nicht unterstützt | Messaging-Apps bieten keine öffentlichen Schnittstellen für externe Antworten |
+| **Antworten / Anrufannahme** | **Eingeschränkt** | Unterstützt Stummschalten oder Schließen im Auto. Textantworten an die Quell-App werden **mangels offener Schnittstellen nicht unterstützt**; bei Anrufen unterstützt QQ das Annehmen/Ablehnen im Auto nur, wenn auf dem Handy kein Vollbild-Anrufbildschirm erscheint | Abhängig von bereitgestellten App-Aktionen und Vollbild-Overlay-Status |
 
 ## Funktionsunterstützung voreingestellter Musik-Apps
 
@@ -99,23 +99,25 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 - **Fahrzeugumgebung**: Fahrzeug mit Unterstützung für **Android Auto** (per Kabel oder kabellos) oder offizieller PC Desktop Head Unit (DHU) Emulator.
 - **Anwendungen**: Auf dem Smartphone installierte Streaming- oder Messaging-Anwendungen.
 
-## Installation
+## Installation und Bedienungsanleitung
 
-1. **APK herunterladen**: Laden Sie das neueste Installationspaket von der [Releases-Seite](https://github.com/nexen33/Fahrmony/releases) herunter.
+1. **APK herunterladen**: Besuchen Sie die [Releases-Seite](https://github.com/nexen33/Fahrmony/releases) auf der rechten Seite dieses Repositorys und laden Sie das neueste Installationspaket herunter.
 2. **App installieren**:
    - Beim manuellen Sideload der APK: Falls eine Sicherheitswarnung (z. B. Google Play Protect oder OEM-Sicherheitsprüfungen) erscheint, klappen Sie „Weitere Details“ auf und wählen Sie manuell **Trotzdem installieren**;
    - **Besonderer Hinweis für angepasste Oberflächen (z. B. Samsung One UI 6.0+)**: Die herstellereigene Funktion „Automatische Sperre“ (Auto Blocker) ist standardmäßig aktiv und blockiert das Installieren von Apps außerhalb der offiziellen Stores. Falls die Installation fehlschlägt, navigieren Sie zu `Einstellungen -> Sicherheit und Datenschutz -> Automatische Sperre (Auto Blocker)` und deaktivieren Sie diese vorübergehend. Nach erfolgreicher Installation kann sie wieder eingeschaltet werden.
 3. **Berechtigungen vergeben**:
-   - Fahrmony öffnen und den **Benachrichtigungszugriff** aktivieren;
-   - Die **Akku-Optimierung ignorieren** (auf „Nicht eingeschränkt“ stellen), damit Hintergrunddienste stabil laufen;
-   - Unter Android 13 oder höher das **Senden von Benachrichtigungen** erlauben.
+   - App öffnen, in die Einstellungen wechseln und wie angeleitet die **Benachrichtigungsberechtigung** sowie den **Benachrichtigungszugriff** aktivieren;
+   - **Hintergrundberechtigungen** konfigurieren: Fahrmony erlauben, die **Akku-Optimierung zu ignorieren**, um stabile Fortsetzung bei Verbindung und unterbrechungsfreien Betrieb zu gewährleisten;
+   - Ab Android 13 bei Bedarf der Anleitung für eingeschränkte Einstellungen folgen und **Eingeschränkte Einstellungen zulassen** aktivieren;
+   - Bitte stellen Sie sicher, dass für alle gewünschten Audio- und Messaging-Apps die **Benachrichtigungsberechtigung** aktiviert ist.
 4. **Android Auto Entwicklereinstellungen aktivieren**:
    - Systemeinstellungen des Smartphones öffnen -> nach `Android Auto` suchen;
    - Ganz nach unten scrollen und 10 Mal auf die Versionsnummer tippen;
    - Oben rechts das Menü öffnen -> **Entwicklereinstellungen** -> **Unbekannte Quellen** aktivieren.
 5. **Mit dem Fahrzeug verbinden**:
-   - Bei der Ersteinrichtung wählen Sie auf der Fahrmony-Einstellungsseite auf dem Smartphone Ihren Standard-Player aus und tippen einmalig auf **Player starten**, um die Berechtigung zum Aufrufen der Audio-App zu erteilen;
-   - Anschließend verbinden Sie das Smartphone per USB-Kabel oder kabellos mit dem Fahrzeug. Das **Fahrmony**-Symbol erscheint auf dem Autobildschirm.
+   - Bei der Ersteinrichtung wählen Sie auf der Fahrmony-Einstellungsseite auf dem Smartphone Ihren Standard-Player aus und tippen einmalig auf **Player starten**, um Fahrmony das **dauerhafte Aufrufen** der Audio-App zu gestatten;
+   - Anschließend verbinden Sie das Smartphone per USB-Kabel oder kabellos mit dem Fahrzeug. Das App-Symbol und die Split-Screen-Karte erscheinen automatisch auf dem Autobildschirm;
+   - Bei zukünftigen Fahrten müssen weder Fahrmony noch die Audio-Apps vorab im Hintergrund laufen – verbinden Sie das Smartphone einfach mit dem Auto, und die Wiedergabe kann direkt starten.
 
 ## Berechtigungen
 
@@ -139,6 +141,9 @@ In den allermeisten Fällen absolut nicht. Fahrmony wurde speziell für „Kalts
 
 #### Warum kann ich auf dem Autobildschirm nicht direkt tippen oder per Sprache antworten?
 Aus Gründen der Verkehrssicherheit und der technischen Grenzen. Das Verfassen von Nachrichten am Steuer lenkt stark ab. Zudem bieten gängige Messaging-Dienste keine öffentlichen Schnittstellen für externe Antworten an. Fahrmony konzentriert sich bewusst auf sicheres Vorlesen.
+
+#### Warum dauert es nach einem Kaltstart etwa 1 Minute, bis Benachrichtigungen im Auto ankommen? Gehen Nachrichten in dieser Zeit verloren?
+Keineswegs. Dies ist durch die zugrundeliegende Android-Systemarchitektur bedingt: Wenn eine App mit „Benachrichtigungszugriff“ vom Nutzer im Hintergrund beendet und danach neu gestartet wird, erzwingt das System eine Abkühlphase von etwa 1 Minute, in der die Verbindung zur Benachrichtigungsschnittstelle vorübergehend nicht neu aufgebaut wird. Um diese 1-minütige Lücke zu schließen, verfügt Fahrmony über einen speziellen **Kaltstart-Nachlieferungsmechanismus**. Sobald die Abkühlphase endet und der Dienst wieder verbunden ist, erfasst Fahrmony unverzüglich alle in dieser Zeit in der Smartphone-Statusleiste aufgelaufenen Nachrichten und liefert sie an das Fahrzeugdisplay nach.
 
 #### Warum zeigt der Bildschirm farbige Flächen anstelle des Original-Covers?
 Einige Original-Cover sind sehr dunkel, was dazu führen kann, dass das Bordsystem die Bedientasten in unleserlichem Schwarz darstellt. Zudem können hochauflösende Bilder das System verlangsamen. Die Farbabstimmung sorgt dafür, dass die Tasten jederzeit klar lesbar bleiben.
@@ -205,7 +210,7 @@ Aufgrund architektonischer Grenzen und eingeschränkter Schnittstellen von Dritt
 Wenn im Alltag ein Problem auftritt, können Sie gerne eine Fehlermeldung auf GitHub einreichen. Bitte nutzen Sie folgende Vorlage (**Hinweis: Bitte niemals vertrauliche private Nachrichteninhalte übermitteln**):
 
 ```text
-- Fahrmony-Version: v1.3.0
+- Fahrmony-Version: v1.3.2
 - Android-Version: z. B. Android 14
 - Smartphone-Modell: z. B. Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto-Version: z. B. 11.8
@@ -274,7 +279,7 @@ Entwickler können relevante Protokollauszüge optional an die Fehlermeldung anh
 ┌─ Fahrmony Isolierter Fahrzeug-Hintergrundprozess (:car)
 │  ├─ Sitzungserkennung, Prioritätssteuerung & Kaltstart-Wiederaufnahme
 │  ├─ Live-Songtext-Synchronisation (Millisekunden-Binärsuche, 0-GC & Adaptive Taktung)
-│  ├─ Nachrichtenfilterung, Gruppenchat-Bereinigung & Verbindungsende-Aufräumen
+│  ├─ Nachrichtenfilterung, Gruppenchat-Bereinigung, Kaltstart-Nachlieferung & Verbindungsende-Aufräumen
 │  ├─ MediaBrowserServiceCompat Fahrzeug-Audiodienst
 │  └─ Dauerhafter Vordergrunddienst (Daemon)
 ▼
@@ -325,7 +330,7 @@ Dieses Projekt ist unter der Lizenz **Creative Commons Namensnennung - Nicht-kom
 
 ---
 
-## Vorschau v1.3.0
+## Vorschau v1.3.2
 
 <p align="center">
   <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/a73527ba-5438-4824-b120-6f3897e29706" />

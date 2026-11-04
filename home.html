@@ -103,7 +103,8 @@
       user-select: text !important;
     }
 
-    html, body {
+    html,
+    body {
       height: 100%;
       overflow: hidden;
     }
@@ -151,29 +152,27 @@
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-y: contain;
       box-sizing: border-box;
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent var(--navbar-top, 16px),
-        black calc(var(--navbar-top, 16px) + 60px),
-        black 100%
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent var(--navbar-top, 16px),
-        black calc(var(--navbar-top, 16px) + 60px),
-        black 100%
-      );
+      -webkit-mask-image: linear-gradient(to bottom,
+          transparent 0px,
+          transparent var(--navbar-top, 16px),
+          black calc(var(--navbar-top, 16px) + 60px),
+          black 100%);
+      mask-image: linear-gradient(to bottom,
+          transparent 0px,
+          transparent var(--navbar-top, 16px),
+          black calc(var(--navbar-top, 16px) + 60px),
+          black 100%);
     }
 
     /* Scrollbar refinements */
     .page-scroll-viewport::-webkit-scrollbar {
       width: 6px;
     }
+
     .page-scroll-viewport::-webkit-scrollbar-track {
       background: transparent;
     }
+
     .page-scroll-viewport::-webkit-scrollbar-thumb {
       background: var(--border-subtle);
       border-radius: 9999px;
@@ -212,6 +211,7 @@
         opacity: 0;
         transform: translateY(18px) scale(0.985);
       }
+
       100% {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -575,12 +575,15 @@
       .navbar {
         gap: 6px;
       }
+
       .brand {
         gap: 8px;
       }
+
       .nav-controls {
         gap: 6px;
       }
+
       .brand-badge {
         display: none !important;
       }
@@ -702,9 +705,11 @@
         font-size: clamp(1.8rem, 7.8vw, 2.25rem);
         line-height: 1.28;
       }
+
       .hero-title .hero-break-wide {
         display: none;
       }
+
       .hero-title .title-chunk {
         display: block;
         margin: 2px 0;
@@ -781,22 +786,26 @@
         background: #ffffff;
         box-shadow: 0 0 10px rgba(255, 255, 255, 0.95);
       }
+
       15% {
         opacity: 1;
         background: #ffffff;
         box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
       }
+
       50% {
         opacity: 1;
         background: #38bdf8;
         box-shadow: 0 0 10px rgba(56, 189, 248, 0.85);
       }
+
       80% {
         transform: scaleX(1);
         opacity: 1;
         background: var(--accent-primary);
         box-shadow: 0 0 12px var(--accent-glow);
       }
+
       100% {
         transform: scaleX(1);
         opacity: 0;
@@ -883,9 +892,12 @@
 
     /* Ambient natural breathing glow hinting download */
     @keyframes btnBreathingGlow {
-      0%, 100% {
+
+      0%,
+      100% {
         box-shadow: 0 0 0 0 rgba(2, 132, 199, 0), var(--shadow-sm);
       }
+
       50% {
         box-shadow: 0 0 18px 4px var(--accent-glow), 0 4px 14px var(--accent-tint);
       }
@@ -1052,9 +1064,11 @@
         display: block;
         line-height: 1.25;
       }
+
       .features-badge .badge-dot {
         display: none;
       }
+
       .features-badge .badge-chunk {
         display: block;
         line-height: 1.25;
@@ -1162,7 +1176,8 @@
 
     .table-container::-webkit-scrollbar-track {
       background: transparent;
-      margin: 0 24px; /* Strictly restrict scrollbar track within bottom straight section */
+      margin: 0 24px;
+      /* Strictly restrict scrollbar track within bottom straight section */
     }
 
     .table-container::-webkit-scrollbar-thumb {
@@ -1334,26 +1349,39 @@
       <div class="lang-dropdown" id="lang-dropdown">
         <button class="lang-dropdown-trigger" id="lang-dropdown-trigger" aria-haspopup="listbox" aria-expanded="false">
           <span id="lang-dropdown-current" data-lang="zh">中文</span>
-          <svg class="lang-dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="lang-dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </button>
         <div class="lang-dropdown-menu" id="lang-dropdown-menu" role="listbox">
           <div class="lang-dropdown-item active" data-lang="zh" role="option">
             <span>中文</span>
-            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
           </div>
           <div class="lang-dropdown-item" data-lang="en" role="option">
             <span>EN</span>
-            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
           </div>
           <div class="lang-dropdown-item" data-lang="de" role="option">
             <span>DE</span>
-            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
           </div>
           <div class="lang-dropdown-item" data-lang="ja" role="option">
             <span>JA</span>
-            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <svg class="item-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
           </div>
         </div>
       </div>
@@ -1384,147 +1412,152 @@
 
       <!-- Main Content -->
       <main class="hero-section" id="hero-section">
-      <!-- Requirement 3: Multi-language Version Tag -->
-      <div class="hero-badge-wrap cascade-item i18n-translatable" style="--delay: 2;">
-        <span class="version-tag" id="txt-version-tag">v1.3.0 最新上线</span>
-      </div>
-
-      <h1 class="hero-title cascade-item i18n-translatable" style="--delay: 3;" id="txt-hero-title">
-        <span class="title-chunk">为中文主流</span> <span class="title-chunk text-accent">音频&通讯 App</span><br class="hero-break-wide"><span class="title-chunk">打造的</span> <span class="title-chunk"><span class="text-accent">Android Auto</span> 插件</span>
-      </h1>
-
-      <!-- Feature Capsule Chips -->
-      <div class="feature-capsules-wrap i18n-translatable">
-        <div class="capsule-row cascade-item" style="--delay: 4;" id="capsule-row-1">
-          <span class="feature-capsule" id="chip-1">基础播控</span>
-          <span class="feature-capsule" id="chip-2">歌词显示</span>
-          <span class="feature-capsule" id="chip-3">IM消息播报</span>
+        <!-- Requirement 3: Multi-language Version Tag -->
+        <div class="hero-badge-wrap cascade-item i18n-translatable" style="--delay: 2;">
+          <span class="version-tag" id="txt-version-tag">v1.3.2 最新上线</span>
         </div>
-        <div class="capsule-row cascade-item" style="--delay: 5;" id="capsule-row-2">
-          <span class="feature-capsule" id="chip-4">深度适配</span>
-          <span class="feature-capsule" id="chip-5">无感使用</span>
-          <span class="feature-capsule" id="chip-6">开源透明可查</span>
+
+        <h1 class="hero-title cascade-item i18n-translatable" style="--delay: 3;" id="txt-hero-title">
+          <span class="title-chunk">为中文主流</span> <span class="title-chunk text-accent">音频&通讯 App</span><br
+            class="hero-break-wide"><span class="title-chunk">打造的</span> <span class="title-chunk"><span
+              class="text-accent">Android Auto</span> 插件</span>
+        </h1>
+
+        <!-- Feature Capsule Chips -->
+        <div class="feature-capsules-wrap i18n-translatable">
+          <div class="capsule-row cascade-item" style="--delay: 4;" id="capsule-row-1">
+            <span class="feature-capsule" id="chip-1">基础播控</span>
+            <span class="feature-capsule" id="chip-2">歌词显示</span>
+            <span class="feature-capsule" id="chip-3">IM消息播报</span>
+          </div>
+          <div class="capsule-row cascade-item" style="--delay: 5;" id="capsule-row-2">
+            <span class="feature-capsule" id="chip-4">深度适配</span>
+            <span class="feature-capsule" id="chip-5">无感使用</span>
+            <span class="feature-capsule" id="chip-6">开源透明可查</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Action Buttons Row (Requirement 4 & 5) -->
-      <div class="cta-row cascade-item i18n-translatable" style="--delay: 6;">
-        <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk"
-          class="btn-cta btn-primary" target="_blank" id="btn-download-apk">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span id="txt-btn-download">下载最新 APK</span>
-        </a>
-
-        <!-- Requirement 5: Secondary Button toggling Changelog vs Core Features & Compatibility -->
-        <button class="btn-cta btn-secondary" id="btn-toggle-view">
-          <span class="btn-morph-content" id="btn-toggle-inner">
+        <!-- Action Buttons Row (Requirement 4 & 5) -->
+        <div class="cta-row cascade-item i18n-translatable" style="--delay: 6;">
+          <a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.2/Fahrmony_v1.3.2.apk"
+            class="btn-cta btn-primary" target="_blank" id="btn-download-apk">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round" id="icon-toggle">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            <span id="txt-btn-toggle">核心功能与适配</span>
-          </span>
-        </button>
-      </div>
+            <span id="txt-btn-download">下载最新 APK</span>
+          </a>
 
-      <!-- Main Display Card (Changelog View / Features & Compatibility View) -->
-      <section class="main-display-card cascade-item i18n-translatable" style="--delay: 7;" id="main-display-card">
-
-        <!-- View 1: Changelog (Default View) -->
-        <div id="view-changelog">
-          <div class="card-header">
-            <h2 class="card-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
+          <!-- Requirement 5: Secondary Button toggling Changelog vs Core Features & Compatibility -->
+          <button class="btn-cta btn-secondary" id="btn-toggle-view">
+            <span class="btn-morph-content" id="btn-toggle-inner">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" id="icon-toggle">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
               </svg>
-              <span id="txt-changelog-head">v1.3.0 更新日志</span>
-            </h2>
-            <span style="font-size:0.86rem; color:var(--text-tertiary); font-family:var(--font-mono);"
-              id="txt-changelog-date">2026-10-24</span>
-          </div>
-
-          <ul class="changelog-list selectable-text" id="changelog-list">
-            <!-- Dynamically populated without trailing punctuation -->
-          </ul>
+              <span id="txt-btn-toggle">核心功能与适配</span>
+            </span>
+          </button>
         </div>
 
-        <!-- View 2: Core Features & Compatibility Matrix (Requirement 5) -->
-        <div id="view-features-compat" class="features-compat-view">
-          <div class="card-header" id="features-card-header">
-            <h2 class="card-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polygon
-                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                </polygon>
+        <!-- Main Display Card (Changelog View / Features & Compatibility View) -->
+        <section class="main-display-card cascade-item i18n-translatable" style="--delay: 7;" id="main-display-card">
+
+          <!-- View 1: Changelog (Default View) -->
+          <div id="view-changelog">
+            <div class="card-header">
+              <h2 class="card-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span id="txt-changelog-head">v1.3.2 更新日志</span>
+              </h2>
+              <span style="font-size:0.86rem; color:var(--text-tertiary); font-family:var(--font-mono);"
+                id="txt-changelog-date">2026-11-04</span>
+            </div>
+
+            <ul class="changelog-list selectable-text" id="changelog-list">
+              <!-- Dynamically populated without trailing punctuation -->
+            </ul>
+          </div>
+
+          <!-- View 2: Core Features & Compatibility Matrix (Requirement 5) -->
+          <div id="view-features-compat" class="features-compat-view">
+            <div class="card-header" id="features-card-header">
+              <h2 class="card-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                  </polygon>
+                </svg>
+                <span id="txt-features-head"><span class="head-chunk">核心</span><span
+                    class="head-chunk">功能特性</span></span>
+              </h2>
+              <span class="features-badge" id="features-badge"><span class="badge-chunk">100% Local</span><span
+                  class="badge-dot"> · </span><span class="badge-chunk">No Root</span></span>
+            </div>
+
+            <!-- 10 Core Features Grid (from descri.txt) -->
+            <div class="features-grid" id="features-grid">
+              <!-- Dynamically populated -->
+            </div>
+
+            <!-- Compatibility Matrix Subhead -->
+            <h3 class="section-subhead">
+              <svg class="subhead-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3 17 2 2 4-4"></path>
+                <path d="m3 7 2 2 4-4"></path>
+                <path d="M13 6h8"></path>
+                <path d="M13 12h8"></path>
+                <path d="M13 18h8"></path>
               </svg>
-              <span id="txt-features-head"><span class="head-chunk">核心</span><span class="head-chunk">功能特性</span></span>
-            </h2>
-            <span class="features-badge" id="features-badge"><span class="badge-chunk">100% Local</span><span class="badge-dot"> · </span><span class="badge-chunk">No Root</span></span>
+              <span id="txt-compat-preset-title">预置位音乐 App 支持情况一览</span>
+            </h3>
+
+            <div class="table-container">
+              <table class="compat-table">
+                <thead>
+                  <tr>
+                    <th id="th-app">预置位音源</th>
+                    <th id="th-ctrl">基础播控</th>
+                    <th id="th-lyric">实时歌词</th>
+                    <th id="th-mode">播放模式</th>
+                    <th id="th-note">机制与功能说明</th>
+                  </tr>
+                </thead>
+                <tbody id="compat-preset-tbody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <!-- 10 Core Features Grid (from descri.txt) -->
-          <div class="features-grid" id="features-grid">
-            <!-- Dynamically populated -->
-          </div>
+        </section>
+      </main>
 
-          <!-- Compatibility Matrix Subhead -->
-          <h3 class="section-subhead">
-            <svg class="subhead-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m3 17 2 2 4-4"></path>
-              <path d="m3 7 2 2 4-4"></path>
-              <path d="M13 6h8"></path>
-              <path d="M13 12h8"></path>
-              <path d="M13 18h8"></path>
-            </svg>
-            <span id="txt-compat-preset-title">预置位音乐 App 支持情况一览</span>
-          </h3>
-
-          <div class="table-container">
-            <table class="compat-table">
-              <thead>
-                <tr>
-                  <th id="th-app">预置位音源</th>
-                  <th id="th-ctrl">基础播控</th>
-                  <th id="th-lyric">实时歌词</th>
-                  <th id="th-mode">播放模式</th>
-                  <th id="th-note">机制与功能说明</th>
-                </tr>
-              </thead>
-              <tbody id="compat-preset-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
+      <!-- Footer -->
+      <footer class="footer cascade-item i18n-translatable" style="--delay: 8;">
+        <div class="footer-copyright">Copyright © 2026 Tun & PaMa AG. All rights reserved.</div>
+        <div class="footer-links">
+          <a href="https://github.com/nexen33/Fahrmony" class="footer-link" target="_blank" id="txt-footer-repo">GitHub
+            源码仓库</a>
+          <a href="privacy.html" class="footer-link" id="txt-footer-privacy">隐私政策</a>
+          <a href="https://github.com/nexen33/Fahrmony/issues" class="footer-link" target="_blank"
+            id="txt-footer-issues">问题反馈与支持</a>
         </div>
-
-      </section>
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer cascade-item i18n-translatable" style="--delay: 8;">
-      <div class="footer-copyright">Copyright © 2026 Tun & PaMa AG. All rights reserved.</div>
-      <div class="footer-links">
-        <a href="https://github.com/nexen33/Fahrmony" class="footer-link" target="_blank" id="txt-footer-repo">GitHub
-          源码仓库</a>
-        <a href="privacy.html" class="footer-link" id="txt-footer-privacy">隐私政策</a>
-        <a href="https://github.com/nexen33/Fahrmony/issues" class="footer-link" target="_blank"
-          id="txt-footer-issues">问题反馈与支持</a>
-      </div>
-    </footer>
+      </footer>
 
     </div>
   </div>
@@ -1536,7 +1569,7 @@
     // ==========================================
     const I18N = {
       zh: {
-        tagRelease: "v1.3.0 最新上线",
+        tagRelease: "v1.3.2 最新上线",
         heroTitle: "<span class=\"title-chunk\">为中文主流</span> <span class=\"title-chunk text-accent\">音频&通讯 App</span><br class=\"hero-break-wide\"><span class=\"title-chunk\">打造的</span> <span class=\"title-chunk\"><span class=\"text-accent\">Android Auto</span> 插件</span>",
         chips: [
           "基础播控", "歌词显示", "IM消息播报",
@@ -1545,7 +1578,7 @@
         btnDownload: "下载最新 APK",
         btnToggleToFeatures: "核心功能与适配",
         btnToggleToChangelog: "更新日志",
-        changelogHead: "v1.3.0 更新日志",
+        changelogHead: "v1.3.2 更新日志",
         featuresHead: '<span class="head-chunk">核心</span><span class="head-chunk">功能特性</span>',
         compatPresetTitle: "预置位音乐 App 支持情况一览",
         thApp: "预置位音源",
@@ -1557,13 +1590,12 @@
         footerPrivacy: "隐私政策",
         footerIssues: "问题反馈与支持",
         changelog: [
-          { type: "新增", tagClass: "tag-add", text: "预置位音乐 App 车载播放模式切换与状态双向同步（部分支持）" },
-          { type: "新增", tagClass: "tag-add", text: "播放模式单边校准功能，当状态未对齐时，可在手机端卡片一键校准同步" },
-          { type: "重构", tagClass: "tag-refactor", text: "预置位音乐 App 歌词多层级抓取架构，改善歌词命中率" },
-          { type: "优化", tagClass: "tag-opt", text: "汽水音乐车载歌曲信息与歌词显示，解决流光模式在切歌时的跳色问题" },
-          { type: "优化", tagClass: "tag-opt", text: "歌词模式切换实现 0ms 瞬间重推，有缓存时不再发起多余重查" },
-          { type: "修复", tagClass: "tag-fix", text: "酷狗音乐多版本（正式版/概念版）共存时的混淆拉起与状态绑定异常" },
-          { type: "修复", tagClass: "tag-fix", text: "跨进程 IPC 通信内存可见性屏障" }
+          { type: "新增", tagClass: "tag-add", text: "冷启动 60s 等待期后通知消息补发机制" },
+          { type: "优化", tagClass: "tag-opt", text: "四大 IM App 车载通知卡片显示，规范消息与功能引导" },
+          { type: "优化", tagClass: "tag-opt", text: "通话中状态通知静默过滤，通话打断后音乐的复播机制" },
+          { type: "重构", tagClass: "tag-refactor", text: "通知转译与桥接模块底层架构，提升整体运行稳定性" },
+          { type: "修复", tagClass: "tag-fix", text: "后台闲置时在部分系统中的崩溃异常问题，提升启动鲁棒性" },
+          { type: "修复", tagClass: "tag-fix", text: "网易云音乐播放模式车机端显示跳变问题" }
         ],
         features: [
           { icon: "1", title: "基础播放控制", desc: "在车机大屏顺畅控制播放、暂停、切歌与播放进度毫秒级拖拽。" },
@@ -1587,7 +1619,7 @@
         ]
       },
       en: {
-        tagRelease: "v1.3.0 Latest Release",
+        tagRelease: "v1.3.2 Latest Release",
         heroTitle: "An <span class=\"text-accent\">Android Auto</span> Plugin <br>Built for Chinese Mainstream <span class=\"text-accent\">Audio & IM</span> Apps",
         chips: [
           "Playback Controls", "Synced Lyrics", "IM Voice Alerts",
@@ -1596,7 +1628,7 @@
         btnDownload: "Download Latest APK",
         btnToggleToFeatures: "Features & Compatibility",
         btnToggleToChangelog: "Changelog",
-        changelogHead: "v1.3.0 Changelog",
+        changelogHead: "v1.3.2 Changelog",
         featuresHead: "Core Features",
         compatPresetTitle: "Preset Music Apps Compatibility",
         thApp: "Audio App",
@@ -1608,13 +1640,12 @@
         footerPrivacy: "Privacy Policy",
         footerIssues: "Issues & Support",
         changelog: [
-          { type: "New", tagClass: "tag-add", text: "In-car playback mode switching and bidirectional sync for preset apps" },
-          { type: "New", tagClass: "tag-add", text: "Unilateral playback mode calibration to resync states with a single tap" },
-          { type: "Refactor", tagClass: "tag-refactor", text: "Multi-tier lyric scraping architecture improving lyric hit rates" },
-          { type: "Opt", tagClass: "tag-opt", text: "Fixed color flashes during track switches under ambient glow mode" },
-          { type: "Opt", tagClass: "tag-opt", text: "0ms instant lyric mode switching utilizing existing memory cache" },
-          { type: "Fix", tagClass: "tag-fix", text: "Resolved launch conflicts when multiple editions of Kugou coexist" },
-          { type: "Fix", tagClass: "tag-fix", text: "Strengthened memory visibility barrier for cross-process IPC" }
+          { type: "New", tagClass: "tag-add", text: "Late notification replenishment mechanism following the 60s cold-start window" },
+          { type: "Opt", tagClass: "tag-opt", text: "Refined in-car notification cards for top 4 IM apps with cleaner layout and guidance" },
+          { type: "Opt", tagClass: "tag-opt", text: "Silenced in-call notifications and improved automatic music resume after call interruption" },
+          { type: "Refactor", tagClass: "tag-refactor", text: "Overhauled notification translation and bridge architecture for long-term stability" },
+          { type: "Fix", tagClass: "tag-fix", text: "Resolved idle background crashes on certain systems and hardened startup robustness" },
+          { type: "Fix", tagClass: "tag-fix", text: "Fixed erratic in-car playback mode icon state toggles for NetEase Cloud Music" }
         ],
         features: [
           { icon: "1", title: "Essential Transport Controls", desc: "Smoothly control playback, pause, skip tracks, and seek progress directly on the car display." },
@@ -1638,7 +1669,7 @@
         ]
       },
       de: {
-        tagRelease: "v1.3.0 Neueste Version",
+        tagRelease: "v1.3.2 Neueste Version",
         heroTitle: "Ein <span class=\"text-accent\">Android Auto</span>-Plugin <br>für chinesische <span class=\"text-accent\">Audio- & Messenger</span>-Apps",
         chips: [
           "Wiedergabesteuerung", "Songtextanzeige", "Nachrichtenansage",
@@ -1647,7 +1678,7 @@
         btnDownload: "Neueste APK herunterladen",
         btnToggleToFeatures: "Funktionen & Kompatibilität",
         btnToggleToChangelog: "Änderungsprotokoll",
-        changelogHead: "v1.3.0 Änderungsprotokoll",
+        changelogHead: "v1.3.2 Änderungsprotokoll",
         featuresHead: "Kernfunktionen",
         compatPresetTitle: "Kompatibilität voreingestellter Musik-Apps",
         thApp: "Audio-App",
@@ -1659,13 +1690,12 @@
         footerPrivacy: "Datenschutzerklärung",
         footerIssues: "Feedback & Support",
         changelog: [
-          { type: "Neu", tagClass: "tag-add", text: "Wiedergabemodus-Umschaltung mit bidirektionaler Statussynchronisation" },
-          { type: "Neu", tagClass: "tag-add", text: "Einseitige Modus-Kalibrierung auf der Smartphone-Karte per Knopfdruck" },
-          { type: "Refaktor", tagClass: "tag-refactor", text: "Mehrstufige Songtext-Abrufarchitektur zur Steigerung der Trefferquote" },
-          { type: "Optimiert", tagClass: "tag-opt", text: "Farbsprünge im Ambient-Glow-Modus beim Titelwechsel behoben" },
-          { type: "Optimiert", tagClass: "tag-opt", text: "Verzögerungsfreie 0ms-Umschaltung des Songtextmodus mit Cache" },
-          { type: "Behoben", tagClass: "tag-fix", text: "Konflikte bei gleichzeitiger Installation mehrerer Kugou-Versionen gelöst" },
-          { type: "Behoben", tagClass: "tag-fix", text: "Speichersichtbarkeitsbarriere für prozessübergreifende IPC verstärkt" }
+          { type: "Neu", tagClass: "tag-add", text: "Nachreichung verpasster Benachrichtigungen nach dem 60s-Kaltstartfenster" },
+          { type: "Opt", tagClass: "tag-opt", text: "Optimierte Benachrichtigungskarten für die 4 Top-Messenger mit klarerem Layout" },
+          { type: "Opt", tagClass: "tag-opt", text: "Stummschaltung während Anrufen und zuverlässige Musikfortsetzung nach Gesprächsende" },
+          { type: "Refaktor", tagClass: "tag-refactor", text: "Grundlegende Überarbeitung der Benachrichtigungsbrücke für mehr Systemstabilität" },
+          { type: "Fix", tagClass: "tag-fix", text: "Abstürze bei Inaktivität im Hintergrund auf bestimmten Systemen behoben und Start verbessert" },
+          { type: "Fix", tagClass: "tag-fix", text: "Fehlerhafte Umschaltung des NetEase-Wiedergabemodus auf dem Autodisplay behoben" }
         ],
         features: [
           { icon: "1", title: "Essenzielle Wiedergabesteuerung", desc: "Reibungslose Steuerung von Wiedergabe, Pause, Titelsprüngen und Positionsregelung am Autodisplay." },
@@ -1689,7 +1719,7 @@
         ]
       },
       ja: {
-        tagRelease: "v1.3.0 最新リリース",
+        tagRelease: "v1.3.2 最新リリース",
         heroTitle: "中国の主要<span class=\"text-accent\">音楽・メッセージ</span>アプリに対応した<br><span class=\"text-accent\">Android Auto</span> プラグイン",
         chips: [
           "基本再生操作", "リアルタイム歌詞", "メッセージ読み上げ",
@@ -1698,7 +1728,7 @@
         btnDownload: "最新APKをダウンロード",
         btnToggleToFeatures: "コア機能と対応状況",
         btnToggleToChangelog: "更新履歴",
-        changelogHead: "v1.3.0 更新履歴",
+        changelogHead: "v1.3.2 更新履歴",
         featuresHead: "コア機能と特徴",
         compatPresetTitle: "プリセット音楽アプリ対応一覧",
         thApp: "音楽アプリ",
@@ -1710,13 +1740,12 @@
         footerPrivacy: "プライバシーポリシー",
         footerIssues: "不具合報告・サポート",
         changelog: [
-          { type: "新規", tagClass: "tag-add", text: "車載再生モードの切り替えおよび双方向ステータス同期を追加" },
-          { type: "新規", tagClass: "tag-add", text: "スマホ側でのワンタップ再生モード手動同期・キャリブレーション機能" },
-          { type: "刷新", tagClass: "tag-refactor", text: "マルチティア歌詞取得エンジンの刷新による歌詞ヒット率の向上" },
-          { type: "改善", tagClass: "tag-opt", text: "流光アンビエントモードにおける曲切り替え時の色飛びを解消" },
-          { type: "改善", tagClass: "tag-opt", text: "キャッシュ活用により0msの高速歌詞表示切り替えを実現" },
-          { type: "修正", tagClass: "tag-fix", text: "複数バージョンのKuGou共存時の競合起動と状態同期の不具合を修正" },
-          { type: "修正", tagClass: "tag-fix", text: "プロセス間IPC通信におけるメモリバリアの安全性を强化" }
+          { type: "新規", tagClass: "tag-add", text: "コールドスタート待機期間（60秒）後の未読通知補填メカニズム" },
+          { type: "改善", tagClass: "tag-opt", text: "主要4大メッセージアプリの車載通知カード表示と操作ガイドを最適化" },
+          { type: "改善", tagClass: "tag-opt", text: "通話中通知のサイレント処理と通話終了後の音楽自動再開の安定化" },
+          { type: "刷新", tagClass: "tag-refactor", text: "通知変換・ブリッジモジュールのアーキテクチャ刷新による安定性向上" },
+          { type: "修正", tagClass: "tag-fix", text: "一部システムでバックグラウンド待機時に発生するクラッシュを修正し起動安定性を向上" },
+          { type: "修正", tagClass: "tag-fix", text: "車載側におけるNetEase再生モードアイコン表示の誤切り替え問題を修正" }
         ],
         features: [
           { icon: "1", title: "基本的な再生コントロール", desc: "車載大画面で再生、一時停止、曲送り、シークバーのドラッグをスムーズに制御" },

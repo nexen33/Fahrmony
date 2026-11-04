@@ -2610,7 +2610,7 @@ export default function App() {
                       Fahrmony
                     </div>
                     <div style={{ fontSize: '15px', color: 'var(--accent-primary)', fontWeight: 600, marginTop: '2px' }}>
-                      v1.3.0
+                      v1.3.2
                     </div>
                   </div>
 
@@ -2649,7 +2649,18 @@ export default function App() {
                   {/* 仅“更新日志”标题与下方双按钮之间的内容区域具有滚动能力 */}
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     <div>
-                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.3.0（当前）</div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.3.2（当前）</div>
+                      <div style={{ marginTop: '4px' }}>
+                        • 新增: 冷启动 60s 等待期后通知消息补发机制<br />
+                        • 优化: 四大 IM App 车载通知卡片显示，规范消息与功能引导<br />
+                        • 优化: 通话中状态通知静默过滤，通话打断后音乐的复播机制<br />
+                        • 重构: 通知转译与桥接模块底层架构，提升整体运行稳定性<br />
+                        • 修复: 后台闲置时在部分系统中的崩溃异常问题，提升启动鲁棒性<br />
+                        • 修复: 网易云音乐播放模式车机端显示跳变问题
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.3.0</div>
                       <div style={{ marginTop: '4px' }}>
                         • 新增: 预置位音乐 App 播放模式车载切换与双向同步支持（部分）<br />
                         • 新增: 针对部分音乐 App 的播放模式单边校准功能<br />

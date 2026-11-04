@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.3.0-orange)
+![Version](https://img.shields.io/badge/Version-v1.3.2-orange)
 
 > A local-first interoperability bridge tailored for Android Auto, enabling car displays to naturally display and partially control your favorite Chinese streaming audio and messaging notifications while driving abroad.
 
 <p align="center">
-  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/Visit-Official_Website-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="Official Website" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.0/Fahrmony_v1.3.0.apk"><img src="https://img.shields.io/badge/Download-Latest_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="Download Latest APK" /></a>
+  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/Visit-Official_Website-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="Official Website" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.2/Fahrmony_v1.3.2.apk"><img src="https://img.shields.io/badge/Download-Latest_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="Download Latest APK" /></a>
 </p>  
 
 ## What is Fahrmony?
@@ -51,7 +51,7 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 - **Cold Start & Warm Reconnect Resumption**: Finely polished for media app and Android Auto cold starts and warm reconnects. Cold starts are deeply optimized for preset audio sources. Upon connecting to Android Auto, the system automatically detects and resumes the previous playback state without requiring manual clicks on the phone or car screen in most driving scenarios; features built-in active verification and self-healing retry logic for sluggish background starts.
 - **Adaptive Ambient Artwork & Original Covers**: Generates high-contrast gradient backdrops by default to completely eliminate invisible black buttons on dark album art; adds an optional "Audio App Original Playing Card" toggle to directly display crisp, original high-definition album art on your car screen, accommodating individual preferences for either visual authenticity or high-contrast button legibility.
 - **Playback Queue & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; deeply adapted head-unit playback mode switching (Loop / Shuffle / Repeat One / Heartbeat, etc.) for mainstream music apps, with phone-side single-sided calibration for one-tap resynchronization when out of sync.
-- **Driving Safety Notification Assistant & Disconnection Cleanup**: Deconstructs direct and group messages, filters out group chat spam, and generates automotive-standard cards with voice readout and "Mark as Read" actions; automatically halts message forwarding and destroys residual bridge notifications upon car disconnection to eliminate phone-side duplicate alerts.
+- **Driving Safety Notification Companion & Display Adaptation**: Extensively optimized for in-car notification card display across the 4 mainstream messaging apps under the current architecture, standardizing message formatting and stripping redundant tags and badge noise; intelligently recognizes direct vs. group chat structures and suppresses group chat spam; supports automotive-grade voice readouts and "Mute" dismissal; for incoming calls, QQ supports answering or declining via alternate head-unit buttons specifically when the handset does not trigger a full-screen call page; automatically resumes music playback once calls end; automatically clears residual notifications upon car disconnection to eliminate phone-side duplicate alerts.
 - **Anti-Jitter & Audio Leak Prevention**: Instantly claims transient audio focus and pauses all players upon car disconnection to eliminate speaker audio leakage; enforces an anti-jitter state lock during track switching to prevent UI flashing.
 - **Unified Fluid Interface & Pure Background Controls**: A lightweight fluid console on the handset dynamically adapted to various screen resolutions; browser scrollbars are completely hidden, delivering silky 120fps native-like stretch and overscroll bounce; supports adaptive light/dark theming with "Follow System" mode, 4-language support, and permission setup guides.
 - **In-Car Live Lyrics & Multi-Mode Switching**: Real-time scrolling lyrics on head-unit playing cards with instant toggling between "Single-line", "Dual-line (with next line preview)", and "Off" via phone Media tab or in-car controls; deeply optimized multi-tier intelligent search pipelines and line-switch smoothness; intelligently identifies and sanitizes in-car Bluetooth lyric injection; built-in Traditional/Simplified Chinese auto-conversion with multi-tier memory throttling.
@@ -74,9 +74,9 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 | **Repeat Modes** | **Adaptive** | Prioritizes standard flags; provides mode rotation and one-tap phone-side calibration for mainstream apps | Depends on source app control channel or system capability |
 | **Shuffle** | **Limited** | Supported apps toggle into shuffle via head-unit cycle mode, while remaining compatible with native system shuffle commands | Most streaming apps do not expose standalone shuffle commands |
 | **Cold Start** | **Full** | Automatically penetrates and awakens during lockscreen/screen-off, resuming playback in seconds once audio engine is ready | Requires handset permission for background autostart and Notification Access |
-| **Notification Display** | **Full** | Parses messages and generates standardized car cards | Requires granted Notification Access; auto-cleans residual alerts upon disconnect |
+| **Notification Display** | **Full** | Extensively adapted for head-unit notification card display across 4 mainstream messaging apps; supports unread message replay upon cold start; automatically silences in-call ongoing status notifications | Requires granted Notification Access; auto-cleans residual alerts upon disconnect |
 | **Voice Readout** | **System-driven** | Handled by vehicle voice assistant following automotive specs | Voice synthesis quality depends on system speech settings |
-| **Direct Reply** | **Unsupported** | Offers "Mark as Read" dismissal. **Replying back to source app is unsupported** | Messaging apps do not provide public third-party message-sending APIs |
+| **Replies / Call Actions** | **Limited** | Supports "Mute" or dismiss on car display. Replying with text back to the source app is **unsupported** as messaging apps lack open APIs; for calls, QQ supports answering or declining on head unit only when handset does not pop up a full-screen call page | Depends on exposed third-party app actions and system full-screen floating window state |
 
 ## Preset Music App Support Matrix
 
@@ -100,23 +100,25 @@ Maximum support status for head-unit controls, lyrics, and play mode toggling ac
 - **In-Vehicle Environment**: Android Auto compatible vehicle display (wired USB or wireless), or official PC Desktop Head Unit (DHU) emulator.
 - **App Environment**: Standard audio streaming or messaging applications installed on the handset.
 
-## Installation
+## Installation and Usage Guide
 
-1. **Download APK**: Visit the [Releases page](https://github.com/nexen33/Fahrmony/releases) and download the latest release package.
+1. **Download APK**: Visit the [Releases page](https://github.com/nexen33/Fahrmony/releases) on the right side of this repository and download the latest release package.
 2. **Install Application**:
    - When sideloading the APK, if prompted with a security warning (e.g., Google Play Protect or OEM scan alerts), expand "More details" and manually select **Install anyway**;
    - **OEM Note (e.g., Samsung One UI 6.0+)**: Knox Auto Blocker is enabled by default and blocks app sideloading from outside official app stores. If installation fails or is blocked, go to `Settings -> Security and privacy -> Auto Blocker` and temporarily toggle it off. You may re-enable it after installation.
 3. **Grant Permissions**:
-   - Open Fahrmony and enable **Notification Access**;
-   - Enable **Ignore Battery Optimizations** to prevent the OS from terminating background services during long drives;
-   - On Android 13 or higher, allow the **Post Notifications** permission.
+   - Open the app, navigate to Settings, and enable **Notification Reminders** (Post Notifications) and **Notification Access** as prompted;
+   - Configure **Background Execution Permissions** by allowing Fahrmony to **Ignore Battery Optimizations** to maintain stable resumption upon connection and prevent disconnects during runtime;
+   - On Android 13 or higher, follow the restricted settings guide to enable **Allow restricted settings** if prompted;
+   - Please ensure that all Audio & Messaging apps you wish to bridge have their **Notification Permissions** enabled.
 4. **Enable Android Auto Developer Settings**:
    - Open phone Settings -> search for `Android Auto`;
    - Scroll to the bottom and tap Version 10 times to unlock developer mode;
    - Tap the top-right three dots -> **Developer settings** -> check **Unknown sources**.
 5. **Connect to Vehicle**:
-   - Upon first use, navigate to the Fahrmony Settings page on your phone, select your default player, and tap **Launch Player** once to authorize Fahrmony to wake and bind the target audio app;
-   - Connect via USB cable or wireless projection. The **Fahrmony** icon will appear on your vehicle's dashboard.
+   - Upon first use, go to the Fahrmony Settings page on your phone, choose your default player, and tap the **Launch Player** button once to **Always allow** Fahrmony to invoke the target audio app;
+   - Connect to the car via USB cable or wireless. The app icon and split-screen card will automatically appear on your vehicle dashboard; tap to use;
+   - For subsequent drives, there is no need to keep Fahrmony or your audio apps running in the background beforehand—simply connect to your car and playback will start.
 
 ## Permissions
 
@@ -140,6 +142,9 @@ In the vast majority of everyday scenarios, no. Fahrmony is specifically enginee
 
 #### Why can't I type or dictate replies to chat messages on the car screen?
 For driver safety and technical compliance. Typing on a dashboard while driving is extremely hazardous; furthermore, major messaging apps do not expose third-party external message-sending APIs. Fahrmony strictly maintains a read-only policy.
+
+#### Why does it take about 1 minute after a cold start connection to receive message notifications? Are messages sent during this window lost?
+Not at all. This is determined by the underlying Android OS architecture: when an app holding "Notification Access" is killed from the background by the user and then relaunched, the operating system enters an enforced cooldown period of approximately 1 minute, during which the system will not re-establish the listener binder channel. To bridge this 1-minute gap, Fahrmony features a dedicated **Cold Start Message Replay Mechanism**. Once the 1-minute cooldown expires and the service successfully reconnects, Fahrmony immediately scans and retrieves any notifications that accumulated in the phone's notification shade during that window and forwards them to the car display.
 
 #### Why does the screen show gradient artwork instead of the original cover?
 Certain source player covers are extremely dark, causing the in-car system to automatically tint playback control buttons into invisible black. Transmitting high-resolution bitmaps can also introduce latency. Adaptive gradients ensure buttons remain readable and track changes smooth.
@@ -206,7 +211,7 @@ Due to architectural and API exposure limitations in third-party audio apps, cer
 If you encounter an issue during daily driving, please file a report on GitHub Issues using the template below (**Note: Never submit personal private chat contents**):
 
 ```text
-- Fahrmony Version: v1.3.0
+- Fahrmony Version: v1.3.2
 - Android OS Version: e.g., Android 14
 - Phone Model: e.g., Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto Version: e.g., 11.8
@@ -275,7 +280,7 @@ Developers may optionally attach relevant log excerpts to their issue submission
 ┌─ Fahrmony Dedicated Automotive System Process (:car)
 │  ├─ MediaSession Perception, Smart Arbitration & Active Cold-Start Resume
 │  ├─ Live Lyrics Sync Engine (Millisecond Binary Search, 0-GC Cleanup & Adaptive Scheduling)
-│  ├─ Message Payload Cleaning, Group Filtering, Normalized Translation & Disconnect Auto-Cleanup
+│  ├─ Message Payload Cleaning, Group Filtering, Normalized Translation, Cold-Start Replay & Disconnect Auto-Cleanup
 │  ├─ MediaBrowserServiceCompat Implementation
 │  └─ Persistent Foreground Daemon
 ▼
@@ -326,7 +331,7 @@ Released under the **Creative Commons Attribution-NonCommercial 4.0 Internationa
 
 ---
 
-## Preview v1.3.0
+## Preview v1.3.2
 
 <p align="center">
   <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/a73527ba-5438-4824-b120-6f3897e29706" />

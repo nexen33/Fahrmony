@@ -635,40 +635,95 @@ object FahrmonyMediaManager {
     private var lastObservedMediaId: String? = null
     private var lastObservedTrackDuration: Long = 0L
     private var lastObservedTrackPosition: Long = 0L
+    // 切歌/起播初始状态震荡冷却期截止时间戳 (仅限播放态抑制，杜绝自然/手动切歌误判模式脉冲)
+    private var trackTransitionCooldownUntil = 0L
 
     private fun checkNeteasePhoneModePulse(controller: MediaControllerCompat, state: PlaybackStateCompat?): Boolean {
         if (controller.packageName != "com.netease.cloudmusic" || state == null) return false
-        // 守卫 0: 车机必须处于真实连接态，未连接时不作步进
-        if (!FahrmonyMediaBrowserService.isCarConnected) return false
-
         val now = System.currentTimeMillis()
-        // 守卫 1: 排除车机连接与断连窗口 (3000ms 握手与断播震荡期，杜绝过渡状态误判)
-        if (now - lastCarConnectedTimestamp < 3000L || now - lastCarDisconnectedTimestamp < 3000L) {
-            lastNeteaseStateTimestamp = now
-            lastNeteaseTrackPosition = state.position
-            return false
-        }
-
-        // 守卫 2: 排除车机自身在 1200ms 内触发的动作回环
-        if (now - lastCarModeToggleTimestamp < 1200L) {
-            lastNeteaseStateTimestamp = now
-            lastNeteaseTrackPosition = state.position
-            return false
-        }
-
-        // 守卫 3: 状态允许稳定在 STATE_PLAYING 或 STATE_PAUSED，排除起播/缓冲等不稳定中间态
         val currentState = state.state
-        if (currentState != PlaybackStateCompat.STATE_PLAYING && currentState != PlaybackStateCompat.STATE_PAUSED) {
+        // 守卫 1: 连接主权与断连/切歌压制保护 (车机必须处于真实连接态，严禁在拔线断连压制期内响应脉冲，且严禁在车机切歌保护期内响应脉冲)
+        val isSkipProtecting = now < skipProtectionUntil
+        if (!FahrmonyMediaBrowserService.isCarConnected || now < disconnectSuppressionUntil || isSkipProtecting) {
+            if (isSkipProtecting) {
+                lastNeteasePlaybackState = currentState
+                lastNeteaseStateTimestamp = now
+                lastNeteaseTrackPosition = state.position
+            }
+            return false
+        }
+
+        // 守卫 2: 切歌过渡与曲界沉淀保护 (整合单曲回绕、跨曲翻转、曲末播完与曲首起播沉淀期，仅限 PLAYING 态抑制，绝不误伤静止态曲首暂停)
+        // 2.1 单曲循环自然回绕边沿识别 (曲末跳回曲首): 仅在从接近曲尾突变回曲首时单次上膛 2000ms 沉淀静音期
+        val currentPos = state.position
+        if (lastNeteaseTrackPosition > 5000L && currentPos < 2500L && currentState == PlaybackStateCompat.STATE_PLAYING) {
+            trackTransitionCooldownUntil = now + 2000L
+        }
+
+        val currentDuration = controller.metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0L
+        val currentMediaId = controller.metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
+            ?: controller.metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
+
+        // 2.2 跨曲元数据异步翻转直阻: 若底层 Session 曲目 ID 已经更替，直接识别为切歌过渡，严禁误触发模式脉冲
+        if (lastObservedMediaId != null && !currentMediaId.isNullOrBlank() && currentMediaId != lastObservedMediaId) {
+            trackTransitionCooldownUntil = now + 2000L
+            lastObservedMediaId = currentMediaId
+            if (currentDuration > 0L) {
+                lastNeteaseTrackDuration = currentDuration
+            }
+            return false
+        }
+
+        // 2.3 曲末自然播完边沿拦截: 当前处于播放态且播放进度已达到曲末 (最后 3000ms 窗口)，判定为歌曲自然结束过渡期
+        val isNearTrackEnd = (currentDuration > 0L && currentPos >= currentDuration - 3000L)
+
+        // 2.4 曲界综合沉淀与震荡过滤: 拦截曲末自然完播、起播初始及切歌冷却期状态震荡
+        if (currentState == PlaybackStateCompat.STATE_PLAYING && (now < trackTransitionCooldownUntil || currentPos < 2000L || isNearTrackEnd)) {
+            if (isNearTrackEnd) {
+                trackTransitionCooldownUntil = now + 2500L
+            }
+            lastNeteasePlaybackState = currentState
+            lastNeteaseStateTimestamp = now
+            lastNeteaseTrackPosition = currentPos
+            if (currentDuration > 0L) {
+                lastNeteaseTrackDuration = currentDuration
+            }
+            return false
+        }
+
+        // 守卫 3: 连车初始物理握手震荡期 (2000ms)，消除连车后首按被误当过渡态吞掉的问题
+        if (now - lastCarConnectedTimestamp < 2000L || now - lastCarDisconnectedTimestamp < 2000L) {
             lastNeteasePlaybackState = currentState
             lastNeteaseStateTimestamp = now
             lastNeteaseTrackPosition = state.position
             return false
         }
 
-        // 守卫 3.1: 状态转移不变性 (State-Transition Invariance)
-        // 手机端点击切换播放模式时，绝不会改变播放器状态（播放中点击仍为播放，暂停中点击仍为暂停）。
-        // 凡是发生状态跳变（如从 STATE_PLAYING 变为 STATE_PAUSED，或反之），必然是下车断连、物理拔线、或者用户按下播放/暂停，绝不可能是模式切换脉冲。
-        if (lastNeteasePlaybackState != currentState) {
+        // 守卫 4: 排除车机自身在 1200ms 内触发的动作回环
+        if (now - lastCarModeToggleTimestamp < 1200L) {
+            lastNeteasePlaybackState = currentState
+            lastNeteaseStateTimestamp = now
+            lastNeteaseTrackPosition = state.position
+            return false
+        }
+
+        // 守卫 5: 运控合法状态过滤 (状态允许稳定在播放态或静止态 PAUSED / STOPPED，排除起播/缓冲等不稳定中间态)
+        val isCurrentResting = (currentState == PlaybackStateCompat.STATE_PAUSED || currentState == PlaybackStateCompat.STATE_STOPPED)
+        val isLastResting = (lastNeteasePlaybackState == PlaybackStateCompat.STATE_PAUSED || lastNeteasePlaybackState == PlaybackStateCompat.STATE_STOPPED)
+
+        if (currentState != PlaybackStateCompat.STATE_PLAYING && !isCurrentResting) {
+            lastNeteasePlaybackState = currentState
+            lastNeteaseStateTimestamp = now
+            lastNeteaseTrackPosition = state.position
+            return false
+        }
+
+        // 守卫 6: 状态转移不变性 (State-Transition Invariance)
+        // 手机端点击切换播放模式时，绝不会改变播放器大类状态（播放中点击仍为播放，静止中点击仍为静止）。
+        // 凡是发生大类状态跃迁（如从 PLAYING 变为 PAUSED/STOPPED，或反之），必然是下车断连、物理拔线、或者用户按下播放/暂停，绝不可能是模式切换脉冲。
+        // PAUSED 与 STOPPED 之间的内部资源释放不视作跨类状态跃迁，防止内部异步释放重置 2000ms 震荡窗。
+        val isStateCategoryChanged = (lastNeteasePlaybackState != currentState) && !(isLastResting && isCurrentResting)
+        if (isStateCategoryChanged) {
             lastNeteasePlaybackState = currentState
             lastNeteaseStateTimestamp = now
             lastNeteaseStateTransitionTimestamp = now
@@ -680,14 +735,12 @@ object FahrmonyMediaManager {
             return false
         }
 
-        // 守卫 4: 模式点击防抖窗口（单次点击防抖 400ms）
+        // 守卫 7: 模式点击防抖窗口 (单次点击防抖 400ms)
         if (now - lastNeteasePulseTimestamp < 400L) {
             return false
         }
 
         val elapsedReal = now - lastNeteaseStateTimestamp
-        val currentPos = state.position
-        val currentDuration = controller.metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0L
 
         // 稳健基线自愈：若基线时长尚未初始化且当前曲目时长有效，立即就地对齐，杜绝起播首按沦为时长校准牺牲品
         if (lastNeteaseTrackDuration == 0L && currentDuration > 0L) {
@@ -696,12 +749,14 @@ object FahrmonyMediaManager {
 
         var isPulse = false
         if (lastNeteaseTrackDuration == currentDuration && currentDuration > 0L) {
-            if (currentState == PlaybackStateCompat.STATE_PAUSED) {
-                // 排除刚从播放跌入暂停的瞬态震荡 (1200ms 物理缓冲期，防止断播/拔线产生的二次暂停事件误判为用户点按)
-                if (now - lastNeteaseStateTransitionTimestamp >= 1200L && elapsedReal >= 150L) {
+            if (isCurrentResting) {
+                // 排除刚从播放跌入静止态的瞬态震荡 (2000ms 物理缓冲期，覆盖下车断播瞬间网易云内部释放焦点与通知栏重绘的二次清理窗口)
+                // 断连场景已由双硬件断连锁彻底封锁，静止态 (PAUSED/STOPPED) 下解除苛刻的 <=1200ms 上限，支持用户暂停/停止后任意时长的正常点按
+                if (now - lastNeteaseStateTransitionTimestamp >= 2000L && elapsedReal >= 150L) {
                     isPulse = true
                 }
             } else if (elapsedReal >= 150L) {
+                // 播放态完全恢复成熟原生逻辑：支持用户任意时长间隔（包括长达数分钟听歌后）随时点按手机切模式
                 val progressDiff = Math.abs((currentPos - lastNeteaseTrackPosition) - elapsedReal)
                 // 排除长距离拖动进度条（手动 Seek 跳变；长间隔播放时放宽时钟自然漂移门限至 6000ms）
                 val maxSeekTolerance = if (elapsedReal > 5000L) 6000L else 2500L
@@ -753,6 +808,8 @@ object FahrmonyMediaManager {
     private var skipProtectionUntil = 0L
     private var skipProtectionState = PlaybackStateCompat.STATE_PLAYING
     private var userRequestedPauseUntil = 0L
+    @Volatile private var lastExternalPauseTimestamp = 0L
+    @Volatile private var lastExternalPausePackage: String? = null
     private var lastCarConnectedTimestamp = 0L
     private var lastSyncedTrackKey: String? = null
     private var defaultArtworkBitmap: Bitmap? = null
@@ -1269,6 +1326,18 @@ object FahrmonyMediaManager {
     }
 
     private fun registerSingleControllerCallback(controller: MediaControllerCompat) {
+        if (controller.packageName == "com.netease.cloudmusic") {
+            val initMediaId = controller.metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
+                ?: controller.metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
+            if (!initMediaId.isNullOrBlank() && lastObservedMediaId == null) {
+                lastObservedMediaId = initMediaId
+            }
+            val initDur = controller.metadata?.getLong(MediaMetadataCompat.METADATA_KEY_DURATION) ?: 0L
+            if (initDur > 0L && lastNeteaseTrackDuration == 0L) {
+                lastNeteaseTrackDuration = initDur
+            }
+        }
+        var prevPlaybackState = controller.playbackState?.state ?: PlaybackStateCompat.STATE_NONE
         val callback = object : MediaControllerCompat.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
                 try {
@@ -1294,6 +1363,19 @@ object FahrmonyMediaManager {
                     browserServiceRef?.get()?.syncShuffleMode(controller.shuffleMode)
                 }
                 val newState = state?.state ?: PlaybackStateCompat.STATE_NONE
+                val nowMs = System.currentTimeMillis()
+                val isManualPause = nowMs < userRequestedPauseUntil
+                val isDisconnectSuppress = nowMs < disconnectSuppressionUntil
+                if (prevPlaybackState == PlaybackStateCompat.STATE_PLAYING &&
+                    (newState == PlaybackStateCompat.STATE_PAUSED || newState == PlaybackStateCompat.STATE_STOPPED) &&
+                    !isManualPause && !isDisconnectSuppress
+                ) {
+                    lastExternalPauseTimestamp = nowMs
+                    lastExternalPausePackage = controller.packageName
+                } else if (newState == PlaybackStateCompat.STATE_PLAYING || isManualPause) {
+                    lastExternalPauseTimestamp = 0L
+                }
+                prevPlaybackState = newState
                 if (newState == PlaybackStateCompat.STATE_PAUSED) {
                     userRequestedPauseUntil = 0L
                 }
@@ -1525,6 +1607,12 @@ object FahrmonyMediaManager {
                             pushMirrorState()
                         }
                     }
+                }
+
+                val isTrackChanged = (currMediaId != null && lastObservedMediaId != null && currMediaId != lastObservedMediaId) ||
+                        (currDuration > 0L && lastObservedTrackDuration > 0L && currDuration != lastObservedTrackDuration)
+                if (isTrackChanged) {
+                    trackTransitionCooldownUntil = System.currentTimeMillis() + 2000L
                 }
 
                 lastObservedMediaId = currMediaId
@@ -2670,6 +2758,61 @@ object FahrmonyMediaManager {
         return extractSessionInfo(controller)
     }
 
+    /**
+     * 查询来电前的音乐播放快照（涵盖当前正在播放，或在 windowMs 内刚被来电铃声焦点打断暂停的场景）
+     */
+    fun queryPreCallPlaybackSnapshot(windowMs: Long = 3500L): Pair<Boolean, String?> {
+        val activeInfo = getActiveSessionInfo()
+        if (activeInfo != null && activeInfo.isPlaying) {
+            return true to activeInfo.packageName
+        }
+        val playingCtrl = allControllersCompat.firstOrNull {
+            it.playbackState?.state == PlaybackStateCompat.STATE_PLAYING
+        }
+        if (playingCtrl != null) {
+            return true to playingCtrl.packageName
+        }
+        val extTs = lastExternalPauseTimestamp
+        val extPkg = lastExternalPausePackage
+        if (extTs > 0L && !extPkg.isNullOrBlank() && (System.currentTimeMillis() - extTs) <= windowMs) {
+            return true to extPkg
+        }
+        return false to (activeInfo?.packageName ?: stickyActivePackage)
+    }
+
+    fun isPackagePlayingOrBuffering(packageName: String?): Boolean {
+        val ctrl = if (!packageName.isNullOrBlank()) {
+            allControllersCompat.firstOrNull { isPackageMatch(it.packageName, packageName) } ?: activeControllerCompat
+        } else {
+            activeControllerCompat
+        }
+        val st = ctrl?.playbackState?.state
+        if (st == PlaybackStateCompat.STATE_PLAYING || st == PlaybackStateCompat.STATE_BUFFERING) {
+            return true
+        }
+        val am = appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        return am?.isMusicActive == true
+    }
+
+    /**
+     * 供来电兜底静音调用：仅暂停目标播放器并同步车机状态，不置位 userRequestedPauseUntil 且不清除外部打断快照
+     */
+    fun pauseForCallInterrupt(targetPackage: String?) {
+        val ctrl = if (!targetPackage.isNullOrBlank()) {
+            allControllersCompat.firstOrNull { isPackageMatch(it.packageName, targetPackage) } ?: activeControllerCompat
+        } else {
+            activeControllerCompat
+        } ?: return
+        if (ctrl.playbackState?.state == PlaybackStateCompat.STATE_PLAYING) {
+            try {
+                lastExternalPauseTimestamp = System.currentTimeMillis()
+                lastExternalPausePackage = ctrl.packageName
+                optimisticSyncState(PlaybackStateCompat.STATE_PAUSED)
+                ctrl.transportControls?.pause()
+            } catch (ignored: Exception) {}
+        }
+    }
+
     fun getActiveQueue(): List<MediaSessionCompat.QueueItem>? {
         val controller = activeControllerCompat ?: return null
         val queue = controller.queue
@@ -3190,6 +3333,7 @@ object FahrmonyMediaManager {
                     handshakeProtectionUntil = 0L
                     skipProtectionUntil = 0L
                     playProtectionUntil = 0L
+                    lastExternalPauseTimestamp = 0L
                     userRequestedPauseUntil = System.currentTimeMillis() + 1500L
                     autoPlayRetryRunnable?.let { mainHandler.removeCallbacks(it) }
                     autoPlayRetryRunnable = null
@@ -3576,19 +3720,21 @@ object FahrmonyMediaManager {
     fun getLastCarConnectedTimestamp(): Long = lastCarConnectedTimestamp
 
     fun onCarConnected(context: Context) {
+        val now = System.currentTimeMillis()
+        // 连车主权建立：第一毫秒无条件清除任何断连压制锁，彻底杜绝热重连或连车握手期误按停
+        disconnectSuppressionUntil = 0L
+
         // 重置元数据缓存键，确保无论是初次连接还是断开重连，都强制向车机推送完整的封面大图与曲目信息
         lastSyncedTrackKey = null
         currentTrackArtworkBitmap = null
         lastRawSourceGenId = -1
         lastRawSourceUri = null
         cachedRawArtworkBitmap = null
-        val now = System.currentTimeMillis()
         if (now - lastCarConnectedTimestamp < 1500L) {
             return
         }
         lastCarConnectedTimestamp = now
         handshakeProtectionUntil = now + 1200L
-        disconnectSuppressionUntil = 0L
         // 动态继承状态基线：若当前活跃会话为网易云且已在播放/暂停，直接对齐状态与时长，消除连车后首次点按被当作状态跳变拦截
         if (activeControllerCompat?.packageName == "com.netease.cloudmusic") {
             val activeState = activeControllerCompat?.playbackState?.state ?: PlaybackStateCompat.STATE_NONE
@@ -3686,19 +3832,24 @@ object FahrmonyMediaManager {
         }
     }
 
+    private var lastFullDisconnectActionTimestamp = 0L
+
     fun onCarDisconnected() {
+        val now = System.currentTimeMillis()
         // 连接主权守卫：若当前车机服务处于活跃连接中，坚决丢弃任何外部误判广播引发的断连
         if (FahrmonyMediaBrowserService.isCarConnected) {
             return
         }
-        val now = System.currentTimeMillis()
-        if (now - lastCarDisconnectedTimestamp < 1000L) {
+        if (now - lastFullDisconnectActionTimestamp < 1000L) {
             return
         }
+        lastFullDisconnectActionTimestamp = now
         lastCarDisconnectedTimestamp = now
         lastNeteasePlaybackState = PlaybackStateCompat.STATE_NONE
         // 设立 3000ms 断连压制窗口，拦截冷启动时前台 Activity 重新聚焦/音频重构引发的自发起播
         disconnectSuppressionUntil = now + 3000L
+        // 复位自动起播生命周期锁：前一次连接已彻底终结，确保下一次重连无论相隔多短均能正常起播
+        lastAutoPlayTimestamp = 0L
 
         FahrmonyLogBuffer.addLog("CAR_DISCONNECT", "车机断连", "收到物理断连事件", "执行手机端物理静音与全播放器双脉冲暂停")
 

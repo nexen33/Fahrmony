@@ -28,14 +28,20 @@ class FahrmonyForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                buildForegroundNotification(),
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, buildForegroundNotification())
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    buildForegroundNotification(),
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, buildForegroundNotification())
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("ForegroundService", "startForeground受限或安全降级: ${e.message}")
+            stopSelf()
+            return
         }
         FahrmonyMediaManager.init(applicationContext)
         // 提前常驻唤醒媒体服务并初始化 MediaSession，车机插线前即已在系统内核就绪
@@ -46,7 +52,11 @@ class FahrmonyForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // START_STICKY 保证系统在内存紧张回收后自动拉起
+        if (intent == null && !FahrmonyMediaBrowserService.isCarConnected) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        // START_STICKY 保证系统在车机活跃时内存紧张回收后自动拉起
         return START_STICKY
     }
 

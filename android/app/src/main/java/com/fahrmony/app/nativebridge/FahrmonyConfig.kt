@@ -111,7 +111,7 @@ object FahrmonyConfig {
         val sp = getPrefs(context)
         return when (packageName) {
             "com.tencent.mm" -> sp.getBoolean(KEY_WECHAT, true)
-            "com.ss.android.lark" -> sp.getBoolean(KEY_FEISHU, false)
+            "com.ss.android.lark", "com.larksuite.suite" -> sp.getBoolean(KEY_FEISHU, false)
             "com.alibaba.android.rimet" -> sp.getBoolean(KEY_DINGTALK, false)
             "com.tencent.mobileqq", "com.tencent.tim", "com.tencent.qqlite" -> sp.getBoolean(KEY_QQ, false)
             "com.tencent.qqmusic" -> sp.getBoolean(KEY_QQMUSIC, true)
@@ -310,6 +310,24 @@ object FahrmonyCarI18n {
             "de-DE" -> if (isRawArtwork) "Cover: Original" else "Cover: Farbverlauf"
             "ja-JP" -> if (isRawArtwork) "カバー: オリジナル" else "カバー: グラデーション"
             else -> if (isRawArtwork) "封面: 原始" else "封面: 流光"
+        }
+    }
+
+    fun getVoipCallHeadline(context: Context, appName: String, caller: String, isVideo: Boolean): String {
+        return when (FahrmonyConfig.getLanguage(context)) {
+            "en-US" -> "From $caller · ${if (isVideo) "Video Call" else "Voice Call"}"
+            "de-DE" -> "Von $caller · ${if (isVideo) "Videoanruf" else "Sprachanruf"}"
+            "ja-JP" -> "${caller} より · ${if (isVideo) "ビデオ着信" else "音声着信"}"
+            else -> "来自 $caller 的 ${if (isVideo) "视频来电" else "语音来电"}"
+        }
+    }
+
+    fun getVoipCallSubtitle(context: Context, canAnswer: Boolean): String {
+        return when (FahrmonyConfig.getLanguage(context)) {
+            "en-US" -> if (canAnswer) "✅Tap Play to answer · ❌Tap Reply & say 'Decline' to reject" else "❌Not supported, answer on phone · Tap Mute to dismiss"
+            "de-DE" -> if (canAnswer) "✅Vorlesen zum Annehmen · ❌Antworten 'Ablehnen' zum Abweisen" else "❌Nicht unterstützt, am Handy annehmen · Stumm zum Ausblenden"
+            "ja-JP" -> if (canAnswer) "✅「再生」で応答 · ❌「返信」で「切断」と発話" else "❌非対応、スマホで応答 · ミュートで閉じる"
+            else -> if (canAnswer) "✅点朗读以接听 · ❌点回复说“挂断”以拒绝" else "❌暂不支持，请在手机端接听 · 点静音收起通知"
         }
     }
 }

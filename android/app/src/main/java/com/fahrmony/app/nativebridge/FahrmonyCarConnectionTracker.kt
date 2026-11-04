@@ -36,6 +36,11 @@ object FahrmonyCarConnectionTracker {
      * 注册车机连接广播监听器 (全局仅初始化一次，基于 ApplicationContext)
      */
     fun init(context: Context) {
+        val appContext = context.applicationContext
+        initReceiver(appContext)
+    }
+
+    private fun initReceiver(context: Context) {
         if (isReceiverRegistered) return
         synchronized(this) {
             if (isReceiverRegistered) return
@@ -61,10 +66,6 @@ object FahrmonyCarConnectionTracker {
                                     FahrmonyNotificationListener.clearBridgeNotifications(c)
                                     FahrmonyLogBuffer.clear()
                                     FahrmonyIpcBridge.notifyCarConnectedChanged(false)
-                                    // 联动媒体管理器执行断连断播 (坚守连接主权：若媒体服务仍处于活跃连接中或连上未满3000ms，严禁误断连)
-                                    if (!FahrmonyMediaBrowserService.isCarConnected && (System.currentTimeMillis() - FahrmonyMediaManager.getLastCarConnectedTimestamp() > 3000L)) {
-                                        FahrmonyMediaManager.onCarDisconnected()
-                                    }
                                 }
                             }
                             UiModeManager.ACTION_ENTER_CAR_MODE -> {
@@ -77,10 +78,6 @@ object FahrmonyCarConnectionTracker {
                                 FahrmonyNotificationListener.clearBridgeNotifications(c)
                                 FahrmonyLogBuffer.clear()
                                 FahrmonyIpcBridge.notifyCarConnectedChanged(false)
-                                // 联动媒体管理器执行断连断播
-                                if (!FahrmonyMediaBrowserService.isCarConnected && (System.currentTimeMillis() - FahrmonyMediaManager.getLastCarConnectedTimestamp() > 3000L)) {
-                                    FahrmonyMediaManager.onCarDisconnected()
-                                }
                             }
                             BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                                 val c = ctx ?: context
@@ -92,9 +89,6 @@ object FahrmonyCarConnectionTracker {
                                         FahrmonyNotificationListener.clearBridgeNotifications(c)
                                         FahrmonyLogBuffer.clear()
                                         FahrmonyIpcBridge.notifyCarConnectedChanged(false)
-                                        if (!FahrmonyMediaBrowserService.isCarConnected && (System.currentTimeMillis() - FahrmonyMediaManager.getLastCarConnectedTimestamp() > 3000L)) {
-                                            FahrmonyMediaManager.onCarDisconnected()
-                                        }
                                     }
                                 }
                             }
