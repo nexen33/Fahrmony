@@ -353,10 +353,11 @@ object FahrmonyIpcBridge {
     }
 
     fun initClient(context: Context, onSessionChanged: ((ActiveMediaSessionInfo?) -> Unit)? = null) {
-        clientAppContext = context.applicationContext
+        val appContext = context.applicationContext
+        clientAppContext = appContext
         onSessionChangedCallback = onSessionChanged
-        val intent = Intent(context, FahrmonyForegroundService::class.java)
-        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        val intent = Intent(appContext, FahrmonyForegroundService::class.java)
+        appContext.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
     fun sendMediaCommand(action: String, position: Long = 0L, targetPackage: String? = null) {

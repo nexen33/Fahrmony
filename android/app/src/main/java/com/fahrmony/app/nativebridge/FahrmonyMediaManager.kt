@@ -31,6 +31,8 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.KeyEvent
+import com.fahrmony.app.nativebridge.artwork.ArtworkExtractor
+import com.fahrmony.app.nativebridge.custom.CustomPlaybackThrottle
 import com.fahrmony.app.nativebridge.lyrics.UnifiedLyricsProvider
 import com.fahrmony.app.nativebridge.lyrics.cache.LyricCache
 import com.fahrmony.app.nativebridge.lyrics.parser.LrcParser
@@ -285,9 +287,6 @@ object FahrmonyMediaManager {
     const val ACTION_TOGGLE_ARTWORK_MODE = "com.fahrmony.app.ACTION_TOGGLE_ARTWORK_MODE"
     private val lyricSyncEngine = LyricSyncEngine()
 
-    private var lastRawSourceGenId: Int = -1
-    private var lastRawSourceUri: String? = null
-    private var cachedRawArtworkBitmap: Bitmap? = null
     private var lastLyricsSelfHealingTimestamp: Long = 0L
 
     // 播客类应用：明确排除模式控制适配，不投递任何循环/随机指令，保持原生体验
@@ -789,10 +788,12 @@ object FahrmonyMediaManager {
         return false
     }
 
-    private var activeControllerCompat: MediaControllerCompat? = null
+    @Volatile private var activeControllerCompat: MediaControllerCompat? = null
     // 线程安全集合：支持 NotificationListener 跨进程 Binder 线程写入与 Capacitor JS 轮询并发安全
     private val allControllersCompat = CopyOnWriteArrayList<MediaControllerCompat>()
     private val callbackMap = ConcurrentHashMap<MediaControllerCompat, MediaControllerCompat.Callback>()
+    private val controllerLock = Any()
+    private val destroyedTokenTombstones = java.util.ArrayDeque<MediaSessionCompat.Token>(16)
     private val mainHandler = Handler(Looper.getMainLooper())
     private var browserServiceRef: WeakReference<FahrmonyMediaBrowserService>? = null
     private var isInitialized = false
@@ -816,6 +817,7 @@ object FahrmonyMediaManager {
     private var currentTrackArtworkBitmap: Bitmap? = null
     private var lastSyncedArtworkId: Int = -1
     private var lastSyncedArtworkMode: Boolean? = null
+    private var sameTrackArtworkSyncCount: Int = 0
     private var pendingSkipRefreshRunnable1: Runnable? = null
     private var pendingSkipRefreshRunnable2: Runnable? = null
     // 毫秒级冷启动耗时可观测性探针
@@ -834,8 +836,57 @@ object FahrmonyMediaManager {
     private var handshakeProtectionUntil = 0L
     // 用户主动起播态保护锁 (防止第三方缓冲期误推暂停导致车机视图切走)
     private var playProtectionUntil = 0L
+    // 冷启动探测循环去重令牌（switchToPackage/handleAutoPlay 每次启动递增）
+    private var autoPlayToken = 0L
+    // 显式取消令牌（仅在暂停、断连、VoIP打断、不可播警告及切到不同音源时递增，避免同源连发吞掉 500ms 唤醒按键）
+    private var cancelToken = 0L
+    // 保护锁到期强制收口单实例定时器
+    private var pendingPlaySettleRunnable: Runnable? = null
     // 不可播异常曲目提醒文案
     private var invalidTrackNotice: String? = null
+
+    private fun cancelPendingAutoPlayTasks() {
+        autoPlayToken++
+        cancelToken++
+        pendingAutoPlayPackage = null
+        pendingAutoPlayDeadline = 0L
+        autoPlayTargetPackage = null
+        lastAutoPlayAttemptTimestamp = 0L
+        autoPlayRetryCount = 0
+        autoPlayRetryRunnable?.let { mainHandler.removeCallbacks(it) }
+        autoPlayRetryRunnable = null
+        lastWakeUpPackage = null
+        lastWakeUpTimestamp = 0L
+        pendingPlaySettleRunnable?.let { mainHandler.removeCallbacks(it) }
+        pendingPlaySettleRunnable = null
+    }
+
+    /**
+     * 单调延展冷启动/起播保护锁并排期单实例到期强制收口，确保若目标播放器始终未进入播放态，必定在保护期结束后回落 STATE_PAUSED；
+     * 若提前清锁或已有更长保护窗，不缩窗也不在清锁后触发冗余推流击穿 300ms 切歌防抖。
+     */
+    private fun armPlayProtectionWithSettle(durationMs: Long) {
+        val now = System.currentTimeMillis()
+        val newUntil = now + durationMs
+        if (newUntil <= playProtectionUntil && pendingPlaySettleRunnable != null) {
+            return
+        }
+        playProtectionUntil = maxOf(playProtectionUntil, newUntil)
+        val delayMs = (playProtectionUntil - now).coerceAtLeast(0L) + 50L
+        pendingPlaySettleRunnable?.let { mainHandler.removeCallbacks(it) }
+        val settleRunnable = Runnable {
+            pendingPlaySettleRunnable = null
+            val until = playProtectionUntil
+            if (until > 0L && System.currentTimeMillis() >= until) {
+                playProtectionUntil = 0L
+                if (FahrmonyMediaBrowserService.isCarConnected) {
+                    pushMirrorState()
+                }
+            }
+        }
+        pendingPlaySettleRunnable = settleRunnable
+        mainHandler.postDelayed(settleRunnable, delayMs)
+    }
 
     data class CachedValidTrack(
         val title: String,
@@ -1068,6 +1119,10 @@ object FahrmonyMediaManager {
 
             override fun onLyricsStateReset() {
                 val service = browserServiceRef?.get() ?: return
+                // 连接守卫 04: 未连接时禁止歌词重置推流 (严禁在脱机状态下因歌词引擎重置而向底层服务复原元数据)
+                if (!FahrmonyMediaBrowserService.isCarConnected) {
+                    return
+                }
                 val controller = activeControllerCompat ?: return
                 val meta = controller.metadata ?: lastValidTrackMap[controller.packageName]?.metadata
                 if (meta != null) {
@@ -1113,6 +1168,36 @@ object FahrmonyMediaManager {
         }
     }
 
+    private fun recordDestroyedTokenLocked(token: MediaSessionCompat.Token?) {
+        if (token == null) return
+        if (destroyedTokenTombstones.contains(token)) return
+        while (destroyedTokenTombstones.size >= 16) {
+            destroyedTokenTombstones.removeFirst()
+        }
+        destroyedTokenTombstones.addLast(token)
+    }
+
+    private fun isTokenDestroyedLocked(token: MediaSessionCompat.Token?): Boolean {
+        return token != null && destroyedTokenTombstones.contains(token)
+    }
+
+    private fun detachControllerLocked(controller: MediaControllerCompat) {
+        val cb = callbackMap.remove(controller)
+        if (cb != null) {
+            try { controller.unregisterCallback(cb) } catch (ignored: Exception) {}
+        }
+        allControllersCompat.remove(controller)
+    }
+
+    fun warmUpOnCarProjection(context: Context) {
+        val appCtx = context.applicationContext
+        if (!isInitialized) {
+            init(appCtx)
+        } else {
+            refresh(appCtx)
+        }
+    }
+
     fun refresh(context: Context) {
         appContext = context.applicationContext
         if (!isInitialized) {
@@ -1122,9 +1207,7 @@ object FahrmonyMediaManager {
         lyricSyncEngine.setEnabled(FahrmonyConfig.isLyricsEnabled(context))
         // 允许封面指纹动态再核检，不强行清空 lastSyncedTrackKey 避免触发歌词闪烁
         lastSyncedArtworkId = -1
-        lastRawSourceGenId = -1
-        lastRawSourceUri = null
-        cachedRawArtworkBitmap = null
+        ArtworkExtractor.invalidateGenId()
         val sessionManager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
             ?: return
         val componentName = ComponentName(context, FahrmonyNotificationListener::class.java)
@@ -1153,6 +1236,14 @@ object FahrmonyMediaManager {
         if (!isSupportedPackage(context, packageName)) return
         try {
             appContext = context.applicationContext
+            val compatToken = MediaSessionCompat.Token.fromToken(token) ?: return
+
+            synchronized(controllerLock) {
+                if (isTokenDestroyedLocked(compatToken)) {
+                    return
+                }
+            }
+
             // 提取通知中的备用元数据 (包含真实状态栏 Icon 解码出的 Bitmap)
             if (extras != null || notificationArtwork != null) {
                 val nTitle = extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString() ?: ""
@@ -1184,33 +1275,38 @@ object FahrmonyMediaManager {
                 android.util.Log.i("Fahrmony_CUSTOM", "[TOKEN_ATTACH] pkg: $packageName, title: '$nTitle', artist: '$nArtist'")
             }
 
-            val compatToken = MediaSessionCompat.Token.fromToken(token) ?: return
-
-            // 检查现有列表是否已存在相同 Token
-            val existing = allControllersCompat.firstOrNull { it.sessionToken == compatToken }
-            if (existing != null) {
-                if (existing.playbackState?.state == PlaybackStateCompat.STATE_PLAYING) {
-                    stickyActivePackage = packageName
-                    lastActiveTimestamp = System.currentTimeMillis()
-                    activeControllerCompat = existing
+            var newCtrl: MediaControllerCompat? = null
+            synchronized(controllerLock) {
+                if (isTokenDestroyedLocked(compatToken)) {
+                    return
                 }
-                notifyInfo()
-                return
+                // 检查现有列表是否已存在相同 Token
+                val existing = allControllersCompat.firstOrNull { it.sessionToken == compatToken }
+                if (existing != null) {
+                    val isExistingPlaying = existing.playbackState?.state == PlaybackStateCompat.STATE_PLAYING
+                    if (isExistingPlaying || (activeControllerCompat == null && isPackageMatch(packageName, stickyActivePackage))) {
+                        if (isExistingPlaying) {
+                            stickyActivePackage = packageName
+                            lastActiveTimestamp = System.currentTimeMillis()
+                        }
+                        activeControllerCompat = existing
+                    }
+                    notifyInfo()
+                    return
+                }
+
+                // 同源去重与状态更新：若已存在同一 packageName 的陈旧控制器，注销回调并剔除，杜绝重复展示
+                val samePkgControllers = allControllersCompat.filter { it.packageName == packageName }
+                for (old in samePkgControllers) {
+                    detachControllerLocked(old)
+                }
+
+                newCtrl = MediaControllerCompat(context, compatToken)
+                allControllersCompat.add(newCtrl!!)
             }
 
-            // 同源去重与状态更新：若已存在同一 packageName 的陈旧控制器，注销回调并剔除，杜绝重复展示
-            val samePkgControllers = allControllersCompat.filter { it.packageName == packageName }
-            for (old in samePkgControllers) {
-                val cb = callbackMap.remove(old)
-                if (cb != null) {
-                    try { old.unregisterCallback(cb) } catch (ignored: Exception) {}
-                }
-                allControllersCompat.remove(old)
-            }
-
-            val newCtrl = MediaControllerCompat(context, compatToken)
-            allControllersCompat.add(newCtrl)
-            registerSingleControllerCallback(newCtrl)
+            val attachedCtrl = newCtrl ?: return
+            registerSingleControllerCallback(attachedCtrl, packageName)
 
             if (packageName == lastWakeUpPackage && lastWakeUpTimestamp > 0L) {
                 val elapsed = System.currentTimeMillis() - lastWakeUpTimestamp
@@ -1222,14 +1318,29 @@ object FahrmonyMediaManager {
                 )
             }
 
-            // 若处于播放状态或当前无活跃源，立即提权为主控制器并粘性锁定
-            if (activeControllerCompat == null || newCtrl.playbackState?.state == PlaybackStateCompat.STATE_PLAYING || stickyActivePackage == packageName) {
-                activeControllerCompat = newCtrl
-                stickyActivePackage = packageName
-                lastActiveTimestamp = System.currentTimeMillis()
+            // 若处于播放状态，或命中当前锁定目标，或当前无锁定目标且具备真实曲目时才提权为主控制器
+            val isPlaying = attachedCtrl.playbackState?.state == PlaybackStateCompat.STATE_PLAYING
+            val defaultPkg = FahrmonyConfig.getDefaultPlayer(context)
+            val isPendingOther = !pendingAutoPlayPackage.isNullOrBlank() &&
+                System.currentTimeMillis() <= pendingAutoPlayDeadline &&
+                !isPackageMatch(packageName, pendingAutoPlayPackage)
+            val isLockedToOtherSticky = !stickyActivePackage.isNullOrBlank() &&
+                !isPackageMatch(packageName, stickyActivePackage)
+            val isLockedToOtherDefault = stickyActivePackage.isNullOrBlank() &&
+                defaultPkg.isNotBlank() &&
+                !isPackageMatch(packageName, defaultPkg)
+            val isRealOrPlaying = isPlaying || hasControllerRealTrack(attachedCtrl)
+            if (isPlaying || isPackageMatch(packageName, stickyActivePackage) || (activeControllerCompat == null && !isPendingOther && !isLockedToOtherSticky && !isLockedToOtherDefault && isRealOrPlaying)) {
+                activeControllerCompat = attachedCtrl
+                if (isPlaying || stickyActivePackage.isNullOrBlank()) {
+                    stickyActivePackage = packageName
+                }
+                if (isPlaying) {
+                    lastActiveTimestamp = System.currentTimeMillis()
+                }
             }
 
-            checkPendingAutoPlay(newCtrl)
+            checkPendingAutoPlay(attachedCtrl)
             notifyInfo()
         } catch (e: Exception) {
             FahrmonyLogBuffer.addLog("SYSTEM", "MediaManager", "Attach异常", "${e.message}")
@@ -1289,6 +1400,11 @@ object FahrmonyMediaManager {
     fun onCustomPlayerConfigChanged(context: Context, customPkg: String, customName: String? = null) {
         if (customPkg.isBlank()) {
             customPlayerStickyCache.clear()
+            stickyActivePackage?.let { sticky ->
+                if (!isSupportedPackage(context, sticky)) {
+                    stickyActivePackage = null
+                }
+            }
             return
         }
         appContext = context.applicationContext
@@ -1325,8 +1441,11 @@ object FahrmonyMediaManager {
         }
     }
 
-    private fun registerSingleControllerCallback(controller: MediaControllerCompat) {
-        if (controller.packageName == "com.netease.cloudmusic") {
+    private fun registerSingleControllerCallback(controller: MediaControllerCompat, packageNameHint: String? = null) {
+        val capturedPkg = packageNameHint?.takeIf { it.isNotBlank() }
+            ?: try { controller.packageName ?: "" } catch (ignored: Exception) { "" }
+        val capturedToken = try { controller.sessionToken } catch (ignored: Exception) { null }
+        if (capturedPkg == "com.netease.cloudmusic") {
             val initMediaId = controller.metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID)
                 ?: controller.metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
             if (!initMediaId.isNullOrBlank() && lastObservedMediaId == null) {
@@ -1339,6 +1458,32 @@ object FahrmonyMediaManager {
         }
         var prevPlaybackState = controller.playbackState?.state ?: PlaybackStateCompat.STATE_NONE
         val callback = object : MediaControllerCompat.Callback() {
+            override fun onSessionDestroyed() {
+                try {
+                    var wasActive = false
+                    var noRemainingForPkg = false
+                    synchronized(controllerLock) {
+                        recordDestroyedTokenLocked(capturedToken)
+                        detachControllerLocked(controller)
+                        if (activeControllerCompat == controller) {
+                            activeControllerCompat = null
+                            wasActive = true
+                        }
+                        if (capturedPkg.isNotBlank() && allControllersCompat.none { it.packageName == capturedPkg }) {
+                            noRemainingForPkg = true
+                            fallbackMetaMap.remove(capturedPkg)
+                            lastValidTrackMap.remove(capturedPkg)
+                        }
+                    }
+                    FahrmonyLogBuffer.addLog("MEDIA_SESSION", "会话已销毁", "已记录墓碑并剥离死亡控制器", capturedPkg)
+                    if (wasActive) {
+                        updateActiveController()
+                    } else if (noRemainingForPkg) {
+                        notifyInfo()
+                    }
+                } catch (ignored: Throwable) {}
+            }
+
             override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
                 try {
                     logDeepPlaybackProbe(controller, state, "onPlaybackStateChanged")
@@ -1357,15 +1502,27 @@ object FahrmonyMediaManager {
                         )
                     }
                 }
+                val nowMs = System.currentTimeMillis()
+                val isSkipProtecting = nowMs < skipProtectionUntil
+                val isDisconnectSuppress = nowMs < disconnectSuppressionUntil
+                val isHeartbeatThrottled = CustomPlaybackThrottle.shouldThrottleHeartbeat(
+                    packageName = controller.packageName,
+                    isKnownPreset = (controller.packageName in KNOWN_PACKAGES.keys),
+                    wasPlaying = (prevPlaybackState == PlaybackStateCompat.STATE_PLAYING),
+                    state = state,
+                    isActiveController = (activeControllerCompat == controller),
+                    hasActiveProtection = isSkipProtecting || isDisconnectSuppress || (pendingAutoPlayPackage != null) || (nowMs < playProtectionUntil) || (nowMs < handshakeProtectionUntil),
+                    nowMs = nowMs
+                )
                 if (activeControllerCompat == controller) {
                     lyricSyncEngine.updatePlaybackState(state)
-                    browserServiceRef?.get()?.syncRepeatMode(controller.repeatMode)
-                    browserServiceRef?.get()?.syncShuffleMode(controller.shuffleMode)
+                    if (!isHeartbeatThrottled) {
+                        browserServiceRef?.get()?.syncRepeatMode(controller.repeatMode)
+                        browserServiceRef?.get()?.syncShuffleMode(controller.shuffleMode)
+                    }
                 }
                 val newState = state?.state ?: PlaybackStateCompat.STATE_NONE
-                val nowMs = System.currentTimeMillis()
                 val isManualPause = nowMs < userRequestedPauseUntil
-                val isDisconnectSuppress = nowMs < disconnectSuppressionUntil
                 if (prevPlaybackState == PlaybackStateCompat.STATE_PLAYING &&
                     (newState == PlaybackStateCompat.STATE_PAUSED || newState == PlaybackStateCompat.STATE_STOPPED) &&
                     !isManualPause && !isDisconnectSuppress
@@ -1379,7 +1536,6 @@ object FahrmonyMediaManager {
                 if (newState == PlaybackStateCompat.STATE_PAUSED) {
                     userRequestedPauseUntil = 0L
                 }
-                val isSkipProtecting = System.currentTimeMillis() < skipProtectionUntil
 
                 if (isSkipProtecting) {
                     // 切歌保护期内：忽略第三方的中间态抖动，立即同步当前会话，确保车机始终聚焦 Fahrmony
@@ -1388,8 +1544,7 @@ object FahrmonyMediaManager {
                 }
 
                 if (newState == PlaybackStateCompat.STATE_PLAYING) {
-                    val isDisconnectSuppressing = System.currentTimeMillis() < disconnectSuppressionUntil
-                    if (isDisconnectSuppressing) {
+                    if (isDisconnectSuppress) {
                         FahrmonyLogBuffer.addLog(
                             "CAR_DISCONNECT",
                             "断连防抖压制",
@@ -1403,46 +1558,62 @@ object FahrmonyMediaManager {
                         return
                     }
 
+                    val coldTarget = pendingAutoPlayPackage ?: autoPlayTargetPackage ?: lastWakeUpPackage
+                    val isColdTargetMatch = coldTarget == null || isPackageMatch(controller.packageName, coldTarget)
                     userRequestedPauseUntil = 0L
-                    playProtectionUntil = 0L
+                    if (isColdTargetMatch) {
+                        playProtectionUntil = 0L
+                        pendingAutoPlayPackage = null
+                        pendingAutoPlayDeadline = 0L
+                        pendingPlaySettleRunnable?.let { mainHandler.removeCallbacks(it) }
+                        pendingPlaySettleRunnable = null
+                        lastWakeUpPackage = null
+                        lastWakeUpTimestamp = 0L
+                        autoPlayRetryRunnable?.let { mainHandler.removeCallbacks(it) }
+                        autoPlayRetryRunnable = null
+                        lastAutoPlayAttemptTimestamp = 0L
+                        autoPlayRetryCount = 0
+                        autoPlayTargetPackage = null
+                    }
                     skipProtectionUntil = 0L
                     invalidTrackNotice = null
-                    autoPlayRetryRunnable?.let { mainHandler.removeCallbacks(it) }
-                    autoPlayRetryRunnable = null
-                    lastAutoPlayAttemptTimestamp = 0L
-                    autoPlayRetryCount = 0
-                    autoPlayTargetPackage = null
-                    lastWakeUpPackage = null
-                    lastWakeUpTimestamp = 0L
                     // 收到真实播放事件：取消任何挂起的暂停防抖任务，立即 0ms 瞬时同步，确立车机端主导权
-                    pendingPauseRunnable?.let { mainHandler.removeCallbacks(it) }
-                    pendingPauseRunnable = null
+                    if (activeControllerCompat == null || activeControllerCompat == controller || isColdTargetMatch) {
+                        pendingPauseRunnable?.let { mainHandler.removeCallbacks(it) }
+                        pendingPauseRunnable = null
+                    }
                     stickyActivePackage = controller.packageName
                     lastActiveTimestamp = System.currentTimeMillis()
                     activeControllerCompat = controller
-                    notifyInfo(immediate = true)
+                    if (!isHeartbeatThrottled) {
+                        notifyInfo(immediate = true)
+                    }
                 } else if (newState == PlaybackStateCompat.STATE_PAUSED || newState == PlaybackStateCompat.STATE_BUFFERING) {
                     // 切歌或缓冲时的瞬态暂停：延迟 300ms 观察，若 300ms 内收到新歌的 STATE_PLAYING 则直接抵消，彻底消除切歌左右横跳
-                    pendingPauseRunnable?.let { mainHandler.removeCallbacks(it) }
-                    val runnable = Runnable {
-                        if (activeControllerCompat == controller) {
-                            notifyInfo(immediate = true)
+                    if (activeControllerCompat == null || activeControllerCompat == controller) {
+                        pendingPauseRunnable?.let { mainHandler.removeCallbacks(it) }
+                        val runnable = Runnable {
+                            pendingPauseRunnable = null
+                            if (activeControllerCompat == controller) {
+                                notifyInfo(immediate = true)
+                            }
                         }
+                        pendingPauseRunnable = runnable
+                        mainHandler.postDelayed(runnable, 300L)
                     }
-                    pendingPauseRunnable = runnable
-                    mainHandler.postDelayed(runnable, 300L)
                 } else {
                     notifyInfo(immediate = false)
                 }
 
                 // 冷启动异常与死锁容错自愈重试 (针对 STATE_ERROR 7 与 STATE_STOPPED 1，或冷启动期由于底层初始化异常跌入的暂停态)
-                val isTarget = (controller.packageName == autoPlayTargetPackage) || (controller.packageName == lastWakeUpPackage)
+                val isTarget = isPackageMatch(controller.packageName, autoPlayTargetPackage) ||
+                               isPackageMatch(controller.packageName, lastWakeUpPackage)
                 val isWithinWindow = (System.currentTimeMillis() - lastAutoPlayAttemptTimestamp < 8000L) ||
                                      (lastWakeUpTimestamp > 0L && System.currentTimeMillis() - lastWakeUpTimestamp < 8000L)
                 val isAbnormalState = (newState == PlaybackStateCompat.STATE_ERROR ||
                                        newState == PlaybackStateCompat.STATE_STOPPED ||
                                        newState == PlaybackStateCompat.STATE_NONE ||
-                                       (newState == PlaybackStateCompat.STATE_PAUSED && userRequestedPauseUntil == 0L))
+                                       (newState == PlaybackStateCompat.STATE_PAUSED && !isManualPause))
                 val am = appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
                 if (isTarget && isWithinWindow && isAbnormalState && am?.isMusicActive != true) {
                     // 若当前已有排期的自愈重试任务正在倒计时中，直接忽略毫秒级的中间态抖动，严禁提前透支重试计数器
@@ -1452,6 +1623,8 @@ object FahrmonyMediaManager {
                     if (autoPlayRetryCount < 2) {
                         autoPlayRetryCount++
                         val retryDelay = 750L
+                        val retryToken = autoPlayToken
+                        val retryCancelToken = cancelToken
                         FahrmonyLogBuffer.addLog(
                             "AUTO_PLAY",
                             "冷启动异常自愈重试",
@@ -1460,8 +1633,11 @@ object FahrmonyMediaManager {
                         )
                         val r = Runnable {
                             autoPlayRetryRunnable = null
+                            if (retryToken != autoPlayToken || retryCancelToken != cancelToken || !FahrmonyMediaBrowserService.isCarConnected || System.currentTimeMillis() < userRequestedPauseUntil) {
+                                return@Runnable
+                            }
                             val target = autoPlayTargetPackage ?: lastWakeUpPackage
-                            if (target == controller.packageName && controller.playbackState?.state != PlaybackStateCompat.STATE_PLAYING) {
+                            if (isPackageMatch(controller.packageName, target) && controller.playbackState?.state != PlaybackStateCompat.STATE_PLAYING) {
                                 try {
                                     controller.transportControls?.play()
                                     FahrmonyLogBuffer.addLog("AUTO_PLAY", "自愈重试指令下发", "已向底层播放器下发重发指令 (第 $autoPlayRetryCount 次)", controller.packageName)
@@ -1477,11 +1653,15 @@ object FahrmonyMediaManager {
                         val trackTitle = controller.metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE) ?: ""
                         showInvalidTrackWarning(appContext, trackTitle, controller.packageName)
                     }
-                } else if (newState == PlaybackStateCompat.STATE_ERROR && autoPlayRetryRunnable == null && autoPlayRetryCount == 0) {
+                } else if (newState == PlaybackStateCompat.STATE_ERROR && autoPlayRetryRunnable == null && autoPlayRetryCount == 0 &&
+                           (activeControllerCompat == null || activeControllerCompat == controller || isPackageMatch(controller.packageName, pendingAutoPlayPackage ?: autoPlayTargetPackage ?: lastWakeUpPackage))) {
                     // 非冷启动期间底层主动反馈播放错误，增加 1500ms 确认防抖，杜绝解码器瞬态毛刺误报
                     val trackTitle = controller.metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE) ?: ""
+                    val errCancelToken = cancelToken
                     mainHandler.postDelayed({
-                        if (controller.playbackState?.state == PlaybackStateCompat.STATE_ERROR) {
+                        if (errCancelToken == cancelToken && FahrmonyMediaBrowserService.isCarConnected &&
+                            (activeControllerCompat == null || activeControllerCompat == controller || isPackageMatch(controller.packageName, pendingAutoPlayPackage ?: autoPlayTargetPackage ?: lastWakeUpPackage)) &&
+                            controller.playbackState?.state == PlaybackStateCompat.STATE_ERROR) {
                             showInvalidTrackWarning(appContext, trackTitle, controller.packageName)
                         }
                     }, 1500L)
@@ -1520,7 +1700,6 @@ object FahrmonyMediaManager {
                         android.util.Log.i("Fahrmony_PLAYMODE", selfHealLog)
                         android.util.Log.i("FAHRMONY_PROBE", selfHealLog)
                         FahrmonyLogBuffer.addLog("MEDIA_CONTROL", "切歌自愈校准", "[${prev.title}] -> [${detected.title}]", controller.packageName)
-                        pushMirrorState()
                     }
                 }
 
@@ -1536,7 +1715,6 @@ object FahrmonyMediaManager {
                             android.util.Log.i("Fahrmony_PLAYMODE", modeLog)
                             android.util.Log.i("FAHRMONY_PROBE", modeLog)
                             FahrmonyLogBuffer.addLog("MEDIA_CONTROL", "QQ音乐模式真值同步", "[${prev.title}] -> [${newMode.title}]", controller.packageName)
-                            pushMirrorState()
                         }
                     }
                 }
@@ -1553,7 +1731,6 @@ object FahrmonyMediaManager {
                             android.util.Log.i("Fahrmony_PLAYMODE", modeLog)
                             android.util.Log.i("FAHRMONY_PROBE", modeLog)
                             FahrmonyLogBuffer.addLog("MEDIA_CONTROL", "汽水音乐模式真值同步", "[${prev.title}] -> [${newMode.title}]", controller.packageName)
-                            pushMirrorState()
                         }
                     }
                 }
@@ -1570,7 +1747,6 @@ object FahrmonyMediaManager {
                             android.util.Log.i("Fahrmony_PLAYMODE", modeLog)
                             android.util.Log.i("FAHRMONY_PROBE", modeLog)
                             FahrmonyLogBuffer.addLog("MEDIA_CONTROL", "波点音乐模式真值同步", "[${prev.title}] -> [${newMode.title}]", controller.packageName)
-                            pushMirrorState()
                         }
                     }
                 }
@@ -1587,7 +1763,6 @@ object FahrmonyMediaManager {
                             android.util.Log.i("Fahrmony_PLAYMODE", modeLog)
                             android.util.Log.i("FAHRMONY_PROBE", modeLog)
                             FahrmonyLogBuffer.addLog("MEDIA_CONTROL", "酷我音乐模式真值同步", "[${prev.title}] -> [${newMode.title}]", controller.packageName)
-                            pushMirrorState()
                         }
                     }
                 }
@@ -1604,7 +1779,6 @@ object FahrmonyMediaManager {
                             android.util.Log.i("Fahrmony_PLAYMODE", modeLog)
                             android.util.Log.i("FAHRMONY_PROBE", modeLog)
                             FahrmonyLogBuffer.addLog("MEDIA_CONTROL", "酷狗音乐模式真值同步", "[${prev.title}] -> [${newMode.title}]", controller.packageName)
-                            pushMirrorState()
                         }
                     }
                 }
@@ -1778,9 +1952,14 @@ object FahrmonyMediaManager {
         }
     }
 
+    private const val INVALID_TRACK_NOTIFICATION_ID = 2002
+
     private fun showInvalidTrackWarning(context: Context?, trackTitle: String, packageName: String) {
         val message = "当前媒体曲目不可播放，请检查是否为缓存和地区限制问题"
         invalidTrackNotice = message
+        handshakeProtectionUntil = 0L
+        playProtectionUntil = 0L
+        cancelPendingAutoPlayTasks()
         pushMirrorState()
         FahrmonyLogBuffer.addLog("INVALID_TRACK", "曲目不可播放提示", message, "$packageName: $trackTitle")
         if (context != null) {
@@ -1795,7 +1974,7 @@ object FahrmonyMediaManager {
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setAutoCancel(true)
                         .build()
-                    nm.notify(2002, notification)
+                    nm.notify(INVALID_TRACK_NOTIFICATION_ID, notification)
                 }
             } catch (ignored: Exception) {}
         }
@@ -1810,33 +1989,35 @@ object FahrmonyMediaManager {
                 if (!isSupportedPackage(context, c.packageName)) continue
                 val token = c.sessionToken ?: continue
                 val compatToken = MediaSessionCompat.Token.fromToken(token) ?: continue
-                val existing = allControllersCompat.firstOrNull { it.packageName == c.packageName }
-                if (existing == null) {
-                    try {
-                        val compatController = MediaControllerCompat(context, compatToken)
-                        allControllersCompat.add(compatController)
-                        registerSingleControllerCallback(compatController)
-                    } catch (e: Exception) {
-                        FahrmonyLogBuffer.addLog("SYSTEM", "MediaManager", "Controller创建失败", "${c.packageName}: ${e.message}")
-                    }
-                } else if (existing.sessionToken != compatToken) {
-                    // 同源 App 会话 Token 发生了重置，彻底注销同包名所有旧 Controller 并替换为最新
-                    val samePkg = allControllersCompat.filter { it.packageName == c.packageName }
-                    for (old in samePkg) {
-                        val cb = callbackMap.remove(old)
-                        if (cb != null) {
-                            try { old.unregisterCallback(cb) } catch (ignored: Exception) {}
+                var createdCtrl: MediaControllerCompat? = null
+                synchronized(controllerLock) {
+                    if (!isTokenDestroyedLocked(compatToken)) {
+                        val existing = allControllersCompat.firstOrNull { it.packageName == c.packageName }
+                        if (existing == null) {
+                            try {
+                                val compatController = MediaControllerCompat(context, compatToken)
+                                allControllersCompat.add(compatController)
+                                createdCtrl = compatController
+                            } catch (e: Exception) {
+                                FahrmonyLogBuffer.addLog("SYSTEM", "MediaManager", "Controller创建失败", "${c.packageName}: ${e.message}")
+                            }
+                        } else if (existing.sessionToken != compatToken) {
+                            // 同源 App 会话 Token 发生了重置，彻底注销同包名所有旧 Controller 并替换为最新
+                            val samePkg = allControllersCompat.filter { it.packageName == c.packageName }
+                            for (old in samePkg) {
+                                detachControllerLocked(old)
+                            }
+                            try {
+                                val compatController = MediaControllerCompat(context, compatToken)
+                                allControllersCompat.add(compatController)
+                                createdCtrl = compatController
+                            } catch (e: Exception) {
+                                FahrmonyLogBuffer.addLog("SYSTEM", "MediaManager", "Controller更新失败", "${c.packageName}: ${e.message}")
+                            }
                         }
-                        allControllersCompat.remove(old)
-                    }
-                    try {
-                        val compatController = MediaControllerCompat(context, compatToken)
-                        allControllersCompat.add(compatController)
-                        registerSingleControllerCallback(compatController)
-                    } catch (e: Exception) {
-                        FahrmonyLogBuffer.addLog("SYSTEM", "MediaManager", "Controller更新失败", "${c.packageName}: ${e.message}")
                     }
                 }
+                createdCtrl?.let { registerSingleControllerCallback(it) }
             }
 
             if (lastWakeUpPackage != null && lastWakeUpTimestamp > 0L) {
@@ -1890,38 +2071,32 @@ object FahrmonyMediaManager {
             return
         }
 
-        val defaultPkg = appContext?.let { FahrmonyConfig.getDefaultPlayer(it) }
-        if (!defaultPkg.isNullOrBlank()) {
-            val defaultCtrl = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, defaultPkg) }
-            if (defaultCtrl != null) {
-                stickyActivePackage = defaultPkg
-                activeControllerCompat = defaultCtrl
-                notifyInfo()
-                return
-            }
-        }
+        val now = System.currentTimeMillis()
+        val pendingPkg = pendingAutoPlayPackage?.takeIf { it.isNotBlank() && now <= pendingAutoPlayDeadline }
+        val stickyPkg = stickyActivePackage?.takeIf { it.isNotBlank() && isSupportedPackage(appContext, it) }
+        val defaultPkg = appContext?.let { FahrmonyConfig.getDefaultPlayer(it) }?.takeIf { it.isNotBlank() }
 
-        if (stickyActivePackage != null) {
-            val sticky = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, stickyActivePackage) }
-            if (sticky != null) {
-                activeControllerCompat = sticky
+        // 2. 若存在明确锁定目标（冷启动等待目标 > 当前粘滞音源 > 默认音源），严格锁定该目标，绝不跨源漂移到其他后台空闲 Session
+        val lockedTargetPkg = pendingPkg ?: stickyPkg ?: defaultPkg
+        if (lockedTargetPkg != null) {
+            val lockedCtrl = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, lockedTargetPkg) }
+            if (lockedCtrl != null) {
+                stickyActivePackage = lockedCtrl.packageName
+                activeControllerCompat = lockedCtrl
                 notifyInfo()
-                return
+            } else {
+                activeControllerCompat = null
+                onSessionUpdated?.invoke(null)
+                pushMirrorState()
             }
-        }
-
-        val matchedKnown = allControllersCompat.firstOrNull { isSupportedPackage(appContext, it.packageName) }
-        if (matchedKnown != null) {
-            stickyActivePackage = matchedKnown.packageName
-            activeControllerCompat = matchedKnown
-            notifyInfo()
             return
         }
 
-        val fallback = allControllersCompat.firstOrNull { isSupportedPackage(appContext, it.packageName) }
-        if (fallback != null) {
-            stickyActivePackage = fallback.packageName
-            activeControllerCompat = fallback
+        // 3. 仅在既无冷启动目标、又无粘滞音源、且未配置默认音源时，才回退匹配已知音源（且必须具备真实曲目，拒绝空壳 Session）
+        val matchedKnown = allControllersCompat.firstOrNull { isSupportedPackage(appContext, it.packageName) && hasControllerRealTrack(it) }
+        if (matchedKnown != null) {
+            stickyActivePackage = matchedKnown.packageName
+            activeControllerCompat = matchedKnown
             notifyInfo()
             return
         }
@@ -1932,6 +2107,17 @@ object FahrmonyMediaManager {
         pushMirrorState()
     }
 
+    private fun hasControllerRealTrack(controller: MediaControllerCompat): Boolean {
+        val metadata = controller.metadata
+        val rawTitle = metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
+            ?: metadata?.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE)
+            ?: metadata?.description?.title?.toString()
+            ?: ""
+        val fallback = fallbackMetaMap[controller.packageName]
+        val cached = lastValidTrackMap[controller.packageName]
+        return rawTitle.isNotBlank() || !fallback?.title.isNullOrBlank() || cached != null
+    }
+
     private fun checkPendingAutoPlay(controller: MediaControllerCompat) {
         val targetPkg = pendingAutoPlayPackage ?: return
         val now = System.currentTimeMillis()
@@ -1940,13 +2126,7 @@ object FahrmonyMediaManager {
             return
         }
         if (isPackageMatch(controller.packageName, targetPkg)) {
-            val metadata = controller.metadata
-            val rawTitle = metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
-                ?: metadata?.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE)
-                ?: metadata?.description?.title?.toString()
-                ?: ""
-            val fallback = fallbackMetaMap[controller.packageName]
-            val hasRealTrack = rawTitle.isNotBlank() || (!fallback?.title.isNullOrBlank())
+            val hasRealTrack = hasControllerRealTrack(controller)
 
             // 关键：若会话刚上线但曲目尚未载入内存 (空壳会话)，保留标记等待 onMetadataChanged 真实曲目到达
             if (!hasRealTrack) {
@@ -1962,11 +2142,16 @@ object FahrmonyMediaManager {
                     lastAutoPlayAttemptTimestamp = System.currentTimeMillis()
                     autoPlayTargetPackage = controller.packageName
                     autoPlayRetryCount = 0
+                    armPlayProtectionWithSettle(3500L)
                     controller.transportControls?.play()
+                    val readyTitle = controller.metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
+                        ?: controller.metadata?.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE)
+                        ?: fallbackMetaMap[controller.packageName]?.title
+                        ?: ""
                     FahrmonyLogBuffer.addLog(
                         "AUTO_PLAY",
                         "事件驱动起播成功",
-                        "目标真实曲目就绪，已下发play指令: $rawTitle",
+                        "目标真实曲目就绪，已下发play指令: $readyTitle",
                         "应用: ${controller.packageName}"
                     )
                     // 启动冷启动起播主动核检轮询链 (针对网易云等刚上线未就绪播放引擎的应用)
@@ -1980,11 +2165,16 @@ object FahrmonyMediaManager {
 
     private fun scheduleAutoPlayVerification(controller: MediaControllerCompat, attempt: Int) {
         val delay = if (attempt == 1) 500L else 1000L
+        val token = autoPlayToken
         mainHandler.postDelayed({
+            if (token != autoPlayToken || !FahrmonyMediaBrowserService.isCarConnected || System.currentTimeMillis() < userRequestedPauseUntil) {
+                return@postDelayed
+            }
             val isPlaying = controller.playbackState?.state == PlaybackStateCompat.STATE_PLAYING
             val am = appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
             val isAudioActive = am?.isMusicActive == true
-            if (!isPlaying && !isAudioActive && autoPlayTargetPackage == controller.packageName) {
+            if (!isPlaying && !isAudioActive && isPackageMatch(controller.packageName, autoPlayTargetPackage)) {
+                armPlayProtectionWithSettle(2500L)
                 FahrmonyLogBuffer.addLog(
                     "AUTO_PLAY",
                     "起播确认重试",
@@ -2035,6 +2225,10 @@ object FahrmonyMediaManager {
     }
 
     fun optimisticSyncState(targetState: Int) {
+        // 连接守卫 07: 未连接时禁止乐观状态推流 (车机未连接或已断连时，坚决拦截向系统MediaSession写入任何播放态或暂停态)
+        if (!FahrmonyMediaBrowserService.isCarConnected) {
+            return
+        }
         val service = browserServiceRef?.get() ?: return
         val controller = activeControllerCompat
         val position = controller?.playbackState?.position ?: 0L
@@ -2127,8 +2321,49 @@ object FahrmonyMediaManager {
         }
     }
 
+    private fun syncWaitingMirrorState(service: FahrmonyMediaBrowserService) {
+        val nowMs = System.currentTimeMillis()
+        val isUserPaused = nowMs < userRequestedPauseUntil
+        val isProtectingPlay = !isUserPaused && (nowMs < handshakeProtectionUntil || nowMs < playProtectionUntil)
+        val nullState = if (isProtectingPlay) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED
+        val stateBuilder = PlaybackStateCompat.Builder()
+            .setState(nullState, 0L, if (isProtectingPlay) 1.0f else 0f)
+            .setActions(
+                PlaybackStateCompat.ACTION_PLAY or
+                PlaybackStateCompat.ACTION_PAUSE or
+                PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+                PlaybackStateCompat.ACTION_SEEK_TO or
+                PlaybackStateCompat.ACTION_STOP
+            )
+        service.syncPlaybackState(stateBuilder.build())
+        service.syncRepeatMode(PlaybackStateCompat.REPEAT_MODE_NONE)
+
+        val trackKey = "__null_session__"
+        if (lastSyncedTrackKey != trackKey) {
+            lastSyncedTrackKey = trackKey
+            val defaultBmp = getIdleArtwork()
+            currentTrackArtworkBitmap = defaultBmp
+            val appTitle = appContext?.let { FahrmonyCarI18n.getAppTitle(it) } ?: "Fahrmony 合拍"
+            val waitingSub = appContext?.let { FahrmonyCarI18n.getWaitingSubtitle(it) } ?: "等待音乐播放中"
+            val metaBuilder = MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, appTitle)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, waitingSub)
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, defaultBmp)
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, defaultBmp)
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, defaultBmp)
+            FahrmonyLogBuffer.addLog("PROBE_MIRROR", "推流空会话元数据", "trackKey: $trackKey, appTitle: $appTitle", "none")
+            service.syncMetadata(metaBuilder.build())
+        }
+    }
+
     private fun pushMirrorState() {
         val service = browserServiceRef?.get() ?: return
+        // 连接守卫 01: 未连接时禁止镜像推流 (彻底杜绝脱机状态下向虚拟车机会话推流引发锁屏长挂)
+        if (!FahrmonyMediaBrowserService.isCarConnected) {
+            return
+        }
         val context = appContext ?: service.applicationContext
 
         // Fahrmony 车载播控常驻：确保自身 MediaSession 处于活跃状态，杜绝焦点让渡导致服务中断
@@ -2139,36 +2374,7 @@ object FahrmonyMediaManager {
         val controller = activeControllerCompat
 
         if (controller == null) {
-            val stateBuilder = PlaybackStateCompat.Builder()
-                .setState(PlaybackStateCompat.STATE_PAUSED, 0L, 0f)
-                .setActions(
-                    PlaybackStateCompat.ACTION_PLAY or
-                    PlaybackStateCompat.ACTION_PAUSE or
-                    PlaybackStateCompat.ACTION_PLAY_PAUSE or
-                    PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
-                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
-                    PlaybackStateCompat.ACTION_SEEK_TO or
-                    PlaybackStateCompat.ACTION_STOP
-                )
-            service.syncPlaybackState(stateBuilder.build())
-            service.syncRepeatMode(PlaybackStateCompat.REPEAT_MODE_NONE)
-
-            val trackKey = "__null_session__"
-            if (lastSyncedTrackKey != trackKey) {
-                lastSyncedTrackKey = trackKey
-                val defaultBmp = getIdleArtwork()
-                currentTrackArtworkBitmap = defaultBmp
-                val appTitle = appContext?.let { FahrmonyCarI18n.getAppTitle(it) } ?: "Fahrmony 合拍"
-                val waitingSub = appContext?.let { FahrmonyCarI18n.getWaitingSubtitle(it) } ?: "等待音乐播放中"
-                val metaBuilder = MediaMetadataCompat.Builder()
-                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, appTitle)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, waitingSub)
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, defaultBmp)
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, defaultBmp)
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, defaultBmp)
-                FahrmonyLogBuffer.addLog("PROBE_MIRROR", "推流空会话元数据", "trackKey: $trackKey, appTitle: $appTitle", "none")
-                service.syncMetadata(metaBuilder.build())
-            }
+            syncWaitingMirrorState(service)
             return
         }
 
@@ -2200,6 +2406,11 @@ object FahrmonyMediaManager {
 
         val defaultNowPlaying = appContext?.let { FahrmonyCarI18n.getNowPlayingDefault(it) } ?: "正在播放"
         val hasRealTrack = rawTitle.isNotBlank() || (!fallback?.title.isNullOrBlank()) || (cached != null)
+        // 空壳保护：当控制器尚未载入任何真实曲目且不处于播放/切歌保护窗口时，统一展示 Fahrmony 等待态而非“正在播放 / <AppName>”
+        if (!hasRealTrack && rawState != PlaybackStateCompat.STATE_PLAYING && invalidTrackNotice.isNullOrBlank() && System.currentTimeMillis() >= skipProtectionUntil) {
+            syncWaitingMirrorState(service)
+            return
+        }
         // 关键防护：优先原生标题 -> 粘性曲目锁存 -> 实时通知栏兜底，防止滚动歌词污染曲目标识与频繁切色
         val titleCandidate = if (rawTitle.isNotBlank()) {
             rawTitle
@@ -2231,18 +2442,25 @@ object FahrmonyMediaManager {
         val isRawArtwork = FahrmonyConfig.isRawPlayerCardEnabled(context)
         val rawArtworkBmp = if (hasRealTrack && isRawArtwork) extractRawArtworkBitmap(controller) else null
         val currentArtId = rawArtworkBmp?.generationId ?: (if (isRawArtwork) 0 else currentPaletteIndex)
-        val isArtworkArrivedOrChanged = isRawArtwork && (rawArtworkBmp != null) && (currentArtId != lastSyncedArtworkId)
         val artworkModeChanged = (lastSyncedArtworkMode != isRawArtwork)
         val trackKeyChanged = (trackKey != lastSyncedTrackKey)
+        val isKnownPreset = (controller.packageName in KNOWN_PACKAGES.keys)
+        val suppressCustomFrameSpam = !trackKeyChanged && !isKnownPreset && (sameTrackArtworkSyncCount >= 2)
+        val isArtworkArrivedOrChanged = isRawArtwork && (rawArtworkBmp != null) && (currentArtId != lastSyncedArtworkId) && !suppressCustomFrameSpam
 
         if (trackKeyChanged || isArtworkArrivedOrChanged || artworkModeChanged) {
             lastSyncedTrackKey = trackKey
             lastSyncedArtworkId = currentArtId
             lastSyncedArtworkMode = isRawArtwork
+            if (trackKeyChanged) {
+                sameTrackArtworkSyncCount = if (rawArtworkBmp != null) 1 else 0
+            } else if (isArtworkArrivedOrChanged) {
+                sameTrackArtworkSyncCount++
+            }
 
             val trackBmp = if (hasRealTrack) {
                 if (isRawArtwork) {
-                    rawArtworkBmp ?: getIdleArtwork()
+                    rawArtworkBmp ?: currentTrackArtworkBitmap ?: getIdleArtwork()
                 } else {
                     appContext?.let { getArtworkForTrack(it, trackKey, isRealTrack = true) } ?: getIdleArtwork()
                 }
@@ -2352,7 +2570,8 @@ object FahrmonyMediaManager {
         } else if (isSkipProtecting) {
             skipProtectionState == PlaybackStateCompat.STATE_PLAYING
         } else {
-            rawState == PlaybackStateCompat.STATE_PLAYING
+            rawState == PlaybackStateCompat.STATE_PLAYING ||
+                (rawState == PlaybackStateCompat.STATE_BUFFERING && pendingPauseRunnable != null)
         }
         val playbackCompatState = if (isPlaying) {
             PlaybackStateCompat.STATE_PLAYING
@@ -2513,94 +2732,23 @@ object FahrmonyMediaManager {
     }
 
     /**
-     * 等比安全缩放位图至指定最大尺寸（默认 240px），杜绝 Binder 1MB 缓冲区溢出与 IPC 掉帧
-     */
-    private fun scaleBitmapSafely(source: Bitmap, maxDim: Int = 240): Bitmap {
-        if (source.isRecycled) return source
-        val width = source.width
-        val height = source.height
-        if (width <= maxDim && height <= maxDim) {
-            return source
-        }
-        val ratio = Math.min(maxDim.toFloat() / width, maxDim.toFloat() / height)
-        val targetWidth = Math.max(1, (width * ratio).toInt())
-        val targetHeight = Math.max(1, (height * ratio).toInt())
-        return try {
-            Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
-        } catch (e: Throwable) {
-            source
-        }
-    }
-
-    /**
-     * 提取音源 App 原始封面并做 <=240px 尺寸约束 (Phase 8.0)
+     * 提取音源 App 原始封面并做 <=240px 尺寸约束 (Phase 10.1.12 已抽离至 ArtworkExtractor)
      */
     fun extractRawArtworkBitmap(controller: MediaControllerCompat): Bitmap? {
-        val metadata = controller.metadata
-        val bmp = metadata?.getBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART)
-            ?: metadata?.getBitmap(MediaMetadataCompat.METADATA_KEY_ART)
-            ?: metadata?.getBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON)
-            ?: metadata?.description?.iconBitmap
-            ?: fallbackMetaMap[controller.packageName]?.artworkBmp
-
-        if (bmp != null && !bmp.isRecycled) {
-            val srcGenId = bmp.generationId
-            if (cachedRawArtworkBitmap != null && !cachedRawArtworkBitmap!!.isRecycled) {
-                if (lastRawSourceGenId == srcGenId || (bmp.width == cachedRawArtworkBitmap!!.width && bmp.height == cachedRawArtworkBitmap!!.height && bmp.sameAs(cachedRawArtworkBitmap))) {
-                    return cachedRawArtworkBitmap
-                }
-            }
-            val scaled = scaleBitmapSafely(bmp, 240)
-            lastRawSourceGenId = srcGenId
-            lastRawSourceUri = null
-            cachedRawArtworkBitmap = scaled
-            FahrmonyLogBuffer.addLog(
-                "ARTWORK_IN",
-                "MediaSession封面提取",
-                "来源: MetadataBitmap, 尺寸: ${scaled.width}x${scaled.height}, genId: ${scaled.generationId}",
-                controller.packageName
-            )
-            return scaled
-        }
-
-        val uriStr = metadata?.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI)
-            ?: metadata?.getString(MediaMetadataCompat.METADATA_KEY_ART_URI)
-            ?: metadata?.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI)
-            ?: metadata?.description?.iconUri?.toString()
-
-        if (!uriStr.isNullOrBlank()) {
-            if (cachedRawArtworkBitmap != null && !cachedRawArtworkBitmap!!.isRecycled && lastRawSourceUri == uriStr) {
-                return cachedRawArtworkBitmap
-            }
-            if (uriStr.startsWith("content://") || uriStr.startsWith("file://")) {
-                try {
-                    val uri = android.net.Uri.parse(uriStr)
-                    val stream = appContext?.contentResolver?.openInputStream(uri)
-                    if (stream != null) {
-                        val decoded = android.graphics.BitmapFactory.decodeStream(stream)
-                        stream.close()
-                        if (decoded != null && !decoded.isRecycled) {
-                            val scaled = scaleBitmapSafely(decoded, 240)
-                            if (scaled != decoded && !decoded.isRecycled) {
-                                decoded.recycle()
-                            }
-                            lastRawSourceGenId = -1
-                            lastRawSourceUri = uriStr
-                            cachedRawArtworkBitmap = scaled
-                            FahrmonyLogBuffer.addLog(
-                                "ARTWORK_IN",
-                                "MediaSession封面提取",
-                                "来源: UriStream, 尺寸: ${scaled.width}x${scaled.height}, genId: ${scaled.generationId}",
-                                controller.packageName
-                            )
-                            return scaled
-                        }
-                    }
-                } catch (ignored: Exception) {}
-            }
-        }
-
-        return null
+        return ArtworkExtractor.extract(
+            controller = controller,
+            fallbackArtwork = fallbackMetaMap[controller.packageName]?.artworkBmp,
+            appContext = appContext,
+            mainHandler = mainHandler,
+            isActiveController = (controller == activeControllerCompat),
+            canCommitNetworkArtwork = { uri ->
+                val cur = activeControllerCompat
+                cur != null &&
+                    !ArtworkExtractor.hasDirectBitmap(cur.metadata, fallbackMetaMap[cur.packageName]?.artworkBmp) &&
+                    ArtworkExtractor.extractUriString(cur.metadata) == uri
+            },
+            onNetworkArtworkReady = { notifyInfo(immediate = true) }
+        )
     }
 
     private fun extractSessionInfo(controller: MediaControllerCompat): ActiveMediaSessionInfo {
@@ -2798,6 +2946,9 @@ object FahrmonyMediaManager {
      * 供来电兜底静音调用：仅暂停目标播放器并同步车机状态，不置位 userRequestedPauseUntil 且不清除外部打断快照
      */
     fun pauseForCallInterrupt(targetPackage: String?) {
+        handshakeProtectionUntil = 0L
+        playProtectionUntil = 0L
+        cancelPendingAutoPlayTasks()
         val ctrl = if (!targetPackage.isNullOrBlank()) {
             allControllersCompat.firstOrNull { isPackageMatch(it.packageName, targetPackage) } ?: activeControllerCompat
         } else {
@@ -3028,6 +3179,10 @@ object FahrmonyMediaManager {
         trackKey: String,
         metadata: MediaMetadataCompat?
     ) {
+        // 连接守卫 02: 未连接时休眠歌词解析 (脱机不消耗网络与 CPU，杜绝后台无效检索)
+        if (!FahrmonyMediaBrowserService.isCarConnected) {
+            return
+        }
         if (!FahrmonyConfig.isLyricsEnabled(context)) {
             lyricSyncEngine.reset(notifyListener = false)
             return
@@ -3049,6 +3204,10 @@ object FahrmonyMediaManager {
 
     private fun pushLyricMetadata(currentLine: String, nextLine: String?) {
         val service = browserServiceRef?.get() ?: return
+        // 连接守卫 03: 未连接时禁止歌词推流 (严禁在脱机状态下向底层服务透传歌词行与曲目元数据)
+        if (!FahrmonyMediaBrowserService.isCarConnected) {
+            return
+        }
         val context = appContext ?: service.applicationContext
         val mode = FahrmonyConfig.getLyricsMode(context)
         if (mode == 0) {
@@ -3301,11 +3460,38 @@ object FahrmonyMediaManager {
                 appContext?.let { play(it, targetPackage) }
                 return true
             }
+            if (action.equals("pause", ignoreCase = true) &&
+                listOfNotNull(pendingAutoPlayPackage, autoPlayTargetPackage, lastWakeUpPackage, stickyActivePackage)
+                    .any { isPackageMatch(targetPackage, it) }
+            ) {
+                handshakeProtectionUntil = 0L
+                skipProtectionUntil = 0L
+                playProtectionUntil = 0L
+                lastExternalPauseTimestamp = 0L
+                userRequestedPauseUntil = System.currentTimeMillis() + 1500L
+                pendingPauseRunnable?.let { mainHandler.removeCallbacks(it) }
+                pendingPauseRunnable = null
+                cancelPendingAutoPlayTasks()
+            }
             FahrmonyLogBuffer.addLog("MEDIA_CONTROL", "定向指令拦截", "目标应用 $targetPackage 无就绪会话，拒绝串台降级", targetPackage)
             return false
         }
 
-        val controller = targetCtrl ?: (if (targetPackage.isNullOrBlank()) activeControllerCompat else null) ?: return false
+        val controller = targetCtrl ?: (if (targetPackage.isNullOrBlank()) activeControllerCompat else null)
+        if (controller == null) {
+            if (action.equals("pause", ignoreCase = true)) {
+                handshakeProtectionUntil = 0L
+                skipProtectionUntil = 0L
+                playProtectionUntil = 0L
+                lastExternalPauseTimestamp = 0L
+                userRequestedPauseUntil = System.currentTimeMillis() + 1500L
+                pendingPauseRunnable?.let { mainHandler.removeCallbacks(it) }
+                pendingPauseRunnable = null
+                cancelPendingAutoPlayTasks()
+                optimisticSyncState(PlaybackStateCompat.STATE_PAUSED)
+            }
+            return false
+        }
         val controls = controller.transportControls ?: return false
 
         android.util.Log.i("Fahrmony_CUSTOM", "[CMD_DISPATCH] action: $action, targetPkg: $targetPackage, resolvedCtrl: ${controller.packageName}")
@@ -3315,7 +3501,7 @@ object FahrmonyMediaManager {
                 "play" -> {
                     disconnectSuppressionUntil = 0L
                     userRequestedPauseUntil = 0L
-                    playProtectionUntil = System.currentTimeMillis() + 1500L
+                    armPlayProtectionWithSettle(1500L)
                     invalidTrackNotice = null
                     autoPlayRetryRunnable?.let { mainHandler.removeCallbacks(it) }
                     autoPlayRetryRunnable = null
@@ -3328,18 +3514,14 @@ object FahrmonyMediaManager {
                     controls.play()
                 }
                 "pause" -> {
-                    pendingAutoPlayPackage = null
-                    pendingAutoPlayDeadline = 0L
                     handshakeProtectionUntil = 0L
                     skipProtectionUntil = 0L
                     playProtectionUntil = 0L
                     lastExternalPauseTimestamp = 0L
                     userRequestedPauseUntil = System.currentTimeMillis() + 1500L
-                    autoPlayRetryRunnable?.let { mainHandler.removeCallbacks(it) }
-                    autoPlayRetryRunnable = null
-                    lastAutoPlayAttemptTimestamp = 0L
-                    autoPlayRetryCount = 0
-                    autoPlayTargetPackage = null
+                    pendingPauseRunnable?.let { mainHandler.removeCallbacks(it) }
+                    pendingPauseRunnable = null
+                    cancelPendingAutoPlayTasks()
                     optimisticSyncState(PlaybackStateCompat.STATE_PAUSED)
                     controls.pause()
                 }
@@ -3377,12 +3559,12 @@ object FahrmonyMediaManager {
         } catch (e: Exception) {
             FahrmonyLogBuffer.addLog("MEDIA_IPC", "指令发送异常", "目标进程不可达", "${e.message}")
             if (e is DeadObjectException || e is RemoteException) {
-                // 目标 App 进程被强制查杀，从活跃队列剥离并自动自愈下移到备选控制器
-                val cb = callbackMap.remove(controller)
-                if (cb != null) {
-                    try { controller.unregisterCallback(cb) } catch (ignored: Exception) {}
+                // 目标 App 进程被强制查杀，记录墓碑并从活跃队列剥离，自动自愈下移到备选控制器
+                synchronized(controllerLock) {
+                    val deadToken = try { controller.sessionToken } catch (ignored: Exception) { null }
+                    recordDestroyedTokenLocked(deadToken)
+                    detachControllerLocked(controller)
                 }
-                allControllersCompat.remove(controller)
                 updateActiveController()
             }
             return false
@@ -3453,9 +3635,16 @@ object FahrmonyMediaManager {
     }
 
     fun play(context: Context, targetPackage: String? = null): Boolean {
+        val currentColdTarget = pendingAutoPlayPackage ?: autoPlayTargetPackage ?: lastWakeUpPackage ?: stickyActivePackage
+        if (!targetPackage.isNullOrBlank()) {
+            val requestedPkg = resolveRealPackageName(context, targetPackage)
+            if (currentColdTarget != null && !isPackageMatch(requestedPkg, currentColdTarget)) {
+                cancelPendingAutoPlayTasks()
+            }
+        }
         disconnectSuppressionUntil = 0L
         userRequestedPauseUntil = 0L
-        playProtectionUntil = System.currentTimeMillis() + 1500L
+        armPlayProtectionWithSettle(1500L)
         invalidTrackNotice = null
         autoPlayRetryRunnable?.let { mainHandler.removeCallbacks(it) }
         autoPlayRetryRunnable = null
@@ -3466,7 +3655,8 @@ object FahrmonyMediaManager {
         optimisticSyncState(PlaybackStateCompat.STATE_PLAYING)
 
         val defaultPkg = FahrmonyConfig.getDefaultPlayer(context)
-        val finalTarget = if (!targetPackage.isNullOrBlank()) targetPackage else defaultPkg
+        val stickyTarget = stickyActivePackage?.takeIf { it.isNotBlank() && isSupportedPackage(context, it) }
+        val finalTarget = if (!targetPackage.isNullOrBlank()) targetPackage else (stickyTarget ?: defaultPkg)
         val resolvedTarget = resolveRealPackageName(context, finalTarget)
 
         val targetCtrl = if (resolvedTarget.isNotBlank()) {
@@ -3492,6 +3682,7 @@ object FahrmonyMediaManager {
             pendingAutoPlayDeadline = System.currentTimeMillis() + 10000L
             stickyActivePackage = resolvedTarget
             activeControllerCompat = null
+            armPlayProtectionWithSettle(6000L)
             notifyInfo(immediate = true)
             wakeUpPlayer(context, resolvedTarget)
             return true
@@ -3638,7 +3829,13 @@ object FahrmonyMediaManager {
         }
 
         // 待目标界面建立后下发播放按键脉冲触发自动起播 (必须满足系统音频尚未起播的前提，杜绝反向切换成暂停)
+        val wakeCancelToken = cancelToken
         mainHandler.postDelayed({
+            if (wakeCancelToken != cancelToken || !FahrmonyMediaBrowserService.isCarConnected ||
+                System.currentTimeMillis() < userRequestedPauseUntil ||
+                (stickyActivePackage != null && !isPackageMatch(packageName, stickyActivePackage))) {
+                return@postDelayed
+            }
             try {
                 val elapsed = System.currentTimeMillis() - lastWakeUpTimestamp
                 val hasController = allControllersCompat.any { isPackageMatch(it.packageName, packageName) }
@@ -3664,12 +3861,30 @@ object FahrmonyMediaManager {
     fun switchToPackage(context: Context, rawPackageName: String) {
         if (rawPackageName.isBlank()) return
         val packageName = resolveRealPackageName(context, rawPackageName)
+        if (stickyActivePackage != null && !isPackageMatch(packageName, stickyActivePackage)) {
+            cancelToken++
+        }
+        userRequestedPauseUntil = 0L
+        invalidTrackNotice = null
+        autoPlayRetryRunnable?.let { mainHandler.removeCallbacks(it) }
+        autoPlayRetryRunnable = null
+        autoPlayRetryCount = 0
+        lastAutoPlayAttemptTimestamp = 0L
+        autoPlayTargetPackage = null
+        val token = ++autoPlayToken
+        val cToken = cancelToken
         stickyActivePackage = packageName
+        armPlayProtectionWithSettle(6000L)
         optimisticSyncState(PlaybackStateCompat.STATE_PLAYING)
         val target = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, packageName) }
         if (target != null) {
-            pendingAutoPlayPackage = null
-            pendingAutoPlayDeadline = 0L
+            if (!hasControllerRealTrack(target)) {
+                pendingAutoPlayPackage = packageName
+                pendingAutoPlayDeadline = System.currentTimeMillis() + 10000L
+            } else {
+                pendingAutoPlayPackage = null
+                pendingAutoPlayDeadline = 0L
+            }
             activeControllerCompat = target
             notifyInfo(immediate = true)
             try {
@@ -3678,6 +3893,8 @@ object FahrmonyMediaManager {
         } else {
             pendingAutoPlayPackage = packageName
             pendingAutoPlayDeadline = System.currentTimeMillis() + 10000L
+            activeControllerCompat = null
+            notifyInfo(immediate = true)
         }
         wakeUpPlayer(context, packageName)
 
@@ -3685,10 +3902,14 @@ object FahrmonyMediaManager {
         val probeDelays = listOf(800L, 1600L, 2600L, 4000L, 5800L)
         for (delay in probeDelays) {
             mainHandler.postDelayed({
-                // 若当前活跃控制器已处于目标播放态，直接退出后续轮询
-                if (activeControllerCompat != null && 
-                    isPackageMatch(activeControllerCompat?.packageName, packageName) && 
+                if (token != autoPlayToken || cToken != cancelToken || !FahrmonyMediaBrowserService.isCarConnected || System.currentTimeMillis() < userRequestedPauseUntil) {
+                    return@postDelayed
+                }
+                // 若当前活跃控制器已处于目标播放态，重推稳固状态后退出本轮探测
+                if (activeControllerCompat != null &&
+                    isPackageMatch(activeControllerCompat?.packageName, packageName) &&
                     activeControllerCompat?.playbackState?.state == PlaybackStateCompat.STATE_PLAYING) {
+                    pushMirrorState()
                     return@postDelayed
                 }
 
@@ -3726,15 +3947,18 @@ object FahrmonyMediaManager {
 
         // 重置元数据缓存键，确保无论是初次连接还是断开重连，都强制向车机推送完整的封面大图与曲目信息
         lastSyncedTrackKey = null
+        sameTrackArtworkSyncCount = 0
         currentTrackArtworkBitmap = null
-        lastRawSourceGenId = -1
-        lastRawSourceUri = null
-        cachedRawArtworkBitmap = null
+        ArtworkExtractor.reset()
+        CustomPlaybackThrottle.reset()
         if (now - lastCarConnectedTimestamp < 1500L) {
             return
         }
         lastCarConnectedTimestamp = now
-        handshakeProtectionUntil = now + 1200L
+        val autoPlayEnabled = FahrmonyConfig.isAutoPlayEnabled(context)
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val isMusicCurrentlyActive = am?.isMusicActive == true
+        handshakeProtectionUntil = if (autoPlayEnabled || isMusicCurrentlyActive) now + 1200L else 0L
         // 动态继承状态基线：若当前活跃会话为网易云且已在播放/暂停，直接对齐状态与时长，消除连车后首次点按被当作状态跳变拦截
         if (activeControllerCompat?.packageName == "com.netease.cloudmusic") {
             val activeState = activeControllerCompat?.playbackState?.state ?: PlaybackStateCompat.STATE_NONE
@@ -3755,25 +3979,35 @@ object FahrmonyMediaManager {
         pendingDisconnectPauseRunnable?.let { mainHandler.removeCallbacks(it) }
         pendingDisconnectPauseRunnable = null
 
-        FahrmonyLogBuffer.addLog("CAR_CONNECT", "车机握手", "收到MediaBrowser握手", "确立Fahrmony主导权")
-        pushMirrorState()
-
-        if (FahrmonyConfig.isAutoPlayEnabled(context)) {
-            // 立即置位 STATE_PLAYING 抢占车机 Coolwalk 控件主导权，杜绝第三方视图在连上时抢占
-            optimisticSyncState(PlaybackStateCompat.STATE_PLAYING)
-            handleAutoPlay(context)
-        } else {
-            // 若未启用自动播放但后台播放器已在发声，立即强制推流接管卡片
-            val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-            if (am?.isMusicActive == true) {
-                optimisticSyncState(PlaybackStateCompat.STATE_PLAYING)
-                pushMirrorState()
+        if (autoPlayEnabled && !isMusicCurrentlyActive) {
+            val defaultPkg = FahrmonyConfig.getDefaultPlayer(context)
+            if (defaultPkg.isNotBlank()) {
+                stickyActivePackage = defaultPkg
+                if (activeControllerCompat == null || !isPackageMatch(activeControllerCompat?.packageName, defaultPkg)) {
+                    activeControllerCompat = allControllersCompat.firstOrNull { isPackageMatch(it.packageName, defaultPkg) }
+                }
             }
         }
 
-        // 强力会话锁定：延迟 +400ms 与 +1200ms 执行两次主导权巩固，防止网易云/QQ音乐后台活跃会话在握手时夺权
+        FahrmonyLogBuffer.addLog("CAR_CONNECT", "车机握手", "收到MediaBrowser握手", "确立Fahrmony主导权")
+        pushMirrorState()
+
+        if (autoPlayEnabled) {
+            // 立即置位 STATE_PLAYING 抢占车机 Coolwalk 控件主导权，杜绝第三方视图在连上时抢占
+            optimisticSyncState(PlaybackStateCompat.STATE_PLAYING)
+            handleAutoPlay(context)
+        } else if (isMusicCurrentlyActive) {
+            // 若未启用自动播放但后台播放器已在发声，立即强制推流接管卡片
+            optimisticSyncState(PlaybackStateCompat.STATE_PLAYING)
+            pushMirrorState()
+        }
+
+        // 强力会话锁定：延迟 +400ms 与 +1250ms 执行两次主导权巩固，防止网易云/QQ音乐后台活跃会话在握手时夺权（+1250ms 确保在 1200ms 保护窗过期后收口）
+        if (autoPlayEnabled || isMusicCurrentlyActive) {
+            handshakeProtectionUntil = System.currentTimeMillis() + 1200L
+        }
         mainHandler.postDelayed({ pushMirrorState() }, 400L)
-        mainHandler.postDelayed({ pushMirrorState() }, 1200L)
+        mainHandler.postDelayed({ pushMirrorState() }, 1250L)
     }
 
     private var lastCarDisconnectedTimestamp = 0L
@@ -3836,7 +4070,7 @@ object FahrmonyMediaManager {
 
     fun onCarDisconnected() {
         val now = System.currentTimeMillis()
-        // 连接主权守卫：若当前车机服务处于活跃连接中，坚决丢弃任何外部误判广播引发的断连
+        // 连接守卫 06: 车机已连接时忽略断连广播 (车机服务仍活跃连接中时，坚决丢弃任何外部误判广播)
         if (FahrmonyMediaBrowserService.isCarConnected) {
             return
         }
@@ -3846,6 +4080,18 @@ object FahrmonyMediaManager {
         lastFullDisconnectActionTimestamp = now
         lastCarDisconnectedTimestamp = now
         lastNeteasePlaybackState = PlaybackStateCompat.STATE_NONE
+        sameTrackArtworkSyncCount = 0
+        CustomPlaybackThrottle.reset()
+        handshakeProtectionUntil = 0L
+        playProtectionUntil = 0L
+        invalidTrackNotice = null
+        try {
+            (appContext?.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager)
+                ?.cancel(INVALID_TRACK_NOTIFICATION_ID)
+        } catch (ignored: Exception) {}
+        pendingPauseRunnable?.let { mainHandler.removeCallbacks(it) }
+        pendingPauseRunnable = null
+        cancelPendingAutoPlayTasks()
         // 设立 3000ms 断连压制窗口，拦截冷启动时前台 Activity 重新聚焦/音频重构引发的自发起播
         disconnectSuppressionUntil = now + 3000L
         // 复位自动起播生命周期锁：前一次连接已彻底终结，确保下一次重连无论相隔多短均能正常起播
@@ -3859,12 +4105,37 @@ object FahrmonyMediaManager {
         // 2. 跨进程 IPC 全量下发暂停：遍历所有活跃会话，确保所有播放器无一遗漏地进入暂停态
         pauseAllPlayers()
 
+        // 2.1 状态置空：向自身车载 MediaSession 同步 STATE_NONE，通知系统锁屏即刻收回控制器大卡片
+        try {
+            val service = browserServiceRef?.get()
+            if (service != null) {
+                val idleState = PlaybackStateCompat.Builder()
+                    .setState(PlaybackStateCompat.STATE_NONE, 0L, 0f)
+                    .setActions(0L)
+                    .build()
+                service.syncPlaybackState(idleState)
+            }
+            lastSyncedTrackKey = null
+        } catch (ignored: Exception) {}
+
         // 3. 延迟 250ms 再次下发二次确认暂停，跨越物理拔线与底层 AudioTrack 声道重构震荡窗口 (执行前再次校验连接态)
         pendingDisconnectPauseRunnable?.let { mainHandler.removeCallbacks(it) }
         val r = Runnable {
             pendingDisconnectPauseRunnable = null
             if (!FahrmonyMediaBrowserService.isCarConnected) {
                 pauseAllPlayers()
+                // 再次确保已彻底置空，消除250ms内核音频管线重建期间可能被重置的微小概率
+                try {
+                    val service = browserServiceRef?.get()
+                    if (service != null) {
+                        val idleState = PlaybackStateCompat.Builder()
+                            .setState(PlaybackStateCompat.STATE_NONE, 0L, 0f)
+                            .setActions(0L)
+                            .build()
+                        service.syncPlaybackState(idleState)
+                    }
+                    lastSyncedTrackKey = null
+                } catch (ignored: Exception) {}
             }
         }
         pendingDisconnectPauseRunnable = r
@@ -3884,6 +4155,8 @@ object FahrmonyMediaManager {
             return
         }
         lastAutoPlayTimestamp = now
+        val token = ++autoPlayToken
+        val cToken = cancelToken
 
         // 立即向车机乐观置位 STATE_PLAYING，确立 Fahrmony 为当前活跃媒体组件
         optimisticSyncState(PlaybackStateCompat.STATE_PLAYING)
@@ -3892,22 +4165,24 @@ object FahrmonyMediaManager {
 
         // 延迟 500ms 等待车机音频通道与硬件音频焦点协商建立
         mainHandler.postDelayed({
+            if (token != autoPlayToken || cToken != cancelToken || !FahrmonyMediaBrowserService.isCarConnected || System.currentTimeMillis() < userRequestedPauseUntil) {
+                return@postDelayed
+            }
             val controller = activeControllerCompat
             val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
             val isAudioActive = am?.isMusicActive == true
             val isControllerPlaying = controller?.playbackState?.state == PlaybackStateCompat.STATE_PLAYING
 
             if (!isControllerPlaying && !isAudioActive) {
-                if (defaultPkg.isNotBlank() && controller != null && controller.packageName == defaultPkg) {
+                if (defaultPkg.isNotBlank() && controller != null && isPackageMatch(controller.packageName, defaultPkg) && hasControllerRealTrack(controller)) {
                     lastAutoPlayAttemptTimestamp = System.currentTimeMillis()
-                    autoPlayTargetPackage = defaultPkg
+                    autoPlayTargetPackage = controller.packageName
                     autoPlayRetryCount = 0
+                    armPlayProtectionWithSettle(3500L)
                     controller.transportControls?.play()
                     FahrmonyLogBuffer.addLog("AUTO_PLAY", "自动恢复播放", "已向默认播放器下发指令", "应用: $defaultPkg")
                 } else if (defaultPkg.isNotBlank()) {
                     FahrmonyLogBuffer.addLog("AUTO_PLAY", "自动恢复播放", "定向切换并拉起首选播放器", "首选: $defaultPkg, 残留活跃: ${controller?.packageName}")
-                    pendingAutoPlayPackage = defaultPkg
-                    pendingAutoPlayDeadline = System.currentTimeMillis() + 10000L
                     switchToPackage(context, defaultPkg)
                 }
             }

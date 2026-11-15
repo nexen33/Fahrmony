@@ -2610,7 +2610,7 @@ export default function App() {
                       Fahrmony
                     </div>
                     <div style={{ fontSize: '15px', color: 'var(--accent-primary)', fontWeight: 600, marginTop: '2px' }}>
-                      v1.3.2
+                      v1.3.3
                     </div>
                   </div>
 
@@ -2649,7 +2649,20 @@ export default function App() {
                   {/* 仅“更新日志”标题与下方双按钮之间的内容区域具有滚动能力 */}
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     <div>
-                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.3.2（当前）</div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.3.3（当前）</div>
+                      <div style={{ marginTop: '4px' }}>
+                        • 修复: 车机断连后手机锁屏仍残留播放卡片和第三方标题的问题<br />
+                        • 修复: 车机断连后自动清除手机端残留的歌曲“无法播放”提醒通知<br />
+                        • 修复: B站等自定义音源连接后当前视频封面不显示和封面闪烁的问题<br />
+                        • 修复: 音乐软件在后台被关闭后，残留通知偶发导致旧曲目信息保留的问题<br />
+                        • 优化: 原封面模式下切歌过渡更平滑，杜绝流光背景过渡<br />
+                        • 优化: 车机连接时提前预热媒体监听，连车后曲目识别更快<br />
+                        • 优化: 常驻通知随连接状态自动显示和消除机制<br />
+                        • 优化: 冷启动连接时的卡片抢占焦点表现
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>v1.3.2</div>
                       <div style={{ marginTop: '4px' }}>
                         • 新增: 冷启动 60s 等待期后通知消息补发机制<br />
                         • 优化: 四大 IM App 车载通知卡片显示，规范消息与功能引导<br />

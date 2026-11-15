@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.3.2-orange)
+![Version](https://img.shields.io/badge/Version-v1.3.3-orange)
 
 > Eine lokale Schnittstellenbrücke für Android Auto, mit der Fahrzeug-Displays bei Fahrten im Ausland gängige chinesische Audio-Streaming- und Messaging-Dienste nahtlos anzeigen und teilweise steuern können.
 
 <p align="center">
-  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/Besuchen-Offizielle_Website-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="Offizielle Website" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.2/Fahrmony_v1.3.2.apk"><img src="https://img.shields.io/badge/Download-Neueste_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="Neueste APK herunterladen" /></a>
+  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/Besuchen-Offizielle_Website-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="Offizielle Website" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.3/Fahrmony_v1.3.3.apk"><img src="https://img.shields.io/badge/Download-Neueste_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="Neueste APK herunterladen" /></a>
 </p>  
 
 ## Was ist Fahrmony?
@@ -51,7 +51,7 @@ Fahrmony nutzt ausschließlich offizielle Schnittstellen des Android-Betriebssys
 - **Adaptiver Hintergrund & Original-Cover**: Dynamische Farbabstimmung verhindert standardmäßig, dass dunkle Cover-Bilder die Bedientasten unleserlich machen; die neue optionale Einstellung „Audio-App Original-Wiedergabekarte“ ermöglicht es, direkt das klare, hochauflösende Original-Cover im Auto anzuzeigen, um individuellen Vorlieben für visuelle Originaltreue oder kontrastreiche Tasten gerecht zu werden.
 - **Wiedergabelisten und Wiederholungsmodi**: Reicht vorhandene Titellisten durch; tiefgehende Anpassung für das Umschalten von Wiedergabemodi (Schleife / Zufall / Einzeltitel / Herz-Modus usw.) am Bordbildschirm für gängige Musik-Apps, inklusive einseitiger Kalibrierfunktion auf dem Smartphone zum schnellen manuellen Abgleich bei Statusabweichungen.
 - **Fahrgerechte Benachrichtigungen & Display-Anpassung**: Für die 4 gängigen Messaging-Apps wurde die Anzeige von Benachrichtigungskarten im Fahrzeug unter der aktuellen Architektur umfassend optimiert, mit standardisierter Formatierung und ohne störende Präfixe oder Badge-Zahlen; erkennt Einzel- und Gruppenchats zuverlässig und filtert Gruppen-Spam; unterstützt fahrzeuggerechtes Vorlesen und „Stummschalten“; bei eingehenden Anrufen unterstützt QQ in speziellen Szenarien (wenn auf dem Smartphone kein Vollbild-Anrufbildschirm erscheint) das Annehmen oder Ablehnen über alternative Fahrzeugtasten; setzt die Musikwiedergabe nach Gesprächsende automatisch fort; beendet beim Trennen der Verbindung die Weiterleitung und löscht verbleibende Benachrichtigungskarten auf dem Smartphone zuverlässig.
-- **Schutz vor versehentlicher Tonwiedergabe**: Pausiert die Wiedergabe sofort beim Trennen des Kabels, damit das Handy nicht plötzlich laut weiterspielt.
+- **Schutz vor Tonwiedergabe & Status-Bereinigung**: Pausiert die Wiedergabe sofort beim Trennen des Kabels, damit das Handy nicht plötzlich laut weiterspielt; entfernt beim Trennen automatisch verbleibende Medienkarten auf dem Sperrbildschirm sowie die dauerhafte Laufbenachrichtigung (wird bei erneuter Verbindung automatisch wiederhergestellt) und verhindert Flackern beim Titelwechsel.
 - **Einheitliches Fluid-Design & Reine Hintergrundsteuerung**: Moderne Benutzeroberfläche, dynamisch an alle Smartphone-Displaygrößen angepasst; Browser-Scrollbalken sind vollständig ausgeblendet und bieten seidenweiches 120-Hz-Overscroll-Verhalten wie eine native App; mit Hell-/Dunkelmodus und Modus „Systemstandard“, 4-Sprachen-Unterstützung sowie Berechtigungs-Leitfaden.
 - **Live-Songtexte im Fahrzeug & Mehrfachmodus**: Zeigt Songtexte in Echtzeit direkt auf der Wiedergabekarte im Fahrzeug an; Umschaltung zwischen „Einzeilig“, „Zweizeilig (mit Zeilenvorschau)“ und „Aus“ über die Medieneinstellungen oder Fahrzeugtasten; tiefgreifend optimierte mehrstufige intelligente Suchpfade und flüssige Zeilenwechsel; intelligente Erkennung und Bereinigung von Bluetooth-Songtext-Injektionen; integrierte Schriftzeichenkonvertierung mit Speicheroptimierung.
 - **Dezente Update-Prüfung**: Ein leichtgewichtiger Erkennungsdienst prüft einmal täglich nachts im Hintergrund diskret auf neue GitHub-Releases; ein Doppeltipp auf das App-Logo im Info-Dialog startet zudem jederzeit eine manuelle Prüfung.
@@ -210,7 +210,7 @@ Aufgrund architektonischer Grenzen und eingeschränkter Schnittstellen von Dritt
 Wenn im Alltag ein Problem auftritt, können Sie gerne eine Fehlermeldung auf GitHub einreichen. Bitte nutzen Sie folgende Vorlage (**Hinweis: Bitte niemals vertrauliche private Nachrichteninhalte übermitteln**):
 
 ```text
-- Fahrmony-Version: v1.3.2
+- Fahrmony-Version: v1.3.3
 - Android-Version: z. B. Android 14
 - Smartphone-Modell: z. B. Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto-Version: z. B. 11.8
@@ -330,7 +330,7 @@ Dieses Projekt ist unter der Lizenz **Creative Commons Namensnennung - Nicht-kom
 
 ---
 
-## Vorschau v1.3.2
+## Vorschau v1.3.3
 
 <p align="center">
   <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/a73527ba-5438-4824-b120-6f3897e29706" />

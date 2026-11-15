@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.3.2-orange)
+![Version](https://img.shields.io/badge/Version-v1.3.3-orange)
 
 > A local-first interoperability bridge tailored for Android Auto, enabling car displays to naturally display and partially control your favorite Chinese streaming audio and messaging notifications while driving abroad.
 
 <p align="center">
-  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/Visit-Official_Website-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="Official Website" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.2/Fahrmony_v1.3.2.apk"><img src="https://img.shields.io/badge/Download-Latest_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="Download Latest APK" /></a>
+  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/Visit-Official_Website-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="Official Website" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.3/Fahrmony_v1.3.3.apk"><img src="https://img.shields.io/badge/Download-Latest_APK-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="Download Latest APK" /></a>
 </p>  
 
 ## What is Fahrmony?
@@ -52,7 +52,7 @@ Fahrmony establishes a bidirectional bridge using official Android standard inte
 - **Adaptive Ambient Artwork & Original Covers**: Generates high-contrast gradient backdrops by default to completely eliminate invisible black buttons on dark album art; adds an optional "Audio App Original Playing Card" toggle to directly display crisp, original high-definition album art on your car screen, accommodating individual preferences for either visual authenticity or high-contrast button legibility.
 - **Playback Queue & Playback Modes**: Automatically passes through playback queues when exposed by the underlying player; deeply adapted head-unit playback mode switching (Loop / Shuffle / Repeat One / Heartbeat, etc.) for mainstream music apps, with phone-side single-sided calibration for one-tap resynchronization when out of sync.
 - **Driving Safety Notification Companion & Display Adaptation**: Extensively optimized for in-car notification card display across the 4 mainstream messaging apps under the current architecture, standardizing message formatting and stripping redundant tags and badge noise; intelligently recognizes direct vs. group chat structures and suppresses group chat spam; supports automotive-grade voice readouts and "Mute" dismissal; for incoming calls, QQ supports answering or declining via alternate head-unit buttons specifically when the handset does not trigger a full-screen call page; automatically resumes music playback once calls end; automatically clears residual notifications upon car disconnection to eliminate phone-side duplicate alerts.
-- **Anti-Jitter & Audio Leak Prevention**: Instantly claims transient audio focus and pauses all players upon car disconnection to eliminate speaker audio leakage; enforces an anti-jitter state lock during track switching to prevent UI flashing.
+- **Anti-Jitter, Cleanup & Audio Leak Prevention**: Instantly claims transient audio focus and pauses all players upon car disconnection to eliminate speaker audio leakage; automatically clears residual lock-screen media cards and dismisses the persistent running notification on disconnect (automatically restoring it upon reconnection), while enforcing an anti-jitter state lock during track switching to prevent UI flashing.
 - **Unified Fluid Interface & Pure Background Controls**: A lightweight fluid console on the handset dynamically adapted to various screen resolutions; browser scrollbars are completely hidden, delivering silky 120fps native-like stretch and overscroll bounce; supports adaptive light/dark theming with "Follow System" mode, 4-language support, and permission setup guides.
 - **In-Car Live Lyrics & Multi-Mode Switching**: Real-time scrolling lyrics on head-unit playing cards with instant toggling between "Single-line", "Dual-line (with next line preview)", and "Off" via phone Media tab or in-car controls; deeply optimized multi-tier intelligent search pipelines and line-switch smoothness; intelligently identifies and sanitizes in-car Bluetooth lyric injection; built-in Traditional/Simplified Chinese auto-conversion with multi-tier memory throttling.
 - **Silent Update Detection**: Built-in lightweight update sensing checks the official GitHub Release once daily in the background with randomized jitter; double-tapping the app logo inside the "About" dialog also triggers an immediate update check to ensure you stay up to date.
@@ -211,7 +211,7 @@ Due to architectural and API exposure limitations in third-party audio apps, cer
 If you encounter an issue during daily driving, please file a report on GitHub Issues using the template below (**Note: Never submit personal private chat contents**):
 
 ```text
-- Fahrmony Version: v1.3.2
+- Fahrmony Version: v1.3.3
 - Android OS Version: e.g., Android 14
 - Phone Model: e.g., Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto Version: e.g., 11.8
@@ -331,7 +331,7 @@ Released under the **Creative Commons Attribution-NonCommercial 4.0 Internationa
 
 ---
 
-## Preview v1.3.2
+## Preview v1.3.3
 
 <p align="center">
   <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/a73527ba-5438-4824-b120-6f3897e29706" />

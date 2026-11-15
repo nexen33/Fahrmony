@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.3.2-orange)
+![Version](https://img.shields.io/badge/Version-v1.3.3-orange)
 
 > 一个为 Android Auto 打造的本地互操作桥接工具，让海外行车使用 Android Auto 时能够自然显示和部分操控你常用的中文流媒体音频与即时通讯通知。
 
 <p align="center">
-  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/点击进入-官方主页-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="官方主页" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.2/Fahrmony_v1.3.2.apk"><img src="https://img.shields.io/badge/点击下载-Fahrmony_最新安装包-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="下载安装包" /></a>
+  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/点击进入-官方主页-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="官方主页" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.3/Fahrmony_v1.3.3.apk"><img src="https://img.shields.io/badge/点击下载-Fahrmony_最新安装包-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="下载安装包" /></a>
 </p>
  
 <table align="center">
@@ -63,7 +63,7 @@ Fahrmony 基于安卓开放标准接口构建双向桥接链路：
 - **自适应流光背景与原生专辑图**：默认内置高对比度流光封面生成能力，彻底解决暗色专辑图和离线播放导致车机按键变黑的问题；同时新增了“音频App原始播放卡片”可选开关，开启后即可直接在车机端呈现清晰的原始高清专辑封面，满足不同用户对视觉纯粹感或按键高对比度的个性化偏好。
 - **播放队列与播放模式兼容**：自动透传播放器提供的真实歌单列表；针对部分主流音乐 App 深度适配了车机端播放模式切换（循环/随机/单曲/心动等），并在手机端部分提供单边校准功能，状态不同步时一键手动对齐。
 - **行车安全通知伴侣与显示适配**：四大主流通讯软件已针对车机端通知卡片显示进行当前架构下的充分适配，规范消息排版，剔除冗余标签与角标干扰；智能识别私聊与群聊结构，过滤群聊刷屏；支持车规级语音朗读与“静音”消除；针对来电，仅 QQ 在手机不弹出全屏接听页面的特定场景下，支持在车机端通过替代按键接听或拒接；通话结束后自动恢复音乐播放；断开车机后自动清除残留通知，杜绝手机端二次弹窗。
-- **断连防漏音与防颠簸保护**：拔线断开车机或音频物理中断时，立即抢占音频焦点并下发全量暂停，防止手机外放尴尬；切歌时提供状态保护锁，消除切歌过程中的闪烁。
+- **断连防漏音与状态清理**：拔线断开车机或音频物理中断时，立即抢占音频焦点并下发全量暂停，防止手机外放尴尬；断开后自动清除手机锁屏残留播放卡片与常驻运行通知（重新连车后自动恢复挂载），切歌时提供状态保护锁消除画面闪烁。
 - **统一流体界面与纯后台播控**：手机端控制台全面采用动态流体排版，自动适配不同屏幕尺寸机型；全面隐藏浏览器滚动条，支持原生 120 帧跟手滑动与回弹；支持深浅色自适应切换与跟随系统、四国语言切换以及系统权限引导。
 - **车载实时歌词与多模式切换**：支持在车机播放卡片上实时显示歌词，支持“单行歌词”、“双行歌词（含下句预告）”与“关闭”三种模式，可在手机端媒体页或车机播控栏一键循环切换；深度优化多层级智能搜寻通道与切行平滑度；智能识别并净化车载蓝牙歌词注入；内置常用汉字繁简自动转换与多级内存压制。
 - **无感更新检查**：内置轻量级更新感知机制，每天晚间在后台无感检测一次 GitHub 最新版本并在发现更新时提醒；在手机端“关于”弹窗内双击应用 Logo 也可主动检查更新，便于第一时间获取体验修复。
@@ -222,7 +222,7 @@ Fahrmony 基于安卓开放标准接口构建双向桥接链路：
 若在日常使用中遇到异常，欢迎通过代码仓库提交反馈。为了能快速分析问题，请在反馈中包含以下基础信息（**注意：严禁提交包含个人隐私的真实聊天内容**）：
 
 ```text
-- 软件版本：v1.3.2
+- 软件版本：v1.3.3
 - 手机系统版本：如 Android 14
 - 手机具体型号：如 Pixel 8 / 小米 14
 - 车载系统版本：如 Android Auto 11.8
@@ -342,7 +342,7 @@ adb forward tcp:5277 tcp:5277
 
 ---
 
-## 界面与效果预览 v1.3.2
+## 界面与效果预览 v1.3.3
 
 <p align="center">
   <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/a73527ba-5438-4824-b120-6f3897e29706" />

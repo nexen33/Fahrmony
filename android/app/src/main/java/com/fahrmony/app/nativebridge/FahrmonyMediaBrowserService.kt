@@ -4,6 +4,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
@@ -29,8 +31,14 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
         const val ROOT_ID = "__FAHRMONY_MEDIA_ROOT__"
         var instance: FahrmonyMediaBrowserService? = null
             private set
+        @Volatile
         var isCarConnected: Boolean = false
             private set
+    }
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val pendingStopForegroundRunnable = Runnable {
+        FahrmonyForegroundService.stop(applicationContext)
     }
 
     private var lastNotifiedTitle: String? = null
@@ -165,6 +173,7 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        if (!isCarConnected) return true
         isCarConnected = false
         FahrmonyIpcBridge.notifyCarConnectedChanged(false)
         // 车机断连拔线，立即向底层播放器下发双脉冲暂停指令，杜绝冷启动首次断连时音频通道重建造成的手机外放漏音
@@ -172,15 +181,15 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
         // 自动消除车机转接残留的 IM 通知，并清空通讯记录，保持手机通知栏与界面清爽
         FahrmonyNotificationListener.clearBridgeNotifications(applicationContext)
         FahrmonyLogBuffer.clear()
+        mainHandler.removeCallbacks(pendingStopForegroundRunnable)
+        mainHandler.postDelayed(pendingStopForegroundRunnable, 800L)
         // 返回 true 允许车机断开后未来重连时回调 onRebind，避免仅首次绑定才触发连接
         return true
     }
 
     override fun onRebind(intent: Intent?) {
         super.onRebind(intent)
-        isCarConnected = true
-        FahrmonyIpcBridge.notifyCarConnectedChanged(true)
-        FahrmonyMediaManager.onCarConnected(applicationContext)
+        onCarSessionConnected()
     }
 
     override fun onGetRoot(
@@ -192,11 +201,23 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
                         clientPackageName == "com.google.android.gms" ||
                         clientPackageName.contains("car", ignoreCase = true)
         if (isRealCar) {
-            isCarConnected = true
-            FahrmonyIpcBridge.notifyCarConnectedChanged(true)
-            FahrmonyMediaManager.onCarConnected(applicationContext)
+            onCarSessionConnected()
         }
         return BrowserRoot(ROOT_ID, null)
+    }
+
+    private fun onCarSessionConnected() {
+        mainHandler.removeCallbacks(pendingStopForegroundRunnable)
+        isCarConnected = true
+        FahrmonyIpcBridge.notifyCarConnectedChanged(true)
+        FahrmonyMediaManager.onCarConnected(applicationContext)
+        if (!FahrmonyForegroundService.isForegroundRunning()) {
+            try {
+                FahrmonyForegroundService.start(applicationContext)
+            } catch (e: Exception) {
+                FahrmonyLogBuffer.addLog("SYSTEM", "BrowserService", "连车前台守护启动受限", "${e.message}")
+            }
+        }
     }
 
     override fun onLoadChildren(
@@ -281,6 +302,8 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
      * 由 FahrmonyMediaManager 内存单例直接调用，毫无延迟与丢包风险
      */
     fun syncMetadata(metadata: MediaMetadataCompat) {
+        // 连接守卫 05: 未连接时底层服务禁止同步元数据 (底层终极兜底，脱机状态下物理拒绝写入任何元数据)
+        if (!isCarConnected) return
         if (::mediaSession.isInitialized) {
             mediaSession.setMetadata(metadata)
             // 智能队列适配：若底层播放器开放了真实播放列表，完整透传并点亮车机歌单；否则传 null 彻底隐藏右上角队列按键，保持极致清爽
@@ -303,6 +326,8 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
      * 仅且仅同步文本元数据，绝不重设 Queue 或触发 notifyChildrenChanged 媒体树重构
      */
     fun syncLyricMetadata(metadata: MediaMetadataCompat) {
+        // 连接守卫 05: 未连接时底层服务禁止同步元数据 (底层终极兜底，脱机状态下物理拒绝写入任何元数据)
+        if (!isCarConnected) return
         if (::mediaSession.isInitialized) {
             mediaSession.setMetadata(metadata)
         }
@@ -352,6 +377,7 @@ class FahrmonyMediaBrowserService : MediaBrowserServiceCompat() {
     }
 
     override fun onDestroy() {
+        mainHandler.removeCallbacks(pendingStopForegroundRunnable)
         isCarConnected = false
         FahrmonyIpcBridge.notifyCarConnectedChanged(false)
         FahrmonyMediaManager.unregisterBrowserService(this)

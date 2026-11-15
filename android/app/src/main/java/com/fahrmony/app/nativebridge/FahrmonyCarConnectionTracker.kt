@@ -1,5 +1,7 @@
 package com.fahrmony.app.nativebridge
 
+import android.app.ActivityManager
+import android.app.Application
 import android.app.UiModeManager
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -9,6 +11,7 @@ import android.content.IntentFilter
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
+import android.os.Process
 
 /**
  * Fahrmony 车载连接与活跃投屏状态感知器
@@ -55,6 +58,7 @@ object FahrmonyCarConnectionTracker {
                     override fun onReceive(ctx: Context?, intent: Intent?) {
                         when (intent?.action) {
                             ACTION_CAR_CONNECTION_UPDATED -> {
+                                val prevType = cachedConnectionType
                                 val type = intent.getIntExtra(EXTRA_CONNECTION_TYPE, -1)
                                 if (type != -1) {
                                     cachedConnectionType = type
@@ -62,22 +66,26 @@ object FahrmonyCarConnectionTracker {
                                     cachedConnectionType = queryConnectionType(ctx ?: context)
                                 }
                                 if (cachedConnectionType == CONNECTION_TYPE_NOT_CONNECTED) {
-                                    val c = ctx ?: context
-                                    FahrmonyNotificationListener.clearBridgeNotifications(c)
-                                    FahrmonyLogBuffer.clear()
-                                    FahrmonyIpcBridge.notifyCarConnectedChanged(false)
+                                    if (isConnectedType(prevType)) {
+                                        handleDisconnect(ctx ?: context, stopForegroundService = true)
+                                    }
+                                } else if (isConnectedType(cachedConnectionType)) {
+                                    warmUpMediaManagerIfCarProcess(ctx ?: context)
                                 }
                             }
                             UiModeManager.ACTION_ENTER_CAR_MODE -> {
                                 cachedConnectionType = CONNECTION_TYPE_PROJECTION
                                 FahrmonyIpcBridge.notifyCarConnectedChanged(true)
+                                warmUpMediaManagerIfCarProcess(ctx ?: context)
                             }
                             UiModeManager.ACTION_EXIT_CAR_MODE -> {
+                                val prevType = cachedConnectionType
                                 cachedConnectionType = CONNECTION_TYPE_NOT_CONNECTED
                                 val c = ctx ?: context
-                                FahrmonyNotificationListener.clearBridgeNotifications(c)
-                                FahrmonyLogBuffer.clear()
-                                FahrmonyIpcBridge.notifyCarConnectedChanged(false)
+                                if (isConnectedType(prevType)) {
+                                    val confirmedDisconnected = queryConnectionType(c, fallbackToCache = false) == CONNECTION_TYPE_NOT_CONNECTED
+                                    handleDisconnect(c, stopForegroundService = confirmedDisconnected)
+                                }
                             }
                             BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                                 val c = ctx ?: context
@@ -86,9 +94,7 @@ object FahrmonyCarConnectionTracker {
                                     val currentType = queryConnectionType(c)
                                     if (currentType == CONNECTION_TYPE_NOT_CONNECTED) {
                                         cachedConnectionType = CONNECTION_TYPE_NOT_CONNECTED
-                                        FahrmonyNotificationListener.clearBridgeNotifications(c)
-                                        FahrmonyLogBuffer.clear()
-                                        FahrmonyIpcBridge.notifyCarConnectedChanged(false)
+                                        handleDisconnect(c, stopForegroundService = true)
                                     }
                                 }
                             }
@@ -119,7 +125,7 @@ object FahrmonyCarConnectionTracker {
 
         // 2. 查询 Android Auto (Gearhead) 官方投屏状态 Provider (PROJECTION = 2 为正在投屏)
         val currentType = queryConnectionType(context)
-        if (currentType == CONNECTION_TYPE_PROJECTION || currentType == CONNECTION_TYPE_NATIVE) {
+        if (isConnectedType(currentType)) {
             return true
         }
 
@@ -134,7 +140,7 @@ object FahrmonyCarConnectionTracker {
         return false
     }
 
-    private fun queryConnectionType(context: Context): Int {
+    private fun queryConnectionType(context: Context, fallbackToCache: Boolean = true): Int {
         try {
             val cursor = context.contentResolver.query(
                 CAR_CONNECTION_URI,
@@ -154,6 +160,40 @@ object FahrmonyCarConnectionTracker {
                 }
             }
         } catch (ignored: Exception) {}
-        return cachedConnectionType ?: CONNECTION_TYPE_NOT_CONNECTED
+        return if (fallbackToCache) (cachedConnectionType ?: CONNECTION_TYPE_NOT_CONNECTED) else CONNECTION_TYPE_NOT_CONNECTED
+    }
+
+    private fun isConnectedType(type: Int?): Boolean {
+        return type == CONNECTION_TYPE_PROJECTION || type == CONNECTION_TYPE_NATIVE
+    }
+
+    private fun handleDisconnect(context: Context, stopForegroundService: Boolean) {
+        FahrmonyNotificationListener.clearBridgeNotifications(context)
+        FahrmonyLogBuffer.clear()
+        FahrmonyIpcBridge.notifyCarConnectedChanged(false)
+        if (stopForegroundService && isCarProcess(context)) {
+            FahrmonyForegroundService.stop(context)
+        }
+    }
+
+    private fun warmUpMediaManagerIfCarProcess(context: Context) {
+        if (!isCarProcess(context)) return
+        try {
+            FahrmonyMediaManager.warmUpOnCarProjection(context.applicationContext)
+        } catch (ignored: Exception) {}
+    }
+
+    private fun isCarProcess(context: Context): Boolean {
+        if (Build.FINGERPRINT.equals("robolectric", ignoreCase = true)) return true
+        val processName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try { Application.getProcessName() } catch (ignored: Exception) { null }
+        } else {
+            try {
+                val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+                val pid = Process.myPid()
+                am?.runningAppProcesses?.firstOrNull { it.pid == pid }?.processName
+            } catch (ignored: Exception) { null }
+        }
+        return !processName.isNullOrBlank() && processName.endsWith(":car")
     }
 }

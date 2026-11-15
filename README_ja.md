@@ -10,12 +10,12 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-Native-purple)
 ![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-red)
 &nbsp;&nbsp;
-![Version](https://img.shields.io/badge/Version-v1.3.0-orange)
+![Version](https://img.shields.io/badge/Version-v1.3.3-orange)
 
 > Android Auto 向けに設計されたローカル相互運用ブリッジ。海外での運転時にも、普段使い慣れた中国語ストリーミング音楽やメッセージ通知を車載画面で自然に表示・操作できます。
 
 <p align="center">
-  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/公式サイト-アクセス-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="公式サイト" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.2/Fahrmony_v1.3.2.apk"><img src="https://img.shields.io/badge/最新版APK-ダウンロード-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="最新版APKをダウンロード" /></a>
+  <a href="https://nexen33.github.io/Fahrmony/home.html"><img src="https://img.shields.io/badge/公式サイト-アクセス-white?style=for-the-badge&logo=googlechrome&logoColor=white" height="26" alt="公式サイト" /></a>&nbsp;&nbsp;<a href="https://github.com/nexen33/Fahrmony/releases/download/v1.3.3/Fahrmony_v1.3.3.apk"><img src="https://img.shields.io/badge/最新版APK-ダウンロード-0284c7?style=for-the-badge&logo=android&logoColor=white" height="26" alt="最新版APKをダウンロード" /></a>
 </p>
 
 ## Fahrmony とは
@@ -51,7 +51,7 @@ Fahrmony は Android の公式標準インターフェースのみを用いて�
 - **適応型背景生成とオリジナルカバー表示**：暗いアルバム画像による車載ボタンの視認性低下を防ぐ高コントラスト背景を標準生成。さらに「音楽アプリのオリジナル再生カード」切り替えオプションを新たに追加し、有効にすることで車載画面に鮮明なオリジナル高解像度アルバムカバーをそのまま表示可能。視覚的な純粋さやボタンの高コントラスト表示など、ユーザーごとの好みに合わせて柔軟に選択できます。
 - **再生キューと再生モードの互換性**：元のアプリが提供するプレイリストを車載側に自動表示；主要な音楽アプリに対して車載側の再生モード切り替え（リピート／シャッフル／1曲リピート／お気に入りモード等）を高度に適応させ、表示の不一致が発生した際にスマホ側からワンタップで即時同期できる片側キャリブレーション機能を搭載。
 - **安全運転メッセージ通知と表示適応**：主要な4大メッセージアプリの車載通知カード表示を現在のアーキテクチャ下で最大限に最適化。メッセージのレイアウトを整え、不要なタグやバッジのノイズを徹底排除；個人チャットとグループチャットを賢く識別し、グループの連続通知を自動フィルタリング；車載音声読み上げと「ミュート」による消去に対応；着信時、QQ において端末側で全画面着信画面が立ち上がらない特定条件下においてのみ、車載側の代替ボタンによる応答または拒否をサポート；通話終了後は音楽の自動再開を完結；車載機から切断された際は通知の転送を自動停止し、スマホ側の残留通知カードを確実に消去します。
-- **切断時の音漏れ防止とチラつき防止**：ケーブル切断時に瞬時にオーディオフォーカスを要求して全プレイヤーを一時停止し、車外でのスマホ大音量出力を防止。選曲時の連打による画面のチラつきも防止。
+- **切断時の音漏れ防止とステータス整理**：ケーブル切断時に瞬時にオーディオフォーカスを要求して全プレイヤーを一時停止し、車外でのスマホ大音量出力を防止。切断後はスマホのロック画面に残る再生カードや常駐通知も自動で消去し（再接続時に自動復帰）、選曲時の連打による画面のチラつきも防止。
 - **統一された流体 UI と純バックグラウンド制御**：スマホ側の管理画面は各種画面サイズに自動適応する動的レイアウトを採用。ブラウザのスクロールバーを完全に隠し、ネイティブアプリ同等の滑らかな 120Hz オーバースクロールとバウンスを実現。ダーク／ライトモード（システム追従対応）、4言語切り替え、各種権限の設定ガイドに対応。
 - **車載リアルタイム歌詞とマルチモード切り替え**：車載再生カード上でリアルタイムに歌詞を表示。「1行歌詞」「2行歌詞（次行プレビュー付き）」「オフ」の3つのモードに対応し、スマホ側のメディア設定または車載コントロールからワンタップで切り替え可能；多層のインテリジェント検索パイプラインと行切り替えのスムーズさを徹底的に最適化；車載 Bluetooth 歌詞の重複注入を自動識別・浄化；常用漢字の繁簡自動変換と多段階メモリ抑制機構を内蔵。
 - **サイレント更新確認**：軽量な更新検出機能を内蔵し、毎晩バックグラウンドで公式 GitHub Releases を自動検知して新バージョンをお知らせ。さらに「アプリ情報」ダイアログ内のロゴをダブルタップすることで、いつでも手動で更新確認を行えます。
@@ -212,7 +212,7 @@ Fahrmony は Android の公式標準インターフェースのみを用いて�
 日常のご利用で不具合が発生した場合は、GitHub Issues にてご報告いただけます。迅速な原因特定のため、以下の情報をご記載ください（**ご注意：個人情報や実際のメッセージ内容は絶対に記載しないでください**）：
 
 ```text
-- Fahrmony バージョン：v1.3.2
+- Fahrmony バージョン：v1.3.3
 - Android バージョン：例 Android 14
 - 端末の機種名：例 Pixel 8 / Galaxy S24 / Xiaomi 14
 - Android Auto バージョン：例 11.8
@@ -329,7 +329,7 @@ Fahrmony の車載リアルタイム歌詞機能では、高度に疎結合化�
 
 ---
 
-## プレビュー v1.3.2
+## プレビュー v1.3.3
 
 <p align="center">
   <img width="7550" height="5650" alt="Image" src="https://github.com/user-attachments/assets/a73527ba-5438-4824-b120-6f3897e29706" />
